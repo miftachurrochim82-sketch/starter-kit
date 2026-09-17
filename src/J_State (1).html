@@ -1,0 +1,40 @@
+<script>
+// ==================== J_STATE: DATA & COMPUTED APLIKASI VUE ====================
+var APP_STATE = {
+  data: function () {
+    return {
+      ready: false,             // true setelah sesi terverifikasi / SSO selesai
+      loading: false,
+      saving: false,
+      errorMessage: '',
+      session: { token: '', user: null },
+      currentPage: 'dashboard',
+      sidebarCollapsed: window.innerWidth < 768,
+      isMobile: window.innerWidth < 768,
+      isDarkMode: false,
+      dashboardStats: {},
+      pegawaiList: [],
+      contohList: [],
+      showContohModal: false,
+      contohForm: {}
+    };
+  },
+  computed: {
+    appBrand: function () {
+      return { title: 'SI-CONTOH', subtitle: 'Pemkab Trenggalek', logoChar: 'SC', logoIcon: 'fa-solid fa-cube' };
+    },
+    menuForKit: function () {
+      return [
+        {
+          name: 'Menu Utama',
+          items: [
+            { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high' }
+            // [SESUAIKAN] tambah halaman baru: { id: 'x', label: 'X', icon: 'fa-solid fa-...' }
+          ]
+        }
+      ];
+    }
+  }
+};
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c7b0e0fbd89f74',t:'MTc4OTY0MzcwNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>

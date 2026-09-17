@@ -1,0 +1,152 @@
+<script>
+// ==================== J_APP: METHODS + BOOTSTRAP + MOUNT ====================
+(function () {
+  var STORAGE_KEY = 'sicontoh_session';
+
+  function loadSession() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+  function saveSession(s) {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
+  }
+  function clearSession() {
+    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+  }
+
+  var methods = {
+    // Satu-satunya jalur ke server (pola si-platform/si-kompetensi)
+    callServer: function (action, data) {
+      var self = this;
+      return new Promise(function (resolve, reject) {
+        google.script.run
+          .withSuccessHandler(resolve)
+          .withFailureHandler(reject)
+          .api({ action: action, data: data || {}, token: self.session.token || '' });
+      });
+    },
+
+    switchPage: function (id) {
+      this.currentPage = id;
+      if (this.isMobile) this.sidebarCollapsed = true;
+    },
+
+    toggleDark: function () {
+      this.isDarkMode = !this.isDarkMode;
+      document.documentElement.classList.toggle('dark', this.isDarkMode);
+    },
+
+    loadAll: function () {
+      var self = this;
+      self.loading = true;
+      Promise.all([
+        self.callServer('get_dashboard'),
+        self.callServer('get_pegawai_list'),
+        self.callServer('get_contoh_list')
+      ]).then(function (res) {
+        if (res[0] && res[0].success) self.dashboardStats = res[0].data || {};
+        if (res[1] && res[1].success) self.pegawaiList = res[1].data || [];
+        if (res[2] && res[2].success) self.contohList = res[2].data || [];
+        self.ready = true;
+      }).catch(function (err) {
+        self.errorMessage = 'Gagal memuat data: ' + (err && err.message ? err.message : err);
+        self.ready = true;
+      }).then(function () { self.loading = false; });
+    },
+
+    openContohModal: function (item) {
+      this.contohForm = item
+        ? { id: item.id, kode: item.kode, judul: item.judul, status: item.status, keterangan: item.keterangan }
+        : { judul: '', status: 'draft', keterangan: '' };
+      this.showContohModal = true;
+    },
+
+    saveContoh: function () {
+      var self = this;
+      if (!self.contohForm.judul) { self.errorMessage = 'Judul wajib diisi.'; return; }
+      self.saving = true;
+      self.callServer('save_contoh', self.contohForm).then(function (res) {
+        if (res && res.success) {
+          self.showContohModal = false;
+          return self.callServer('get_contoh_list').then(function (r2) {
+            if (r2 && r2.success) self.contohList = r2.data || [];
+          });
+        }
+        self.errorMessage = (res && res.error && res.error.message) || 'Gagal menyimpan.';
+      }).catch(function () { self.errorMessage = 'Gagal menyimpan.'; })
+        .then(function () { self.saving = false; });
+    },
+
+    deleteContoh: function (item) {
+      var self = this;
+      if (!window.confirm('Hapus data "' + item.judul + '"?')) return;
+      self.callServer('delete_contoh', { id: item.id }).then(function (res) {
+        if (res && res.success) {
+          self.contohList = self.contohList.filter(function (x) { return x.id !== item.id; });
+        }
+      });
+    },
+
+    logout: function () {
+      var self = this;
+      self.callServer('logout').then(function () {
+        clearSession();
+        self.session = { token: '', user: null };
+        self.ready = false;
+        self.errorMessage = 'Anda telah keluar. Buka ulang aplikasi dari SI-PLATFORM.';
+      });
+    },
+
+    // Bootstrap: tiket SSO di URL > sesi tersimpan > minta buka dari portal
+    boot: function () {
+      var self = this;
+      var ticket = (window.__TICKET__ || '').trim();
+      if (ticket) {
+        self.callServer('exchange_platform_ticket', { ticket: ticket }).then(function (res) {
+          if (res && res.success && res.data) {
+            self.session = { token: res.data.token, user: res.data.user };
+            saveSession(self.session);
+            self.loadAll();
+          } else {
+            self.ready = true;
+            self.errorMessage = (res && res.error && res.error.message) || 'Tiket SSO ditolak.';
+          }
+        }).catch(function () { self.ready = true; self.errorMessage = 'Gagal menghubungi server.'; });
+        return;
+      }
+      var stored = loadSession();
+      if (stored && stored.token) {
+        self.session = stored;
+        self.loadAll(); // loadAll gagal → checkAuth server yang menolak sesi basi
+        return;
+      }
+      self.ready = true;
+      self.errorMessage = 'Buka aplikasi ini dari katalog SI-PLATFORM agar masuk otomatis (SSO).';
+    }
+  };
+
+  var app = Vue.createApp({
+    data: APP_STATE.data,
+    computed: APP_STATE.computed,
+    methods: methods,
+    mounted: function () {
+      var self = this;
+      window.addEventListener('resize', function () {
+        self.isMobile = window.innerWidth < 768;
+        if (!self.isMobile) self.sidebarCollapsed = false;
+      });
+      this.boot();
+    }
+  });
+
+  // Registrasi SEMUA komponen kit dari CDN (pola teruji si-platform/si-kompetensi)
+  Object.keys(window.AppComponents || {}).forEach(function (n) {
+    if (n !== 'version') app.component(n, window.AppComponents[n]);
+  });
+
+  app.mount('#app');
+})();
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3c7b07d3f499f74',t:'MTc4OTY0MzY4OA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>

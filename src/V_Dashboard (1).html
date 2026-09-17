@@ -1,0 +1,77 @@
+<!-- ==================== HALAMAN: DASHBOARD (contoh pola) ==================== -->
+<div v-if="currentPage === 'dashboard'" class="space-y-6">
+
+  <!-- Baris statistik: app-stat-card -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <app-stat-card title="Pegawai (SIMPEG)" :value="dashboardStats.totalPegawai || 0" icon="fa-solid fa-users" color="sky" subtext="Master read-only"></app-stat-card>
+    <app-stat-card title="Data Contoh" :value="dashboardStats.totalContoh || 0" icon="fa-solid fa-database" color="emerald" subtext="Transaksi app ini"></app-stat-card>
+    <app-stat-card title="Role Saya" :value="dashboardStats.role || '-'" icon="fa-solid fa-shield-halved" color="purple" :subtext="dashboardStats.nama || ''"></app-stat-card>
+  </div>
+
+  <!-- Contoh CRUD: app-crud-table + app-modal -->
+  <div class="flex justify-between items-center gap-3">
+    <h2 class="text-base font-bold text-slate-900 dark:text-white">Transaksi Contoh (T_CONTOH)</h2>
+    <button type="button" @click="openContohModal()" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Tambah</button>
+  </div>
+
+  <app-crud-table
+    :items="contohList"
+    :columns="[{ key: 'kode', label: 'Kode' }, { key: 'judul', label: 'Judul' }, { key: 'status', label: 'Status' }, { key: 'aksi', label: 'Aksi', thClass: 'text-right' }]"
+    :loading="loading"
+    empty-text="Belum ada data contoh."
+    @change-page="() => {}">
+    <template #row="{ row: item }">
+      <td class="py-3 px-4 font-mono text-xs text-emerald-700 font-bold dark:text-emerald-400">{{ item.kode }}</td>
+      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">{{ item.judul }}</td>
+      <td class="py-3 px-4"><app-badge :status="item.status === 'selesai' ? 'approved' : (item.status === 'diajukan' ? 'menunggu' : 'info')" :label="item.status"></app-badge></td>
+      <td class="py-3 px-4 text-right">
+        <button type="button" @click="openContohModal(item)" class="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100" title="Edit"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
+        <button type="button" @click="deleteContoh(item)" class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100" title="Hapus"><i class="fa-solid fa-trash-can text-xs"></i></button>
+      </td>
+    </template>
+  </app-crud-table>
+
+  <!-- Demo master SIMPEG (read-only, tolerant reader) -->
+  <h2 class="text-base font-bold text-slate-900 dark:text-white">Master Pegawai (dari SIMPEG)</h2>
+  <app-crud-table
+    :items="pegawaiList.slice(0, 10)"
+    :columns="[{ key: 'nip', label: 'NIP' }, { key: 'nama', label: 'Nama' }, { key: 'email', label: 'Email' }]"
+    :loading="loading"
+    empty-text="Master pegawai belum terbaca."
+    @change-page="() => {}">
+    <template #row="{ row: p }">
+      <td class="py-3 px-4 font-mono text-xs">{{ p.nip }}</td>
+      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">{{ p.nama }}</td>
+      <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ p.email || '-' }}</td>
+    </template>
+  </app-crud-table>
+</div>
+
+<!-- Modal form contoh: app-modal -->
+<app-modal
+  :show="showContohModal"
+  :title="contohForm.id ? 'Edit Data Contoh' : 'Tambah Data Contoh'"
+  icon="fa-solid fa-database"
+  :loading="saving"
+  confirm-text="Simpan"
+  @close="showContohModal = false"
+  @confirm="saveContoh">
+  <div class="space-y-4">
+    <div>
+      <label class="form-label">Judul *</label>
+      <input v-model="contohForm.judul" class="form-input" placeholder="Judul transaksi">
+    </div>
+    <div>
+      <label class="form-label">Status</label>
+      <select v-model="contohForm.status" class="form-input">
+        <option value="draft">Draft</option>
+        <option value="diajukan">Diajukan</option>
+        <option value="selesai">Selesai</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Keterangan</label>
+      <textarea v-model="contohForm.keterangan" rows="3" class="form-input" placeholder="Catatan tambahan"></textarea>
+    </div>
+  </div>
+</app-modal>
