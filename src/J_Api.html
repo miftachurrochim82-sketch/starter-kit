@@ -6,13 +6,12 @@
 //
 // PRINSIP:
 //   - Semua panggilan lewat `this.callServer(action, data)` — dari AppCore.
-//   - Respons format: { success: true, data } | { success:false, code, error }
-//   - Parameter `silent` = true → tidak munculkan toast (untuk init phase).
+//   - Respons: { success: true, data } | { success:false, code, error }
+//   - Parameter `silent = true` → tidak munculkan toast (untuk init phase).
 //   - Loader hanya mengubah state; tidak menghitung turunan
 //     (itu tugas computed di J_State).
 //
-// [SESUAIKAN] Ganti loader contoh (loadContoh, saveContohData, deleteContohData)
-// dengan bisnis Anda. Nama file ini boleh tetap `J_Api.html`.
+// [SESUAIKAN] Ganti loader domain sesuai bisnis Anda.
 // ============================================================
 
 window.StarterKitApi = {
@@ -20,7 +19,7 @@ window.StarterKitApi = {
 
     // ==================== DASHBOARD ====================
     /**
-     * Load dashboard ringkas (jumlah pegawai + jumlah contoh).
+     * Load dashboard ringkas (KPI dari handler get_dashboard).
      */
     async loadDashboard(silent) {
       var isSilent = silent === true;
@@ -29,7 +28,10 @@ window.StarterKitApi = {
         if (res && res.success && res.data) {
           this.dashboardData = Object.assign({
             totalPegawai: 0,
-            totalContoh:  0,
+            totalUtama:   0,
+            totalAktif:   0,
+            totalSelesai: 0,
+            totalRekap:   0,
             role:         'viewer',
             nama:         ''
           }, res.data);
@@ -42,40 +44,64 @@ window.StarterKitApi = {
       }
     },
 
-    // ==================== CONTOH (T_CONTOH) ====================
+    // ==================== MASTER SATELIT ====================
     /**
-     * Load list contoh. [SESUAIKAN] ganti nama & action.
+     * Load master pendukung — dipakai dropdown di modal (kategori, satuan).
+     * [SESUAIKAN] tambah master lain sesuai kebutuhan.
      */
-    async loadContoh(silent) {
+    async loadMasterSatelit(silent) {
       var isSilent = silent === true;
-      this.contohLoading = true;
       try {
-        var res = await this.callServer('get_contoh_list');
+        var res = await this.callServer('get_master_satelit');
+        if (res && res.success && res.data) {
+          this.kategoriList = res.data.kategori || [];
+          this.satuanList   = res.data.satuan   || [];
+          // referensiList juga ada di payload — simpan kalau perlu
+          // this.referensiList = res.data.referensi || [];
+        } else if (!isSilent) {
+          this.showToast('Gagal memuat master data.', 'error');
+        }
+      } catch (e) {
+        console.error('Gagal load master satelit:', e);
+        if (!isSilent) this.showToast('Error koneksi saat memuat master.', 'error');
+      }
+    },
+
+    // ==================== T_UTAMA ====================
+    /**
+     * Load list transaksi utama. Filter & paginasi dilakukan di frontend
+     * (computed `filteredUtama` + `paginatedUtama`).
+     */
+    async loadUtama(silent) {
+      var isSilent = silent === true;
+      this.utamaLoading = true;
+      try {
+        var res = await this.callServer('get_utama_list');
         if (res && res.success) {
-          this.contohList = res.data || [];
+          this.utamaList = res.data || [];
         } else if (!isSilent) {
           this.showToast((res && res.error) || 'Gagal memuat data.', 'error');
         }
       } catch (e) {
-        console.error('Gagal load contoh:', e);
+        console.error('Gagal load utama:', e);
         if (!isSilent) this.showToast('Error koneksi saat memuat data.', 'error');
       } finally {
-        this.contohLoading = false;
+        this.utamaLoading = false;
       }
     },
 
     /**
-     * Simpan (insert / update) — record lengkap dari this.contohForm.
-     * Return true bila sukses, false bila gagal.
+     * Simpan (insert / update) — record lengkap dari this.utamaForm.
+     * Return true bila sukses.
      */
-    async saveContohData() {
+    async saveUtamaData() {
       try {
-        var res = await this.callServer('save_contoh', { record: this.contohForm });
+        var res = await this.callServer('save_utama', { record: this.utamaForm });
         if (res && res.success) return true;
         this.showToast((res && res.error) || 'Gagal menyimpan.', 'error');
         return false;
       } catch (e) {
-        console.error('Gagal save contoh:', e);
+        console.error('Gagal save utama:', e);
         this.showToast('Error koneksi saat menyimpan.', 'error');
         return false;
       }
@@ -83,45 +109,59 @@ window.StarterKitApi = {
 
     /**
      * Hapus record berdasarkan id.
-     * Return true bila sukses.
      */
-    async deleteContohData(id) {
+    async deleteUtamaData(id) {
       try {
-        var res = await this.callServer('delete_contoh', { id: id });
+        var res = await this.callServer('delete_utama', { id: id });
         if (res && res.success) return true;
         this.showToast((res && res.error) || 'Gagal menghapus.', 'error');
         return false;
       } catch (e) {
-        console.error('Gagal delete contoh:', e);
+        console.error('Gagal delete utama:', e);
         this.showToast('Error koneksi saat menghapus.', 'error');
         return false;
       }
     },
 
+    // ==================== M_REFERENSI (opsional) ====================
+    // Buka bila Anda butuh halaman master referensi.
+    // async loadReferensi(silent) {
+    //   var isSilent = silent === true;
+    //   this.referensiLoading = true;
+    //   try {
+    //     var res = await this.callServer('get_referensi_list');
+    //     if (res && res.success) this.referensiList = res.data || [];
+    //     else if (!isSilent) this.showToast((res && res.error) || 'Gagal memuat referensi.', 'error');
+    //   } catch (e) {
+    //     console.error('Gagal load referensi:', e);
+    //     if (!isSilent) this.showToast('Error koneksi.', 'error');
+    //   } finally {
+    //     this.referensiLoading = false;
+    //   }
+    // },
+
     // ==================== ORKESTRASI ====================
     /**
-     * Load semua modul utama — dipakai tombol Refresh dan init phase.
-     * [SESUAIKAN] tambah loader lain bila app punya modul lebih banyak.
+     * Load semua modul utama — dipakai tombol Refresh & init phase.
      */
     async loadAll(silent) {
       var isSilent = silent === true;
       await Promise.all([
+        this.loadMasterSatelit(isSilent),
         this.loadDashboard(isSilent),
-        this.loadContoh(isSilent)
+        this.loadUtama(isSilent)
       ]);
     },
 
     // ==================== KONFIGURASI (Script Properties) ====================
     /**
-     * Load konfigurasi app (dipakai <app-settings> bila ditambahkan).
+     * Load konfigurasi app (dipakai <app-settings> bila halaman pengaturan ditambahkan).
      */
     async loadConfig(silent) {
       var isSilent = silent === true;
       try {
         var res = await this.callServer('get_config');
-        if (res && res.success) {
-          return res.data || [];
-        }
+        if (res && res.success) return res.data || [];
         if (!isSilent) this.showToast((res && res.error) || 'Gagal memuat konfigurasi.', 'error');
         return [];
       } catch (e) {
@@ -130,6 +170,19 @@ window.StarterKitApi = {
         return [];
       }
     }
+
+    // ==================== PLACEHOLDER 8 SHEET LAIN ====================
+    // Buka komentar saat Anda mulai memakai sheet tambahan.
+    // Pola sama persis dengan loadUtama/saveUtamaData/deleteUtamaData.
+    //
+    // async loadKategori(silent)    { ... 'get_kategori_list' ... }
+    // async loadSatuan(silent)      { ... 'get_satuan_list' ... }
+    // async loadItem(silent)        { ... 'get_item_list' ... }
+    // async loadLogbook(silent)     { ... 'get_logbook_list' ... }
+    // async loadLampiran(silent)    { ... 'get_lampiran_list' ... }
+    // async loadApproval(silent)    { ... 'get_approval_list' ... }
+    // async loadJadwal(silent)      { ... 'get_jadwal_list' ... }
+    // async loadRekap(silent)       { ... 'get_rekap_list' ... }
 
   }
 };
