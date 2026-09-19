@@ -1,0 +1,72 @@
+<!-- ============================================================
+     STARTER-KIT - V_Modals.html (v2.0.0)
+     ============================================================
+     Seluruh modal form terpusat di sini (pola si-kompetensi & si-lahar).
+     Semua modal = komponen kit <app-modal> (size 2xl, 3xl, dll).
+     State form hidup di root vm (J_State + J_Actions).
+
+     [SESUAIKAN] Ganti modal Contoh dengan modal bisnis Anda.
+
+     Urutan modal:
+       1) Contoh (form Tambah/Edit)
+       2) ... (tambahkan sesuai kebutuhan)
+     ============================================================ -->
+
+  <!-- ================= MODAL FORM CONTOH ================= -->
+  <app-modal :show="showContohForm"
+             :title="contohForm.id ? 'Edit Data Contoh' : 'Data Contoh Baru'"
+             subtitle="Contoh form dengan berbagai jenis input"
+             icon="fa-solid fa-pen-to-square"
+             size="2xl"
+             :loading="contohSaving"
+             confirm-text="Simpan"
+             cancel-text="Batal"
+             @close="showContohForm = false"
+             @confirm="saveContoh()">
+    <div class="space-y-4">
+
+      <!-- Judul -->
+      <div>
+        <label class="form-label">Judul *</label>
+        <input type="text"
+               v-model="contohForm.judul"
+               placeholder="Masukkan judul singkat"
+               class="input w-full">
+      </div>
+
+      <!-- Pegawai (picker SIMPEG) -->
+      <div>
+        <app-pegawai-picker v-model="contohForm.pegawai_id"
+                            label="Pegawai Penanggung Jawab"
+                            placeholder="Ketik nama / NIP…"></app-pegawai-picker>
+      </div>
+
+      <!-- Grid 2 kolom: Tanggal + Status -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">Tanggal</label>
+          <input type="date"
+                 v-model="contohForm.tanggal"
+                 class="input w-full">
+        </div>
+        <div>
+          <label class="form-label">Status</label>
+          <select v-model="contohForm.status" class="input w-full">
+            <option value="draft">Draft</option>
+            <option value="diajukan">Diajukan</option>
+            <option value="selesai">Selesai</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Keterangan -->
+      <div>
+        <label class="form-label">Keterangan</label>
+        <textarea v-model="contohForm.keterangan"
+                  rows="3"
+                  placeholder="Catatan tambahan (opsional)"
+                  class="input w-full resize-none"></textarea>
+      </div>
+
+    </div>
+  </app-modal>
