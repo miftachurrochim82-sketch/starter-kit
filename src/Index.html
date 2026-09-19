@@ -1,22 +1,152 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <?!= include('A0_Head'); ?>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SI-CONTOH &bull; Pemkab Trenggalek</title>
+
+  <!-- [SESUAIKAN] warna tema browser (hex --primary Anda) -->
+  <meta name="theme-color" content="#059669">
+
+  <link rel="preconnect" href="https://cdn.jsdelivr.net">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Vendor CDN (sesuai standar CDN_SNIPPET v2.8.1) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' };</script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/vue@3.5.42/dist/vue.global.prod.js"></script>
+
+  <!--
+    ============================================================
+    Shared CDN Pemkab Trenggalek v2.8.1
+    ------------------------------------------------------------
+    ATURAN (sesuai CDN_SNIPPET.md v2.8.1):
+    1. Selalu pakai TAG VERSI (@v2.8.1), JANGAN @main.
+    2. Pakai berkas .min (hasil build, di-commit di repo CDN).
+    3. JANGAN muat chart.js / xlsx / jspdf / pdf-lib di sini.
+       Semua itu dimuat on-demand lewat AppCore.loadLib().
+
+    Ringkasan starter-kit v2.0.0 (2026-09-19):
+    - Pola identik si-kompetensi v6.0.1 & si-lahar v2.1.0.
+    - CDN @v2.8.1 (internal "2.8.0") + Vue 3.5.42 + FA 6.5.2.
+    - Shell tipis, tanpa A0_Head.html (head inline).
+    - Include satu tingkat: V_* + J_* (urutan wajib).
+    ============================================================
+  -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-common.min.css">
+
+  <!-- ============================================================
+       THEME OVERRIDE — [SESUAIKAN] warna brand app Anda.
+       Preset lain (biru/kuning/ungu) ada di frontend/README.md CDN.
+       ============================================================ -->
+  <style>
+    :root {
+      --primary:         #059669;   /* emerald-600 */
+      --primary-dark:    #047857;   /* emerald-700 */
+      --primary-light:   #ecfdf5;   /* emerald-50  */
+      --primary-lighter: #d1fae5;   /* emerald-100 */
+      --primary-text:    #064e3b;   /* emerald-900 */
+      --primary-accent:  #34d399;   /* emerald-400 */
+      --primary-rgb:     5, 150, 105;
+    }
+  </style>
+
+  <!-- Boot dark-mode sebelum render: kunci {storagePrefix}_dark -->
+  <!-- [SESUAIKAN] ganti 'sicontoh_dark' bila prefix app Anda berbeda.
+       HARUS sama dengan storagePrefix di J_App.html (AppCore.create). -->
+  <script>
+    try {
+      if (localStorage.getItem('sicontoh_dark') === 'true') document.documentElement.classList.add('dark');
+    } catch (e) { /* diabaikan sengaja */ }
+  </script>
+
+  <!-- SSO: tiket & flag entry dari template doGet -->
+  <script>
+    window.__SSO_TICKET__ = <?!= JSON.stringify(String(ticket || '')) ?>;
+    window.__IS_SSO_ENTRY__ = <?= isSsoEntry === 'true' ? 'true' : 'false' ?>;
+  </script>
 </head>
-<body class="bg-gray-50 text-gray-900 font-sans antialiased dark:bg-gray-900 dark:text-gray-100">
+
+<body class="h-full bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 font-sans antialiased">
+
   <div id="app" v-cloak>
-    <?!= include('V_Shell'); ?>
-    <!-- ============ HALAMAN (tambahkan include halaman baru di sini) ============ -->
-    <?!= include('V_Dashboard'); ?>
-    <!-- penutup fragmen V_Shell: div konten, </main>, div wrapper layout, lalu #app -->
+
+    <!-- Toast Notification Container -->
+    <div class="toast-container" aria-live="polite">
+      <div v-for="toast in toasts" :key="toast.id" class="toast-item" :class="'toast-' + toast.type">
+        <span class="flex-1 leading-snug">{{ toast.message }}</span>
+      </div>
     </div>
-    </main>
-  </div>
+
+    <!-- Login SSO Gateway (komponen kit <app-login>) -->
+    <app-login v-if="!token"
+               :is-processing="isProcessing"
+               :error-message="errorMessage"
+               :app-title="appTitle"
+               app-subtitle="Aplikasi Web Bisnis"
+               instansi="Pemkab Trenggalek"
+               @login="goToPlatform">
+    </app-login>
+
+    <!-- Shell Utama -->
+    <div v-else class="flex h-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans">
+
+      <app-sidebar :collapsed="sidebarCollapsed"
+                   :mobile-open="sidebarMobileOpen"
+                   :dark="isDarkMode"
+                   :current-page="currentPage"
+                   :is-admin="isAdmin"
+                   :user="currentUser"
+                   :brand="brand"
+                   :menu="menu"
+                   @navigate="navigateTo"
+                   @toggle="toggleSidebar"
+                   @close="sidebarMobileOpen = false"
+                   @logout="logout">
+      </app-sidebar>
+
+      <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <div class="px-4 sm:px-6 pt-4 shrink-0">
+          <app-header :dark="isDarkMode"
+                      :app-title="appTitle"
+                      :current-page="currentPage"
+                      :page-icons="pageIcons"
+                      :user="currentUser"
+                      @toggle-dark="toggleDarkMode"
+                      @toggle-mobile="sidebarMobileOpen = !sidebarMobileOpen"
+                      @navigate="navigateTo">
+          </app-header>
+        </div>
+
+        <!-- Konten halaman dinamis (include satu tingkat) -->
+        <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <?!= include('V_Modals'); ?>
+          <?!= include('V_Dashboard'); ?>
+        </main>
+      </div>
+    </div>
+
   </div>
 
-  <!-- tiket SSO dari si-platform (diisi doGet) -->
-  <script>window.__TICKET__ = '<?!= ticket ?>';</script>
+  <!--
+    Shared CDN: JS v2.8.1
+    URUTAN SAMA dengan si-lahar & si-kompetensi: components → core → modules.
+    Fungsional bebas — AppCore.create() membaca window.AppComponents
+    & window.AppModules saat dipanggil dari J_App.html (paling bawah).
+  -->
+  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-components.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-modules.min.js"></script>
+
+  <!-- Logika aplikasi: modul J_* (urutan WAJIB) -->
   <?!= include('J_State'); ?>
+  <?!= include('J_Helpers'); ?>
+  <?!= include('J_Api'); ?>
+  <?!= include('J_Actions'); ?>
   <?!= include('J_App'); ?>
 </body>
 </html>
