@@ -1,0 +1,126 @@
+<script>
+// ============================================================
+// STARTER-KIT - J_Helpers.html (v2.0.0)
+// ============================================================
+// Helper MURNI domain app (bukan UI state, bukan API loader).
+//
+// PRINSIP CDN-FIRST:
+//   AppCore (kit) sudah punya helper umum — JANGAN tulis ulang:
+//     this.namaPegawai(id)         — dari masterPegawaiList
+//     this.namaUnit(id)            — dari masterUnitList
+//     this.namaJabatan(id)         — dari masterJabatanList
+//     this.formatDateDisplay(val)  — dd/MM/yyyy
+//     this.formatDateTimeDisplay(v)
+//     this.formatRupiah(n)
+//     this.showToast(msg, type)
+//     this.loadLib(name, opts)     — chart/xlsx/jspdf/autoload
+//     this.callServer(action, data)
+//
+//   Yang ditulis di sini HANYA yang khas app Anda
+//   (status mapping, kalkulasi domain, format unik).
+//
+// [SESUAIKAN] Ganti helper contoh sesuai bisnis Anda.
+// ============================================================
+
+window.StarterKitHelpers = {
+  methods: {
+
+    // ==================== STATUS BADGE MAPPING ====================
+    /**
+     * Map status bisnis → badge status kit (<app-badge status="...">).
+     *
+     * Kit mendukung status: disetujui/approved/aktif (hijau),
+     * menunggu/pending (kuning), proses (biru), revisi (sky),
+     * ditolak/rejected/inactive (merah), purple/pppk (ungu).
+     *
+     * [SESUAIKAN] Sesuaikan mapping dengan status bisnis Anda.
+     */
+    badgeStatusContoh(status) {
+      var s = String(status || '').toLowerCase().trim();
+      if (s === 'draft')    return 'menunggu';
+      if (s === 'diajukan') return 'info';
+      if (s === 'selesai')  return 'disetujui';
+      return 'menunggu';
+    },
+
+    // ==================== LOOKUP PEGAWAI (nama lengkap + gelar) ====================
+    /**
+     * Ambil nama pegawai dengan prioritas field `nama_lengkap`
+     * (konvensi SIMPEG) — melengkapi AppCore.namaPegawai() yang
+     * hanya cek field `nama`.
+     *
+     * Return nama atau '' bila tidak ketemu.
+     */
+    getPegawaiNama(id) {
+      if (!id) return '';
+      var list = (this.$root && this.$root.masterPegawaiList && this.$root.masterPegawaiList.length)
+        ? this.$root.masterPegawaiList
+        : (this.masterPegawaiList || []);
+      var target = String(id).trim();
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i] || {};
+        if (String(p.id || '').trim() === target ||
+            String(p.pegawai_id || '').trim() === target ||
+            String(p.nip || '').trim() === target) {
+          return p.nama_lengkap || p.nama || p.display_name || '';
+        }
+      }
+      return '';
+    },
+
+    /**
+     * NIP pegawai dari id-nya — helper pelengkap.
+     */
+    nipPegawai(id) {
+      if (!id) return '-';
+      var list = (this.$root && this.$root.masterPegawaiList && this.$root.masterPegawaiList.length)
+        ? this.$root.masterPegawaiList
+        : (this.masterPegawaiList || []);
+      var target = String(id).trim();
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i] || {};
+        if (String(p.id || '').trim() === target ||
+            String(p.pegawai_id || '').trim() === target ||
+            String(p.nip || '').trim() === target) {
+          return p.nip || '-';
+        }
+      }
+      return '-';
+    },
+
+    // ==================== UTIL KECIL (domain) ====================
+    /**
+     * Normalisasi string untuk perbandingan filter (lowercase + trim).
+     * Sama dengan CoreLib.normStr() di backend — tapi di sini
+     * versi frontend (tidak bisa akses CoreLib).
+     */
+    normStr(v) {
+      return String(v == null ? '' : v).trim().toLowerCase();
+    },
+
+    /**
+     * Format nama dengan gelar: "BUDI SANTOSO, S.H., M.H." → "Budi Santoso, S.H., M.H."
+     * Kalau tidak ada gelar → Title Case biasa.
+     */
+    formatNamaPegawai(str) {
+      if (!str || str === '-') return '-';
+      var s = String(str).trim();
+      if (s.indexOf(',') !== -1) {
+        var parts = s.split(',');
+        var depan = parts[0].trim().toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); });
+        var gelar = parts.slice(1).join(',').trim();
+        return depan + ', ' + gelar;
+      }
+      return s.toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); });
+    }
+
+    // ==================== [SESUAIKAN] Helper bisnis Anda ====================
+    // Contoh kandidat:
+    //   hitungTotalNilai(list)          → jumlah kolom nilai
+    //   formatKodeAset(prefix, angka)   → 'AST-0001'
+    //   isExpiringSoon(tgl, hariAwal)   → boolean (H-90 alert)
+    //   kelipatan(n, base)              → pembulatan
+
+  }
+};
+</script>
