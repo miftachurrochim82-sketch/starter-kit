@@ -2,35 +2,34 @@
 // ============================================================
 // STARTER-KIT - J_App.html (v2.0.0) — File terakhir
 // ============================================================
-// Bootstrap aplikasi Vue 3 via AppCore.create() (kit CDN @v2.8.1).
+// Bootstrap Vue 3 via AppCore.create() (kit CDN @v2.8.1).
 //
 // Urutan include di Index.html (WAJIB):
 //   J_State → J_Helpers → J_Api → J_Actions → J_App
 //
 // Yang DIURUS AppCore (jangan bikin ulang):
-//   - Vue.createApp + registrasi semua komponen kit
-//   - Session/token (safeSession/safeLocal) + auto SSO exchange
-//   - callServer + _cacheBust + dedup + handleSessionExpired
+//   - Vue.createApp + registrasi komponen kit
+//   - Session/token + auto SSO exchange + handleSessionExpired
+//   - callServer + _cacheBust + dedup
 //   - SWR cache master SIMPEG + loadMasterSIMPEG()
-//   - Toggle dark mode + event 'appcore:dark' (chart auto re-render)
+//   - Toggle dark mode + event 'appcore:dark'
 //   - Toast, formatDate/Rupiah, loadLib(chart/xlsx/jspdf/pdflib)
-//   - logout + handleSessionExpired
+//   - logout
 //
 // [SESUAIKAN]
-//   1. appCode    — sama dengan APP_CODE di 01_ConfigAndBridge.gs
-//   2. appTitle   — judul app (untuk header & <app-login>)
+//   1. appCode       — sama dengan APP_CODE di 01_ConfigAndBridge.gs
+//   2. appTitle      — judul app (header & login)
 //   3. storagePrefix — HARUS sama dengan kunci dark-mode di Index.html
-//   4. platformUrl — URL /exec SI-PLATFORM (fallback default sudah ada)
-//   5. brand      — identitas sidebar
-//   6. menu       — daftar menu sidebar (grup, ikon, halaman)
-//   7. pageIcons  — ikon per halaman (untuk header)
-//   8. onNavigate — loader yang dipanggil saat user ganti halaman
-//   9. initApp    — loader yang dipanggil saat startup (silent)
+//   4. platformUrl   — URL /exec SI-PLATFORM
+//   5. brand         — identitas sidebar
+//   6. menu          — daftar menu sidebar
+//   7. pageIcons     — ikon per halaman
+//   8. onNavigate    — loader yang dipanggil saat ganti halaman
+//   9. initApp       — loader startup (silent)
 // ============================================================
 
 // ==================== MIXIN ====================
 // Gabungkan seluruh modul ke satu mixin yang dioper ke AppCore.create().
-// Cermin pola si-kompetensi (SIKompetensiMixin) & si-lahar.
 var StarterKitMixin = {
   data: function () {
     return Object.assign({}, window.StarterKitState.data());
@@ -48,10 +47,10 @@ var StarterKitMixin = {
 var app = AppCore.create({
 
   // ---------- [SESUAIKAN] Identitas app ----------
-  appCode:       'SI-CONTOH',            // HARUS sama dengan APP_CODE di 01_ConfigAndBridge.gs
-  appTitle:      'SI-CONTOH',            // judul tampil di header & login
+  appCode:       'SI-CONTOH',        // HARUS sama dengan APP_CODE di 01_ConfigAndBridge.gs
+  appTitle:      'SI-CONTOH',        // judul tampil di header & login
   initialPage:   'dashboard',
-  storagePrefix: 'sicontoh',             // HARUS sama dengan kunci dark-mode di Index.html (sicontoh_dark)
+  storagePrefix: 'sicontoh',         // HARUS sama dengan kunci dark-mode di Index.html ('sicontoh_dark')
   platformUrl:   'https://script.google.com/macros/s/AKfycbwh_OUVqmxLcuF81FHmPZtT33Wrm8Ce9Da1SQ3hfkSr7gM5P8ofyAlHSgW40mq3eo-PoQ/exec',
 
   // ---------- [SESUAIKAN] Brand sidebar ----------
@@ -64,48 +63,55 @@ var app = AppCore.create({
   },
 
   // ---------- [SESUAIKAN] Menu sidebar ----------
-  // Format: array grup. Tiap grup { name, items: [{ id, label, icon, adminOnly? }] }
-  //   id       — sama dengan currentPage di V_* (mis. 'dashboard' untuk <section v-if="currentPage === 'dashboard'">)
+  // Format grup: { name, items: [{ id, label, icon, adminOnly? }] }
+  //   id        — sama dengan currentPage di V_* (mis. 'dashboard')
   //   adminOnly — boolean (opsional) → hanya tampil untuk isAdmin
   menu: [
     { name: 'Utama', items: [
       { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high' }
     ]}
-    // [SESUAIKAN] Tambah grup/halaman Anda:
-    // { name: 'Data', items: [
-    //   { id: 'aset',     label: 'Aset',      icon: 'fa-solid fa-boxes-stacked' },
-    //   { id: 'peminjaman', label: 'Peminjaman', icon: 'fa-solid fa-right-left' }
-    // ]},
-    // { name: 'Sistem', items: [
-    //   { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-solid fa-gear', adminOnly: true }
-    // ]}
+
+    // [SESUAIKAN] Contoh penambahan halaman (buka komentar):
+    // , { name: 'Data', items: [
+    //     { id: 'referensi', label: 'Referensi', icon: 'fa-solid fa-book' },
+    //     { id: 'kategori',  label: 'Kategori',  icon: 'fa-solid fa-tags' }
+    //   ]}
+    // , { name: 'Sistem', items: [
+    //     { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-solid fa-gear', adminOnly: true }
+    //   ]}
   ],
 
-  // ---------- [SESUAIKAN] Ikon per halaman (untuk header) ----------
-  // Kunci = id halaman (sama dengan menu items), nilai = class Font Awesome.
+  // ---------- [SESUAIKAN] Ikon per halaman (header) ----------
   pageIcons: {
     dashboard: 'fa-solid fa-gauge-high'
-    // [SESUAIKAN] Tambah ikon untuk halaman baru:
-    // aset: 'fa-solid fa-boxes-stacked',
-    // peminjaman: 'fa-solid fa-right-left',
-    // pengaturan: 'fa-solid fa-gear'
+    // [SESUAIKAN] Tambah ikon halaman baru:
+    // , referensi:  'fa-solid fa-book'
+    // , kategori:   'fa-solid fa-tags'
+    // , pengaturan: 'fa-solid fa-gear'
   },
 
   // ---------- [SESUAIKAN] Loader saat user ganti halaman ----------
   // `vm` = instance Vue (dari AppCore.create).
-  // Panggil loader dari J_Api — silent=true agar tidak spam toast.
+  // Pakai guard anti-double-load: skip kalau sedang loading.
   onNavigate: function (vm, page) {
+
     if (page === 'dashboard') {
-      // Refresh tiap buka dashboard — pakai non-silent agar user lihat progress
+      // Refresh tiap buka dashboard
       vm.loadDashboard(true);
-      vm.loadContoh();
+      vm.loadUtama();
     }
-    // [SESUAIKAN] Tambah handler untuk halaman baru:
-    // if (page === 'aset') { if (!vm.asetLoading) vm.loadAset(); }
-    // if (page === 'pengaturan') { /* <app-settings> auto-load */ }
+
+    // [SESUAIKAN] Handler halaman lain:
+    // if (page === 'referensi') {
+    //   if (!vm.referensiLoading) vm.loadReferensi();
+    // }
+    // if (page === 'pengaturan') {
+    //   /* <app-settings> auto-load — tidak perlu loader manual */
+    // }
+
   },
 
-  // ---------- [SESUAIKAN] Loader saat startup (silent) ----------
+  // ---------- [SESUAIKAN] Loader saat startup (semua silent) ----------
   // Dipanggil sekali saat app pertama kali siap (setelah token valid).
   // Semua silent=true — cegah spam toast kalau backend/network lambat.
   initApp: async function (vm) {
@@ -113,9 +119,14 @@ var app = AppCore.create({
 
     // Fase 1: paralel — modul independen
     await Promise.all([
+      vm.loadMasterSatelit(true),
       vm.loadDashboard(true),
-      vm.loadContoh(true)
+      vm.loadUtama(true)
     ]);
+
+    // Fase 2 (opsional): loader yang butuh hasil fase 1
+    // Contoh: setelah master satelit ada, baru load list yang butuh dropdown.
+    // await vm.loadItem(true);
 
     vm.dataLoaded = true;
   },
