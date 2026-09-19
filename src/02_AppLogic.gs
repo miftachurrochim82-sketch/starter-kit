@@ -1,13 +1,16 @@
 // ============================================================
-// STARTER-KIT - 02_AppLogic.gs (v2.0.0 — CoreLib-First)
+// STARTER-KIT - 02_AppLogic.gs (v2.0.1 — CoreLib-First)
 // ============================================================
 // Entry HTTP + Dispatcher + Registry Handler + Setup + Handler contoh.
 // Pola identik dengan si-kompetensi v6.0.1 dan si-lahar v2.1.0.
 //
-// Domain contoh LENGKAP: M_REFERENSI + T_UTAMA.
-// 8 sheet lain (M_KATEGORI, M_SATUAN, T_ITEM, T_LOGBOOK, T_LAMPIRAN,
-// T_APPROVAL, T_JADWAL, T_REKAP) → skema sudah ada di 01,
-// handler placeholder (komentar). Tinggal buka & isi saat dibutuhkan.
+// Domain contoh LENGKAP: M_REFERENSI + T_UTAMA + T_APPROVAL.
+// 7 sheet lain (M_KATEGORI, M_SATUAN, T_ITEM, T_LOGBOOK, T_LAMPIRAN,
+// T_JADWAL, T_REKAP) → skema sudah ada di 01, handler placeholder
+// (komentar). Tinggal buka & isi saat dibutuhkan.
+//
+// ⚠️ Setiap handler di sini WAJIB sinkron dengan actionLevels di
+//    01_ConfigAndBridge.gs — kalau tidak, fail-closed.
 // ============================================================
 
 // ==================== §1 ENTRY POINTS ====================
@@ -152,7 +155,16 @@ function buildLocalHandlers_() {
   h['delete_utama']     = function (d, u) { return deleteUtama_(d || {}, u); };
 
   // ================================================================
-  // ============ PLACEHOLDER 8 SHEET LAIN =========================
+  // ============ DOMAIN CONTOH 3: T_APPROVAL =======================
+  // ================================================================
+  // Workflow verifikasi — non-verifikator hanya bisa insert/update
+  // dengan status 'menunggu' (dikunci oleh hook P2 di 01).
+  h['get_approval_list']   = function (d, u) { return getGenericList_('T_APPROVAL', d || {}); };
+  h['save_approval']       = function (d, u) { return saveGeneric_('T_APPROVAL', d || {}, u); };
+  h['verifikasi_approval'] = function (d, u) { return verifikasiApproval_(d || {}, u); };
+
+  // ================================================================
+  // ============ PLACEHOLDER 7 SHEET LAIN =========================
   // ================================================================
   // Buka komentar + isi saat Anda mulai memakai sheet tersebut.
   // Ingat: setiap handler WAJIB didaftarkan juga di actionLevels (01).
@@ -180,11 +192,6 @@ function buildLocalHandlers_() {
   // h['get_lampiran_list'] = function (d, u) { return getGenericList_('T_LAMPIRAN', d); };
   // h['save_lampiran']     = function (d, u) { return saveGeneric_('T_LAMPIRAN', d, u); };
   // h['delete_lampiran']   = function (d, u) { return deleteGeneric_('T_LAMPIRAN', d, u); };
-  //
-  // // ---------- T_APPROVAL ----------
-  // h['get_approval_list'] = function (d, u) { return getGenericList_('T_APPROVAL', d); };
-  // h['save_approval']     = function (d, u) { return saveGeneric_('T_APPROVAL', d, u); };
-  // h['verifikasi_approval'] = function (d, u) { return verifikasiApproval_(d, u); };
   //
   // // ---------- T_JADWAL ----------
   // h['get_jadwal_list'] = function (d, u) { return getGenericList_('T_JADWAL', d); };
@@ -497,9 +504,9 @@ function deleteUtama_(data, user) {
   }
 }
 
-// ==================== §7 GENERIC HELPERS (dipakai placeholder) ====================
+// ==================== §7 GENERIC HELPERS ====================
 // Fungsi generik untuk sheet yang belum diimplementasikan domainnya.
-// Buka komentar handler di buildLocalHandlers_() untuk memakainya.
+// Dipakai oleh T_APPROVAL (aktif) dan placeholder 7 sheet lain.
 
 /**
  * List generik dari sheet apa pun.
@@ -507,12 +514,29 @@ function deleteUtama_(data, user) {
 function getGenericList_(sheetName, params) {
   try {
     var list = getSheetData_(sheetName);
+
+    // Filter opsional by `filters` object (cocokkan case-insensitive)
+    if (params && params.filters && typeof params.filters === 'object') {
+      Object.keys(params.filters).forEach(function (k) {
+        var v = params.filters[k];
+        if (v === '' || v === null || v === undefined) return;
+        list = list.filter(function (r) {
+          return CoreLib.normStr(r[k]) === CoreLib.normStr(v);
+        });
+      });
+    }
+
+    // Filter search (semua field)
     if (params && params.search) {
       var q = CoreLib.normStr(params.search);
       list = list.filter(function (r) {
         return CoreLib.matchSearch(r, q, Object.keys(r));
       });
     }
+
+    // Clone sebelum kirim
+    list = list.map(function (r) { return Object.assign({}, r); });
+
     return { success: true, data: list, total: list.length };
   } catch (err) {
     Logger.log('[getGenericList_ ' + sheetName + '] ' + err.message);
@@ -521,7 +545,8 @@ function getGenericList_(sheetName, params) {
 }
 
 /**
- * Save generik — hanya validasi minimal (id ada / tidak).
+ * Save generik — validasi minimal (record object).
+ * Hook P1/P2 (01) tetap berlaku (auto-gen id + kunci verifikasi).
  */
 function saveGeneric_(sheetName, data, user) {
   try {
@@ -555,7 +580,14 @@ function deleteGeneric_(sheetName, data, user) {
 }
 
 /**
- * Verifikasi generik untuk sheet dengan kolom status + approver_id + tanggal_approve.
+ * Verifikasi generik untuk sheet dengan kolom:
+ *   status, approver_id, tanggal_approve, catatan.
+ *
+ * Hanya verifikator+ yang boleh memanggil (actionLevels `verifikasi_approval`
+ * = 'verifikator'). Fungsi ini juga double-check role untuk defense in depth.
+ *
+ * Setelah verifikasi, record baru ditulis dengan status yang diinginkan —
+ * bypass hook P2 karena kita pakai apiSave langsung (tanpa preSaveHook).
  */
 function verifikasiApproval_(data, user) {
   try {
@@ -563,24 +595,32 @@ function verifikasiApproval_(data, user) {
     if (!isVerifikator) {
       return { success: false, code: 'FORBIDDEN', error: 'Verifikasi hanya untuk verifikator/admin.' };
     }
+
     var id = data.id;
-    var status = String(data.status || '').toLowerCase();
+    var status = String(data.status || '').toLowerCase().trim();
     if (!id) return { success: false, code: 'BAD_REQUEST', error: 'ID wajib diisi.' };
     if (['disetujui', 'ditolak', 'revisi'].indexOf(status) === -1) {
       return { success: false, code: 'BAD_REQUEST', error: 'Status harus disetujui/ditolak/revisi.' };
     }
+
     var row = findRecordById_('T_APPROVAL', id);
     if (!row) return { success: false, code: 'NOT_FOUND', error: 'Data tidak ditemukan.' };
 
     row.status          = status;
     row.approver_id     = (user && user.email) || '';
-    row.tanggal_approve = CoreLib.todayIsoLocal();
+    row.tanggal_approve = CoreLib.todayIsoLocal();   // WIB (v2.3.0)
     if (data.catatan !== undefined) row.catatan = data.catatan;
 
-    // Bypass hook (langsung) — karena verifikator
-    var saved = CoreLib.apiSave(SPREADSHEET_ID, 'T_APPROVAL', row, user,
-                                 ALL_SHEET_HEADERS, isRefSheet_, null, 'id').data;
-    return { success: true, data: saved };
+    // Bypass hook (kirim null sebagai preSaveHook) — verifikator bebas ubah status.
+    var result = CoreLib.apiSave(
+      SPREADSHEET_ID, 'T_APPROVAL', row, user,
+      ALL_SHEET_HEADERS, isRefSheet_, null, 'id'
+    );
+
+    if (!result.success) {
+      return { success: false, code: 'BAD_REQUEST', error: result.error };
+    }
+    return { success: true, data: result.data };
   } catch (err) {
     Logger.log('[verifikasiApproval_] ' + err.message);
     return { success: false, code: 'BAD_REQUEST', error: err.message };
@@ -588,7 +628,7 @@ function verifikasiApproval_(data, user) {
 }
 
 /**
- * Generate rekap periodik (contoh placeholder — sesuaikan bisnis).
+ * Generate rekap periodik (placeholder — sesuaikan bisnis).
  */
 function generateRekap_(data, user) {
   try {
@@ -606,7 +646,7 @@ function generateRekap_(data, user) {
 function getConfigList_() {
   var defaults = [
     { key: 'app_title',   value: APP_TITLE, keterangan: 'Nama aplikasi' },
-    { key: 'app_version', value: 'v2.0.0',  keterangan: 'Versi rilis' },
+    { key: 'app_version', value: 'v2.0.1',  keterangan: 'Versi rilis' },
     { key: 'instansi',    value: 'Pemkab Trenggalek', keterangan: 'Instansi pengelola' }
   ];
 
@@ -674,7 +714,8 @@ function deleteConfigItem_(payload, actor) {
 
 /**
  * Inisialisasi database — delegasi ke CoreLib.initDatabase.
- * Membuat semua 10 sheet bisnis + 3 SIMPEG (skip — read-only) + ZZ_TEST_CRUD.
+ * Membuat semua 10 sheet bisnis + ZZ_TEST_CRUD.
+ * Sheet SIMPEG dilewati (read-only, tidak dibuat lokal).
  */
 function initDatabase(actor) {
   try {
@@ -720,7 +761,7 @@ function setupApp(actor) {
 
     var defaultConfigs = [
       { key: 'app_title',   value: APP_TITLE, keterangan: 'Nama aplikasi' },
-      { key: 'app_version', value: 'v2.0.0',  keterangan: 'Versi rilis' },
+      { key: 'app_version', value: 'v2.0.1',  keterangan: 'Versi rilis' },
       { key: 'instansi',    value: 'Pemkab Trenggalek', keterangan: 'Instansi pengelola' }
       // [SESUAIKAN] tambah config default lain di sini
     ];
@@ -758,7 +799,7 @@ function setupApp(actor) {
  * Verifikasi cepat setelah paste: cek CoreLib + dispatcher + registry.
  */
 function testAppLogicSelfCheck() {
-  Logger.log('=== 02_AppLogic.gs v2.0.0 self-check ===');
+  Logger.log('=== 02_AppLogic.gs v2.0.1 self-check ===');
 
   if (typeof CoreLib === 'undefined') {
     Logger.log('❌ CoreLib tidak terpasang!');
