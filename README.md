@@ -1,13 +1,14 @@
-# 🧰 STARTER-KIT WEB APP BISNIS (v2.0)
+# 🧰 STARTER-KIT WEB APP BISNIS (v2.0.1)
 
 Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem
 Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN). Dicetak dari prototipe
 **si-kompetensi v6.0.1** dan **si-lahar v2.1.0** (keduanya produksi, CoreLib-First).
 
-> **Versi template**: 2.0 (2026-09-19).
+> **Versi template**: 2.0.1 (2026-09-19).
 > **CoreLib**: pin **15** (v2.3.0) — util sadar-WIB + paginasi + pencarian + whitelist.
-> **CDN**: **`@v2.8.1`** (internal "2.8.0"). **Vue**: `3.5.42`.
+> **CDN**: **`@v2.8.1`** (internal `"2.8.0"`). **Vue**: `3.5.42`.
 > **Skema**: 3 master + 7 tabel = **10 sheet** (minimal standar ekosistem: 3 + 3).
+> **Total file**: 14 (4 backend + 8 frontend + 1 manifest).
 
 ---
 
@@ -20,20 +21,25 @@ Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN). Dicetak dari prototipe
 | Mesin sheet/CRUD/cache/audit | **CoreLib** (Library GAS pin 15) | `apiSave`, `apiDelete`, `ensureSheet`, `checkAuth` |
 | Dispatcher + fail-closed | **CoreLib.dispatchAction** | `handleAction(payload)` di `02_AppLogic.gs` |
 | Util tanggal sadar-WIB | **CoreLib** (v2.3.0) | `todayIsoLocal()`, `dateKey10()` — JANGAN `todayIso()` (UTC) |
+| Audit HTTP ke SI-PLATFORM | `00_Utils.gs` → `audit_()` | sudah wrapper — panggil `audit_(actor, action, type, id, ok, msg)` |
 | UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.8.1** | 13+2 komponen `app-*` — auto registrasi |
 | User/role/permission/notifikasi/file | **si-platform** | tidak perlu sheet lokal |
 
 ---
 
-## 📦 Isi template (`src/` — 12 file)
+## 📦 Isi template (`src/` — 14 file)
 
 ```
 src/
 ├── appsscript.json             # Manifest V8 + CoreLib pin 15
+│
+│  Backend (4):
+├── 00_Utils.gs                 # Audit HTTP ke SI-PLATFORM (audit_, sendAuditLog_)
 ├── 01_ConfigAndBridge.gs       # Konstanta + 10 sheet skema + bridge CoreLib + hook P1/P2 + getAppConfig_()
 ├── 02_AppLogic.gs              # doGet/doPost/include + handleAction → dispatchAction + registry + domain contoh
 ├── 99_TestSuite.gs             # Test suite (runLibraryTests + adopsi + routing + domain)
 │
+│  Frontend (8):
 ├── Index.html                  # Shell tipis CDN @v2.8.1 + Vue 3.5.42 + include 1 tingkat
 ├── V_Dashboard.html            # Dashboard (4 KPI + 2 chart + tabel)
 ├── V_Modals.html               # Contoh modal form (Utama)
@@ -51,8 +57,8 @@ src/
 - **Sheet sistem CoreLib**: `AUDIT_LOGS`, `MAIN_DATA` (auto-create)
 - **SIMPEG (read-only, dari master)**: `PEGAWAI`, `JABATAN`, `UNIT_KERJA`
 
-**Domain contoh lengkap**: `M_REFERENSI` (master) + `T_UTAMA` (tabel).
-**8 sheet lain**: skema ada, handler placeholder (komentar di `02_AppLogic.gs` + `actionLevels`).
+**Domain contoh lengkap**: `M_REFERENSI` + `T_UTAMA` + `T_APPROVAL` (workflow verifikasi).
+**7 sheet lain**: skema ada, handler placeholder (komentar di `02_AppLogic.gs` + `actionLevels`).
 Tinggal buka komentar saat Anda mulai memakainya.
 
 ---
@@ -63,7 +69,7 @@ Tinggal buka komentar saat Anda mulai memakainya.
 
 1. Tentukan **kode aplikasi** (mis. `SI-ASET`) — harus unik, akan didaftarkan di si-platform.
 2. Buat **Spreadsheet baru** = database app (biarkan kosong).
-3. Buat proyek **GAS baru** → buat 12 file, salin isi `src/` whole-file.
+3. Buat proyek **GAS baru** → buat **14 file**, salin isi `src/` whole-file.
 
 ### Fase 2 — Penyesuaian (±10 menit, di editor GAS)
 
@@ -87,6 +93,7 @@ Tinggal buka komentar saat Anda mulai memakainya.
     - Pola `buildLocalHandlers_()` — daftar handler per aksi.
     - CRUD via `saveRecord_` / `softDeleteRecord_` / `getSheetData_` (dari `01`).
     - Baca pegawai via `getPegawaiList_()` (tolerant reader).
+    - Audit: panggil `audit_(actor, action, type, id, ok, msg)` — kirim ke SI-PLATFORM.
     - **Setiap handler baru → daftarkan juga di `actionLevels` (01)**. Kalau tidak, fail-closed.
 11. **Tampilan** pakai komponen kit; **tag selalu berpasangan** (jangan self-closing `/>`).
 12. Sebelum salin ke GAS: jalankan **contract-check**
@@ -105,11 +112,12 @@ Setelah paste semua file + `initDatabase()`:
 
 | Fungsi | Target |
 |---|---|
+| `testUtilsSelfCheck()` | Semua ✅ (`audit_` + `sendAuditLog_` tersedia) |
+| `testAppLogicSelfCheck()` | Semua ✅ (registry lengkap + `actionLevels` sinkron) |
 | `runLibraryTests()` | **PASS 42 / FAIL 0 / SKIP 1** (CoreLib v2.3.0, pin 15) |
 | `testAdopsiG18d()` | **13 / 0** (verifikasi util baru CoreLib) |
 | `testDispatcherRouting()` | **~35 / 0** (registry + fail-closed) |
-| `runDomainTestsStarterKit()` | **~18 / 0** (domain + SIMPEG RO + hook + skema) |
-| `testAppLogicSelfCheck()` | Semua ✅ (registry lengkap + actionLevels sinkron) |
+| `runDomainTestsStarterKit()` | **~20 / 0** (domain + SIMPEG RO + hook + skema) |
 | `runAllDiagnostics()` | Semua ✅ (CoreLib + DB + 10 sheet + SIMPEG) |
 
 Satu pintu: **`runAllTestsStarterKit()`** — rekap semua di atas.
@@ -137,9 +145,12 @@ Diagnostik SSO manual:
 8. **Soft-delete filter** otomatis di `getSheetData_`. Untuk audit pakai
    `getSheetData_(sheetName, {includeDeleted:true})`.
 9. **Verifikasi field** (untuk sheet dengan workflow): kunci lewat
-   `localPreSaveHook_` (P2) — cek role sebelum tulis.
+   `localPreSaveHook_` (P2) — cek role sebelum tulis. Starter-kit sudah punya
+   contoh aktif untuk `T_APPROVAL`.
 10. **Urutan include** di `Index.html`: `V_Modals` → `V_*` → `J_State` → `J_Helpers`
     → `J_Api` → `J_Actions` → `J_App`. Jangan diubah.
+11. **`00_Utils.gs` wajib ada** — `02_AppLogic.gs` memanggil `audit_()`. Tanpa file
+    ini → `ReferenceError: audit_ is not defined` saat `initDatabase()` / `setupApp()`.
 
 ---
 
@@ -151,8 +162,9 @@ si-NAMA-APP/
 ├── AI_CONTEXT.md                # surat pengantar ekosistem
 ├── .clasp.json / .claspignore   # opsional (konfigurasi clasp)
 ├── docs/                        # opsional — Gate 0 (BRD/PRD/FRD/DATABASE/UIUX/API/TESTCASE/GAP)
-└── src/                         # 12 file — yang di-paste ke GAS editor
+└── src/                         # 14 file — yang di-paste ke GAS editor
     ├── appsscript.json
+    ├── 00_Utils.gs
     ├── 01_ConfigAndBridge.gs
     ├── 02_AppLogic.gs
     ├── 99_TestSuite.gs
@@ -178,7 +190,7 @@ Setelah app baru berjalan, saat bisnis makin kaya:
 | Tambah domain handler (mis. `T_ITEM`) | Buka komentar blok placeholder di `02_AppLogic.gs` + `actionLevels` di `01` |
 | App makin besar (file .gs >300 baris) | Pecah jadi `03_DomainLogic.gs`, `04_...` (pola si-kompetensi) |
 | Butuh chart lanjutan | Buka komentar blok Executive di `V_Dashboard.html` + computed chart di `J_State.html` |
-| Butuh backend agregat untuk dashboard berat | Tambah handler `get_dashboard_stats` (kandidat v2.1) |
+| Butuh backend agregat untuk dashboard berat | Tambah handler `get_dashboard_stats` (kandidat v2.2) |
 | Data sudah produksi | Ajukan **Track D** (Tailwind compiled) + setup GitHub Actions (clasp push) |
 | Naik versi CoreLib / CDN | Update `appsscript.json` (library version) + 4 URL di `Index.html` + catat di commit |
 
@@ -190,7 +202,7 @@ AI atau orang baru TIDAK tahu riwayat proyek — berikan konteks secukupnya:
 
 | Situasi | Lampirkan |
 |---|---|
-| Bikin app baru dari nol | `AI_CONTEXT.md` + `README.md` + seluruh `src/` (±35KB — aman semua) |
+| Bikin app baru dari nol | `AI_CONTEXT.md` + `README.md` + seluruh `src/` (±40KB — aman semua) |
 | Mengedit app yang sudah jalan | `AI_CONTEXT.md` + file yang akan disentuh + `01_ConfigAndBridge.gs` |
 | Cuma tanya konsep | `AI_CONTEXT.md` saja cukup |
 
