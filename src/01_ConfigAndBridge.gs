@@ -1,11 +1,25 @@
 // ============================================================
-// STARTER-KIT - 01_ConfigAndBridge.gs (v2.0.0 — CoreLib-First)
+// STARTER-KIT - 01_ConfigAndBridge.gs (v2.0.1 — CoreLib-First)
 // ============================================================
 // Bridge tipis ke CoreLib v2.3.0 (pin 15) + kontrak dispatcher v2.
 // Pola identik dengan si-kompetensi v6.0.1 dan si-lahar v2.1.0.
 //
 // Bagian yang perlu Anda sesuaikan ditandai [SESUAIKAN].
 //
+// ⚡ CHECKLIST MINIMUM EDIT untuk app baru (30 menit):
+// ────────────────────────────────────────────────────────────
+//   1. APP_CODE (§1)              — kode unik, daftarkan di si-platform
+//   2. APP_TITLE (§1)             — judul app
+//   3. DEFAULT_SPREADSHEET_ID (§1) — isi ID spreadsheet DB
+//                                    atau kosongkan + set Script Properties
+//   4. ALL_SHEET_HEADERS (§3b)    — sesuaikan kolom bisnis
+//   5. actionLevels (§7)          — tambahkan aksi handler bisnis Anda
+//   6. getAppConfig_().actionLevels & buildLocalHandlers_() (02)
+//      WAJIB sinkron 1:1 — kalau tidak, fail-closed
+//
+// Semua komentar [SESUAIKAN] = opsional (boleh diubah/dibiarkan).
+//
+// ────────────────────────────────────────────────────────────
 // ⚡ SKEMA 10 SHEET (standar ekosistem: master 3–5 + tabel ≥3):
 //   Master (3):
 //     M_REFERENSI   — referensi umum (kategori/kode/nama_nilai)
@@ -361,11 +375,18 @@ function findRecordById_(sheetName, id) {
 
 // ==================== §6 PRE-SAVE HOOK (P1 + P2) ====================
 // P1: id kosong → generate (cegah PK jatuh ke kolom lain = data loss).
+//
 // P2: kunci field verifikasi untuk sheet dengan workflow approval.
+//     Saat ini aktif untuk T_APPROVAL. Bila Anda memakai sheet verifikasi
+//     lain, tambahkan blok serupa di bawah.
+//
+// Catatan: P2 hanya "berguna" saat ada handler yang mengubah status T_APPROVAL
+// (mis. verifikasi_approval). Kalau belum dipakai, hook ini no-op untuk
+// record non-verifikator — hanya memastikan default 'menunggu' saat insert.
 function localPreSaveHook_(canonical, record, actor) {
   var C = String(canonical || '').toUpperCase();
 
-  // P1: generate id kalau kosong (prefix per-sheet)
+  // P1: generate id kalau kosong (prefix per-sheet, konsisten kode lama)
   if (!record.id || String(record.id).trim() === '') {
     var pfx = LOCAL_ID_PREFIX_[C]
            || C.replace(/^M_/, '').replace(/^T_/, '').substring(0, 3).toLowerCase();
@@ -373,16 +394,15 @@ function localPreSaveHook_(canonical, record, actor) {
   }
 
   // P2: kunci field status verifikasi — hanya role verifikator+ yang boleh ubah
-  // (sesuai pola si-lahar & si-kompetensi untuk T_APPROVAL)
   if (C === 'T_APPROVAL') {
     var actorRole = String((actor && actor.role) || 'viewer').toLowerCase();
     var isVerifikator = ['verifikator', 'admin', 'super'].indexOf(actorRole) !== -1;
 
     if (!isVerifikator) {
       var old = findRecordById_(canonical, record.id);
-      record.status         = old ? (old.status         || 'menunggu') : 'menunggu';
-      record.approver_id    = old ? (old.approver_id    || '')         : '';
-      record.tanggal_approve = old ? (old.tanggal_approve || '')       : '';
+      record.status          = old ? (old.status          || 'menunggu') : 'menunggu';
+      record.approver_id     = old ? (old.approver_id     || '')         : '';
+      record.tanggal_approve = old ? (old.tanggal_approve || '')         : '';
     }
   }
 
@@ -391,7 +411,9 @@ function localPreSaveHook_(canonical, record, actor) {
 
 // ==================== §7 KONTRAK DISPATCHER v2 ====================
 // actionLevels fail-closed: aksi tak dikenal = 'viewer' (default dispatcher).
-// [SESUAIKAN] Entry di sini WAJIB sinkron dengan buildLocalHandlers_() di 02_AppLogic.gs.
+//
+// ⚠️ Setiap entry di sini WAJIB punya handler di buildLocalHandlers_() (02),
+//    dan sebaliknya. Cek lewat testAppLogicSelfCheck() atau runAllTestsStarterKit().
 function getAppConfig_() {
   return {
     // ---- Identitas & sumber data ----
@@ -433,34 +455,40 @@ function getAppConfig_() {
       'get_jabatan_list':     'viewer',
       'get_master_satelit':   'viewer',
 
-      // ---------- M_REFERENSI (domain contoh) ----------
+      // ---------- M_REFERENSI (domain contoh 1) ----------
       'get_referensi_list':   'viewer',
       'save_referensi':       'verifikator',
       'delete_referensi':     'verifikator',
 
-      // ---------- T_UTAMA (domain contoh) ----------
+      // ---------- T_UTAMA (domain contoh 2) ----------
       'get_utama_list':       'viewer',
       'save_utama':           'user',
       'delete_utama':         'user',
       'get_utama_detail':     'viewer',
 
-      // [SESUAIKAN] Handler untuk sheet lain (buka komentar ketika handler
-      // sudah diimplementasikan di 02_AppLogic.gs):
+      // ---------- T_APPROVAL (workflow verifikasi — aktif) ----------
+      'get_approval_list':    'viewer',
+      'save_approval':        'user',
+      'verifikasi_approval':  'verifikator',
+
+      // ---------- [SESUAIKAN] Buka komentar saat sheet lain mulai dipakai ----------
       // 'get_kategori_list':    'viewer',
       // 'save_kategori':        'verifikator',
+      // 'delete_kategori':      'verifikator',
       // 'get_satuan_list':      'viewer',
       // 'save_satuan':          'verifikator',
+      // 'delete_satuan':        'verifikator',
       // 'get_item_list':        'viewer',
       // 'save_item':            'user',
+      // 'delete_item':          'user',
       // 'get_logbook_list':     'viewer',
       // 'save_logbook':         'user',
       // 'get_lampiran_list':    'viewer',
       // 'save_lampiran':        'user',
-      // 'get_approval_list':    'viewer',
-      // 'save_approval':        'user',
-      // 'verifikasi_approval':  'verifikator',
+      // 'delete_lampiran':      'user',
       // 'get_jadwal_list':      'viewer',
       // 'save_jadwal':          'user',
+      // 'delete_jadwal':        'user',
       // 'get_rekap_list':       'viewer',
       // 'generate_rekap':       'verifikator',
 
