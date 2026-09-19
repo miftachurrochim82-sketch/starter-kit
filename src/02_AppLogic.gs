@@ -4,17 +4,10 @@
 // Entry HTTP + Dispatcher + Registry Handler + Setup + Handler contoh.
 // Pola identik dengan si-kompetensi v6.0.1 dan si-lahar v2.1.0.
 //
-// Yang DIHAPUS dari v1.0:
-//   - handleApi switch-case manual (~40 baris)
-//   - withAuth_ + validateSessionToken_ (native CoreLib.checkAuth)
-//   - exchangeTicket_ (native CoreLib.exchangePlatformTicket)
-//
-// Yang DIPERTAHANKAN (domain contoh — ganti dengan milik Anda):
-//   - doGet / doPost / include
-//   - handleAction (thin wrapper ke CoreLib.dispatchAction)
-//   - buildLocalHandlers_ (registry semua handler)
-//   - getDashboard_ / getPegawaiList_ / getContohList_ / saveContoh_ / deleteContoh_
-//   - setupApp / initDatabase
+// Domain contoh LENGKAP: M_REFERENSI + T_UTAMA.
+// 8 sheet lain (M_KATEGORI, M_SATUAN, T_ITEM, T_LOGBOOK, T_LAMPIRAN,
+// T_APPROVAL, T_JADWAL, T_REKAP) → skema sudah ada di 01,
+// handler placeholder (komentar). Tinggal buka & isi saat dibutuhkan.
 // ============================================================
 
 // ==================== §1 ENTRY POINTS ====================
@@ -100,9 +93,8 @@ function handleAction(payload) {
  *   - data = payload.data (dari frontend)
  *   - user = currentUser dari session (CoreLib)
  *
- * [SESUAIKAN] Hapus handler contoh (get_contoh_list, save_contoh, delete_contoh)
- * dan tambahkan handler bisnis Anda. Nama aksi WAJIB ada juga di
- * `actionLevels` di 01_ConfigAndBridge.gs — kalau tidak, fail-closed.
+ * ⚠️ Setiap aksi yang didaftarkan di sini WAJIB ada juga di
+ *    `actionLevels` (01_ConfigAndBridge.gs). Kalau tidak → fail-closed.
  */
 function buildLocalHandlers_() {
   var h = {};
@@ -118,18 +110,13 @@ function buildLocalHandlers_() {
 
   // ---------- Dashboard ----------
   h['get_dashboard'] = function (d, u) { return getDashboard_(u); };
-  h['dashboard']     = function (d, u) { return getDashboard_(u); };   // alias
+  h['dashboard']     = function (d, u) { return getDashboard_(u); };  // alias
 
-  // ---------- SIMPEG read-only ----------
-  h['get_pegawai_list'] = function () { return getPegawaiList_(); };
-  h['get_unit_list']    = function () { return getUnitList_(); };
-  h['get_jabatan_list'] = function () { return getJabatanList_(); };
+  // ---------- SIMPEG read-only (bundle + granular) ----------
+  h['get_pegawai_list']   = function () { return getPegawaiList_(); };
+  h['get_unit_list']      = function () { return getUnitList_(); };
+  h['get_jabatan_list']   = function () { return getJabatanList_(); };
   h['get_master_satelit'] = function () { return getMasterSatelit_(); };
-
-  // ---------- [SESUAIKAN] Aksi bisnis contoh ----------
-  h['get_contoh_list'] = function (d, u) { return getContohList_(); };
-  h['save_contoh']     = function (d, u) { return saveContoh_(d || {}, u); };
-  h['delete_contoh']   = function (d, u) { return deleteContoh_(d || {}, u); };
 
   // ---------- Konfigurasi (Script Properties) ----------
   h['get_config']         = function () { return getConfigList_(); };
@@ -140,8 +127,6 @@ function buildLocalHandlers_() {
   h['delete_config']      = function (d, u) { return deleteConfigItem_(d, u); };
 
   // ---------- Aksi dinamis 'delete' — routing internal ----------
-  // CoreLib.dispatchAction punya case 'delete' generic (hard delete KONFIGURASI).
-  // Kita selalu intercept: arahkan ke deleteConfigItem_ yang punya whitelist key.
   h['delete'] = function (d, u) {
     var ent = String((d && d.entity) || '').toUpperCase();
     if (ent === 'KONFIGURASI') return deleteConfigItem_(d || {}, u);
@@ -151,37 +136,72 @@ function buildLocalHandlers_() {
     };
   };
 
+  // ================================================================
+  // ============ DOMAIN CONTOH 1: M_REFERENSI ======================
+  // ================================================================
+  h['get_referensi_list'] = function (d, u) { return getReferensiList_(d || {}); };
+  h['save_referensi']     = function (d, u) { return saveReferensi_(d || {}, u); };
+  h['delete_referensi']   = function (d, u) { return deleteReferensi_(d || {}, u); };
+
+  // ================================================================
+  // ============ DOMAIN CONTOH 2: T_UTAMA ==========================
+  // ================================================================
+  h['get_utama_list']   = function (d, u) { return getUtamaList_(d || {}, u); };
+  h['get_utama_detail'] = function (d, u) { return getUtamaDetail_(d || {}, u); };
+  h['save_utama']       = function (d, u) { return saveUtama_(d || {}, u); };
+  h['delete_utama']     = function (d, u) { return deleteUtama_(d || {}, u); };
+
+  // ================================================================
+  // ============ PLACEHOLDER 8 SHEET LAIN =========================
+  // ================================================================
+  // Buka komentar + isi saat Anda mulai memakai sheet tersebut.
+  // Ingat: setiap handler WAJIB didaftarkan juga di actionLevels (01).
+  //
+  // // ---------- M_KATEGORI ----------
+  // h['get_kategori_list'] = function (d, u) { return getGenericList_('M_KATEGORI', d); };
+  // h['save_kategori']     = function (d, u) { return saveGeneric_('M_KATEGORI', d, u); };
+  // h['delete_kategori']   = function (d, u) { return deleteGeneric_('M_KATEGORI', d, u); };
+  //
+  // // ---------- M_SATUAN ----------
+  // h['get_satuan_list'] = function (d, u) { return getGenericList_('M_SATUAN', d); };
+  // h['save_satuan']     = function (d, u) { return saveGeneric_('M_SATUAN', d, u); };
+  // h['delete_satuan']   = function (d, u) { return deleteGeneric_('M_SATUAN', d, u); };
+  //
+  // // ---------- T_ITEM ----------
+  // h['get_item_list'] = function (d, u) { return getGenericList_('T_ITEM', d); };
+  // h['save_item']     = function (d, u) { return saveGeneric_('T_ITEM', d, u); };
+  // h['delete_item']   = function (d, u) { return deleteGeneric_('T_ITEM', d, u); };
+  //
+  // // ---------- T_LOGBOOK ----------
+  // h['get_logbook_list'] = function (d, u) { return getGenericList_('T_LOGBOOK', d); };
+  // h['save_logbook']     = function (d, u) { return saveGeneric_('T_LOGBOOK', d, u); };
+  //
+  // // ---------- T_LAMPIRAN ----------
+  // h['get_lampiran_list'] = function (d, u) { return getGenericList_('T_LAMPIRAN', d); };
+  // h['save_lampiran']     = function (d, u) { return saveGeneric_('T_LAMPIRAN', d, u); };
+  // h['delete_lampiran']   = function (d, u) { return deleteGeneric_('T_LAMPIRAN', d, u); };
+  //
+  // // ---------- T_APPROVAL ----------
+  // h['get_approval_list'] = function (d, u) { return getGenericList_('T_APPROVAL', d); };
+  // h['save_approval']     = function (d, u) { return saveGeneric_('T_APPROVAL', d, u); };
+  // h['verifikasi_approval'] = function (d, u) { return verifikasiApproval_(d, u); };
+  //
+  // // ---------- T_JADWAL ----------
+  // h['get_jadwal_list'] = function (d, u) { return getGenericList_('T_JADWAL', d); };
+  // h['save_jadwal']     = function (d, u) { return saveGeneric_('T_JADWAL', d, u); };
+  // h['delete_jadwal']   = function (d, u) { return deleteGeneric_('T_JADWAL', d, u); };
+  //
+  // // ---------- T_REKAP ----------
+  // h['get_rekap_list']  = function (d, u) { return getGenericList_('T_REKAP', d); };
+  // h['generate_rekap']  = function (d, u) { return generateRekap_(d, u); };
+
   // ---------- Sistem ----------
   h['init_database'] = function (d, u) { return initDatabase(u); };
 
   return h;
 }
 
-// ==================== §3 HANDLER DOMAIN (CONTOH) ====================
-// [SESUAIKAN] Ganti handler ini dengan logika bisnis Anda.
-
-/**
- * Dashboard ringkas: hitung total pegawai + total entri contoh.
- * Ganti dengan agregasi bisnis Anda.
- */
-function getDashboard_(user) {
-  try {
-    var pegawai = getPegawaiList_();
-    var contoh  = getContohList_();
-    return {
-      success: true,
-      data: {
-        totalPegawai: ((pegawai && pegawai.data) || []).length,
-        totalContoh:  ((contoh  && contoh.data)  || []).length,
-        role: (user && user.role) || 'viewer',
-        nama: (user && (user.display_name || user.email)) || ''
-      }
-    };
-  } catch (err) {
-    Logger.log('[getDashboard_] ' + err.message);
-    return { success: false, error: err.message };
-  }
-}
+// ==================== §3 SIMPEG READ-ONLY LOOKUPS ====================
 
 /**
  * Baca daftar pegawai SIMPEG (tolerant reader) — hanya kolom yang dibutuhkan.
@@ -191,13 +211,14 @@ function getPegawaiList_() {
     var rows = getSheetData_('PEGAWAI');
     var lean = (rows || []).map(function (p) {
       return {
-        pegawai_id: p.pegawai_id || p.id,
-        nip:        p.nip || '',
-        nama:       p.nama || p.nama_lengkap || '',
-        nama_lengkap: p.nama_lengkap || p.nama || '',
-        email:      p.email || '',
-        unit_id:    p.unit_id || '',
-        jabatan_id: p.jabatan_id || '',
+        pegawai_id:     p.pegawai_id || p.id,
+        nip:            p.nip || '',
+        nama:           p.nama || p.nama_lengkap || '',
+        nama_lengkap:   p.nama_lengkap || p.nama || '',
+        email:          p.email || '',
+        unit_id:        p.unit_id || '',
+        jabatan_id:     p.jabatan_id || '',
+        pangkat_golongan: p.pangkat_golongan || p.pangkat_gol || '',
         status_pegawai: p.status_pegawai || 'PNS'
       };
     });
@@ -225,8 +246,8 @@ function getJabatanList_() {
 }
 
 /**
- * Bundle master satelit (referensi app + referensi SIMPEG) untuk frontend.
- * [SESUAIKAN] sesuaikan field & sumber data dengan bisnis Anda.
+ * Bundle master satelit — dipakai frontend untuk dropdown/picker.
+ * [SESUAIKAN] Tambahkan master-master Anda di sini.
  */
 function getMasterSatelit_() {
   try {
@@ -234,7 +255,8 @@ function getMasterSatelit_() {
       success: true,
       data: {
         referensi: getSheetData_('M_REFERENSI'),
-        // contoh tulis: contoh: getSheetData_('T_CONTOH')
+        kategori:  getSheetData_('M_KATEGORI'),
+        satuan:    getSheetData_('M_SATUAN')
       }
     };
   } catch (err) {
@@ -242,67 +264,345 @@ function getMasterSatelit_() {
   }
 }
 
+// ==================== §4 DOMAIN: DASHBOARD ====================
+
 /**
- * Contoh list dari tabel T_CONTOH — ganti dengan tabel bisnis Anda.
+ * Dashboard ringkas — hitung metrik ringan.
+ * [SESUAIKAN] Ganti/tambah agregasi sesuai bisnis Anda.
  */
-function getContohList_() {
+function getDashboard_(user) {
   try {
-    return { success: true, data: getSheetData_('T_CONTOH') };
+    var pegawai = getSheetData_('PEGAWAI');
+    var utama   = getSheetData_('T_UTAMA');
+    var rekap   = getSheetData_('T_REKAP');
+
+    var totalUtama = (utama || []).length;
+    var totalAktif = (utama || []).filter(function (r) {
+      var st = String(r.status || '').toLowerCase();
+      return st === 'draft' || st === 'diajukan' || st === 'proses';
+    }).length;
+    var totalSelesai = (utama || []).filter(function (r) {
+      return String(r.status || '').toLowerCase() === 'selesai';
+    }).length;
+    var totalRekap = (rekap || []).length;
+
+    return {
+      success: true,
+      data: {
+        totalPegawai: (pegawai || []).length,
+        totalUtama:   totalUtama,
+        totalAktif:   totalAktif,
+        totalSelesai: totalSelesai,
+        totalRekap:   totalRekap,
+        role: (user && user.role) || 'viewer',
+        nama: (user && (user.display_name || user.email)) || ''
+      }
+    };
   } catch (err) {
-    Logger.log('[getContohList_] ' + err.message);
+    Logger.log('[getDashboard_] ' + err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+// ==================== §5 DOMAIN CONTOH 1: M_REFERENSI ====================
+
+function getReferensiList_(params) {
+  try {
+    var list = getSheetData_('M_REFERENSI');
+    // Filter opsional: kategori, only_active, search
+    if (params.kategori) {
+      list = list.filter(function (r) {
+        return CoreLib.normStr(r.kategori) === CoreLib.normStr(params.kategori);
+      });
+    }
+    if (params.only_active) {
+      list = list.filter(function (r) {
+        return CoreLib.normStr(r.status_aktif) !== 'false';
+      });
+    }
+    if (params.search) {
+      var q = CoreLib.normStr(params.search);
+      list = list.filter(function (r) {
+        return CoreLib.matchSearch(r, q, ['kode', 'nama_nilai', 'keterangan']);
+      });
+    }
+    // Sort by urutan asc
+    list.sort(function (a, b) {
+      return (Number(a.urutan) || 99) - (Number(b.urutan) || 99);
+    });
+    return { success: true, data: list, total: list.length };
+  } catch (err) {
+    Logger.log('[getReferensiList_] ' + err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+function saveReferensi_(data, user) {
+  try {
+    var record = data.record || data;
+
+    if (!record.kategori || !record.nama_nilai) {
+      return { success: false, code: 'BAD_REQUEST', error: 'Kategori dan nama nilai wajib diisi.' };
+    }
+
+    // Normalisasi status_aktif
+    if (record.status_aktif !== undefined) {
+      record.status_aktif = String(record.status_aktif).toLowerCase() === 'false' ? 'false' : 'true';
+    } else {
+      record.status_aktif = 'true';
+    }
+
+    // Normalisasi urutan
+    if (record.urutan !== undefined && record.urutan !== '') {
+      var u = Number(record.urutan);
+      if (!isNaN(u)) record.urutan = u;
+    }
+
+    // Cek duplikat (kategori + kode) saat insert baru
+    if (!record.id && record.kode) {
+      var existing = getSheetData_('M_REFERENSI');
+      var dup = existing.find(function (r) {
+        return String(r.kategori).toUpperCase() === String(record.kategori).toUpperCase() &&
+               String(r.kode).toUpperCase() === String(record.kode).toUpperCase();
+      });
+      if (dup) {
+        return { success: false, code: 'BAD_REQUEST',
+                 error: 'Referensi dengan kategori + kode ini sudah ada.' };
+      }
+    }
+
+    var saved = saveRecord_('M_REFERENSI', record, user);
+    return { success: true, data: saved };
+  } catch (err) {
+    Logger.log('[saveReferensi_] ' + err.message);
+    return { success: false, code: 'BAD_REQUEST', error: err.message };
+  }
+}
+
+function deleteReferensi_(data, user) {
+  try {
+    if (!data || !data.id) {
+      return { success: false, code: 'BAD_REQUEST', error: 'ID tidak valid.' };
+    }
+    var ok = softDeleteRecord_('M_REFERENSI', data.id, user);
+    return { success: ok, message: ok ? 'Referensi dihapus.' : 'Referensi tidak ditemukan.' };
+  } catch (err) {
+    Logger.log('[deleteReferensi_] ' + err.message);
+    return { success: false, code: 'BAD_REQUEST', error: err.message };
+  }
+}
+
+// ==================== §6 DOMAIN CONTOH 2: T_UTAMA ====================
+
+function getUtamaList_(params, user) {
+  try {
+    var list = getSheetData_('T_UTAMA');
+
+    // Filter opsional
+    if (params.status) {
+      var st = CoreLib.normStr(params.status);
+      list = list.filter(function (r) { return CoreLib.normStr(r.status) === st; });
+    }
+    if (params.pegawai_id) {
+      var pid = CoreLib.normId(params.pegawai_id);
+      list = list.filter(function (r) { return CoreLib.normId(r.pegawai_id) === pid; });
+    }
+    if (params.kategori_id) {
+      var kid = CoreLib.normId(params.kategori_id);
+      list = list.filter(function (r) { return CoreLib.normId(r.kategori_id) === kid; });
+    }
+    if (params.search) {
+      var q = CoreLib.normStr(params.search);
+      list = list.filter(function (r) {
+        return CoreLib.matchSearch(r, q, ['kode', 'judul', 'deskripsi', 'catatan']);
+      });
+    }
+
+    // Sort: tanggal desc, fallback created_at desc
+    list.sort(function (a, b) {
+      var ta = CoreLib.dateKey10(a.tanggal) || CoreLib.dateKey10(a.created_at);
+      var tb = CoreLib.dateKey10(b.tanggal) || CoreLib.dateKey10(b.created_at);
+      return tb < ta ? -1 : (tb > ta ? 1 : 0);
+    });
+
+    // Clone sebelum kirim
+    list = list.map(function (r) { return Object.assign({}, r); });
+
+    return { success: true, data: list, total: list.length };
+  } catch (err) {
+    Logger.log('[getUtamaList_] ' + err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+function getUtamaDetail_(data, user) {
+  try {
+    if (!data || !data.id) {
+      return { success: false, code: 'BAD_REQUEST', error: 'ID tidak valid.' };
+    }
+    var row = findRecordById_('T_UTAMA', data.id);
+    if (!row) {
+      return { success: false, code: 'NOT_FOUND', error: 'Data tidak ditemukan.' };
+    }
+    return { success: true, data: row };
+  } catch (err) {
+    Logger.log('[getUtamaDetail_] ' + err.message);
+    return { success: false, code: 'BAD_REQUEST', error: err.message };
+  }
+}
+
+function saveUtama_(data, user) {
+  try {
+    var record = data.record || data;
+
+    if (!String(record.judul || '').trim()) {
+      return { success: false, code: 'BAD_REQUEST', error: 'Judul wajib diisi.' };
+    }
+
+    // Normalisasi ID fields
+    normalizeEntityIdFields_(record);
+
+    // Auto-generate kode bila kosong (insert baru)
+    if (!record.id && !record.kode) {
+      record.kode = CoreLib.genUniqueCode('UTM-', 'T_UTAMA', 'kode', 4,
+                                          SPREADSHEET_ID, ALL_SHEET_HEADERS);
+    }
+
+    // Normalisasi tanggal ke WIB
+    if (record.tanggal) {
+      record.tanggal = CoreLib.dateKey10(record.tanggal) || record.tanggal;
+    }
+
+    // Default status
+    if (!record.status) record.status = 'draft';
+
+    var saved = saveRecord_('T_UTAMA', record, user);
+    return { success: true, data: saved };
+  } catch (err) {
+    Logger.log('[saveUtama_] ' + err.message);
+    return { success: false, code: 'BAD_REQUEST', error: err.message };
+  }
+}
+
+function deleteUtama_(data, user) {
+  try {
+    if (!data || !data.id) {
+      return { success: false, code: 'BAD_REQUEST', error: 'ID tidak valid.' };
+    }
+    var ok = softDeleteRecord_('T_UTAMA', data.id, user);
+    return { success: ok, message: ok ? 'Data dihapus.' : 'Data tidak ditemukan.' };
+  } catch (err) {
+    Logger.log('[deleteUtama_] ' + err.message);
+    return { success: false, code: 'BAD_REQUEST', error: err.message };
+  }
+}
+
+// ==================== §7 GENERIC HELPERS (dipakai placeholder) ====================
+// Fungsi generik untuk sheet yang belum diimplementasikan domainnya.
+// Buka komentar handler di buildLocalHandlers_() untuk memakainya.
+
+/**
+ * List generik dari sheet apa pun.
+ */
+function getGenericList_(sheetName, params) {
+  try {
+    var list = getSheetData_(sheetName);
+    if (params && params.search) {
+      var q = CoreLib.normStr(params.search);
+      list = list.filter(function (r) {
+        return CoreLib.matchSearch(r, q, Object.keys(r));
+      });
+    }
+    return { success: true, data: list, total: list.length };
+  } catch (err) {
+    Logger.log('[getGenericList_ ' + sheetName + '] ' + err.message);
     return { success: false, error: err.message };
   }
 }
 
 /**
- * Contoh simpan — delegasi ke saveRecord_ (yang panggil CoreLib.apiSave).
- * Ganti validasi & field dengan bisnis Anda.
+ * Save generik — hanya validasi minimal (id ada / tidak).
  */
-function saveContoh_(data, user) {
+function saveGeneric_(sheetName, data, user) {
   try {
-    var judul = String(data.judul || '').trim();
-    if (!judul) return { success: false, code: 'BAD_REQUEST', error: 'Judul wajib diisi.' };
-
-    var record = {
-      id:         data.id || '',
-      kode:       data.kode || CoreLib.genUniqueCode(
-                    'CTH-', 'T_CONTOH', 'kode', 4,
-                    SPREADSHEET_ID, ALL_SHEET_HEADERS
-                  ),
-      judul:      judul,
-      pegawai_id: data.pegawai_id || '',
-      tanggal:    data.tanggal || CoreLib.todayIsoLocal(),
-      status:     data.status || 'draft',
-      keterangan: data.keterangan || ''
-    };
-
-    var saved = saveRecord_('T_CONTOH', record, user);
+    var record = data.record || data;
+    if (!record || typeof record !== 'object') {
+      return { success: false, code: 'BAD_REQUEST', error: 'Record tidak valid.' };
+    }
+    normalizeEntityIdFields_(record);
+    var saved = saveRecord_(sheetName, record, user);
     return { success: true, data: saved };
   } catch (err) {
-    Logger.log('[saveContoh_] ' + err.message);
+    Logger.log('[saveGeneric_ ' + sheetName + '] ' + err.message);
     return { success: false, code: 'BAD_REQUEST', error: err.message };
   }
 }
 
-function deleteContoh_(data, user) {
+/**
+ * Delete generik.
+ */
+function deleteGeneric_(sheetName, data, user) {
   try {
     if (!data || !data.id) {
       return { success: false, code: 'BAD_REQUEST', error: 'ID tidak valid.' };
     }
-    var ok = softDeleteRecord_('T_CONTOH', data.id, user);
-    return { success: ok, message: ok ? 'Data dihapus.' : 'Data tidak ditemukan.' };
+    var ok = softDeleteRecord_(sheetName, data.id, user);
+    return { success: ok, message: ok ? 'Dihapus.' : 'Tidak ditemukan.' };
   } catch (err) {
-    Logger.log('[deleteContoh_] ' + err.message);
+    Logger.log('[deleteGeneric_ ' + sheetName + '] ' + err.message);
     return { success: false, code: 'BAD_REQUEST', error: err.message };
   }
 }
 
-// ==================== §4 CONFIG (Script Properties) ====================
+/**
+ * Verifikasi generik untuk sheet dengan kolom status + approver_id + tanggal_approve.
+ */
+function verifikasiApproval_(data, user) {
+  try {
+    var isVerifikator = user && ['verifikator', 'admin', 'super'].indexOf(String(user.role).toLowerCase()) !== -1;
+    if (!isVerifikator) {
+      return { success: false, code: 'FORBIDDEN', error: 'Verifikasi hanya untuk verifikator/admin.' };
+    }
+    var id = data.id;
+    var status = String(data.status || '').toLowerCase();
+    if (!id) return { success: false, code: 'BAD_REQUEST', error: 'ID wajib diisi.' };
+    if (['disetujui', 'ditolak', 'revisi'].indexOf(status) === -1) {
+      return { success: false, code: 'BAD_REQUEST', error: 'Status harus disetujui/ditolak/revisi.' };
+    }
+    var row = findRecordById_('T_APPROVAL', id);
+    if (!row) return { success: false, code: 'NOT_FOUND', error: 'Data tidak ditemukan.' };
+
+    row.status          = status;
+    row.approver_id     = (user && user.email) || '';
+    row.tanggal_approve = CoreLib.todayIsoLocal();
+    if (data.catatan !== undefined) row.catatan = data.catatan;
+
+    // Bypass hook (langsung) — karena verifikator
+    var saved = CoreLib.apiSave(SPREADSHEET_ID, 'T_APPROVAL', row, user,
+                                 ALL_SHEET_HEADERS, isRefSheet_, null, 'id').data;
+    return { success: true, data: saved };
+  } catch (err) {
+    Logger.log('[verifikasiApproval_] ' + err.message);
+    return { success: false, code: 'BAD_REQUEST', error: err.message };
+  }
+}
 
 /**
- * getConfigList_ — gabungkan default + nilai dari Script Properties.
- * Hanya key yang masuk whitelist CoreLib (atau extraKeys) yang ditampilkan.
+ * Generate rekap periodik (contoh placeholder — sesuaikan bisnis).
  */
+function generateRekap_(data, user) {
+  try {
+    // [SESUAIKAN] Logika generate rekap Anda.
+    return { success: false, code: 'BAD_REQUEST',
+             error: 'generate_rekap belum diimplementasikan. Isi logika di 02_AppLogic.gs.' };
+  } catch (err) {
+    Logger.log('[generateRekap_] ' + err.message);
+    return { success: false, code: 'BAD_REQUEST', error: err.message };
+  }
+}
+
+// ==================== §8 CONFIG (Script Properties) ====================
+
 function getConfigList_() {
   var defaults = [
     { key: 'app_title',   value: APP_TITLE, keterangan: 'Nama aplikasi' },
@@ -328,15 +628,11 @@ function getConfigList_() {
   return { success: true, data: list };
 }
 
-/**
- * saveConfigItem_ — simpan ke Script Properties dengan whitelist.
- */
 function saveConfigItem_(payload, actor) {
   try {
     payload = payload || {};
     var key   = payload.key   !== undefined ? payload.key   : (payload.record && payload.record.key);
     var value = payload.value !== undefined ? payload.value : (payload.record && payload.record.value);
-
     if (!key) return { success: false, code: 'BAD_REQUEST', error: 'Key parameter wajib diisi.' };
 
     var allowed = CoreLib.isAllowedConfigKey(key, ['ADMIN_EMAILS', 'VERIFIKATOR_EMAILS']);
@@ -353,9 +649,6 @@ function saveConfigItem_(payload, actor) {
   }
 }
 
-/**
- * deleteConfigItem_ — hapus dari Script Properties dengan whitelist.
- */
 function deleteConfigItem_(payload, actor) {
   try {
     payload = payload || {};
@@ -376,13 +669,12 @@ function deleteConfigItem_(payload, actor) {
   }
 }
 
-// ==================== §5 SETUP ====================
-// [SESUAIKAN] Jalankan setupApp() SEKALI setelah 01_ConfigAndBridge.gs diisi.
+// ==================== §9 SETUP ====================
+// Jalankan setupApp() SEKALI setelah 01_ConfigAndBridge.gs diisi.
 
 /**
  * Inisialisasi database — delegasi ke CoreLib.initDatabase.
- * Membuat semua sheet di ALL_SHEET_HEADERS + kolom audit standar.
- * Hapus Sheet1 default bila kosong.
+ * Membuat semua 10 sheet bisnis + 3 SIMPEG (skip — read-only) + ZZ_TEST_CRUD.
  */
 function initDatabase(actor) {
   try {
@@ -395,6 +687,7 @@ function initDatabase(actor) {
 
     var result = CoreLib.initDatabase(SPREADSHEET_ID, ALL_SHEET_HEADERS, isSimpegSheet_);
 
+    // Hapus Sheet1 default bila kosong
     try {
       var ss = CoreLib.getDb(SPREADSHEET_ID);
       var defaultSheet = ss.getSheetByName('Sheet1') || ss.getSheetByName('Sheet 1');
@@ -405,7 +698,8 @@ function initDatabase(actor) {
       Logger.log('[WARN] Gagal hapus Sheet1: ' + e.message);
     }
 
-    var summary = 'Inisialisasi database ' + APP_CODE + ' selesai.';
+    var summary = 'Inisialisasi database ' + APP_CODE + ' selesai. ' +
+                  '10 sheet bisnis + ZZ_TEST_CRUD + referensi SIMPEG.';
     Logger.log('✅ ' + summary);
     audit_(actor, 'INIT_DB', 'SYSTEM', 'ALL', true, summary);
 
@@ -419,7 +713,6 @@ function initDatabase(actor) {
 /**
  * Setup aplikasi — delegasi penuh ke CoreLib.executeAppSetup.
  * Akan: set Script Properties + buat folder Drive + seed config + cek ref SIMPEG.
- * [SESUAIKAN] defaultConfigs dengan config app Anda.
  */
 function setupApp(actor) {
   try {
@@ -441,7 +734,7 @@ function setupApp(actor) {
       headersMap:     ALL_SHEET_HEADERS,
       defaultConfigs: defaultConfigs,
       isRefSheetFunc: isSimpegSheet_,
-      props:          appProps_()    // WAJIB — store milik app ini
+      props:          appProps_()
     });
 
     if (result && result.success) {
@@ -459,11 +752,10 @@ function setupApp(actor) {
   }
 }
 
-// ==================== §6 HEALTH CHECK ====================
+// ==================== §10 HEALTH CHECK ====================
 
 /**
  * Verifikasi cepat setelah paste: cek CoreLib + dispatcher + registry.
- * Jalankan dari editor GAS.
  */
 function testAppLogicSelfCheck() {
   Logger.log('=== 02_AppLogic.gs v2.0.0 self-check ===');
@@ -474,12 +766,10 @@ function testAppLogicSelfCheck() {
   }
   Logger.log('✅ CoreLib terdeteksi.');
 
-  // Registry handler
   var h = buildLocalHandlers_();
   var actions = Object.keys(h);
   Logger.log('📋 localHandlers: ' + actions.length + ' aksi terdaftar');
 
-  // actionLevels lengkap
   var cfg = getAppConfig_();
   var actionLevels = cfg.actionLevels || {};
   var missing = actions.filter(function (k) {
@@ -489,11 +779,9 @@ function testAppLogicSelfCheck() {
     ' Semua handler punya actionLevels' +
     (missing.length ? ' — MISSING: ' + missing.join(', ') : ''));
 
-  // Ping via dispatcher
   var ping = handleAction({ action: 'ping' });
   Logger.log((ping && ping.success ? '✅' : '❌') + ' ping via dispatcher');
 
-  // Fail-closed: aksi tak dikenal tanpa token
   var aneh = handleAction({ action: 'aksi_aneh_xyz' });
   Logger.log((aneh && aneh.success === false ? '✅' : '❌') +
     ' aksi tak dikenal DITOLAK (code=' + (aneh && aneh.code) + ')');
