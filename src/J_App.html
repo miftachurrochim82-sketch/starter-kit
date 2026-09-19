@@ -1,151 +1,130 @@
 <script>
-// ==================== J_APP: METHODS + BOOTSTRAP + MOUNT ====================
-(function () {
-  var STORAGE_KEY = 'sicontoh_session';
+// ============================================================
+// STARTER-KIT - J_App.html (v2.0.0) — File terakhir
+// ============================================================
+// Bootstrap aplikasi Vue 3 via AppCore.create() (kit CDN @v2.8.1).
+//
+// Urutan include di Index.html (WAJIB):
+//   J_State → J_Helpers → J_Api → J_Actions → J_App
+//
+// Yang DIURUS AppCore (jangan bikin ulang):
+//   - Vue.createApp + registrasi semua komponen kit
+//   - Session/token (safeSession/safeLocal) + auto SSO exchange
+//   - callServer + _cacheBust + dedup + handleSessionExpired
+//   - SWR cache master SIMPEG + loadMasterSIMPEG()
+//   - Toggle dark mode + event 'appcore:dark' (chart auto re-render)
+//   - Toast, formatDate/Rupiah, loadLib(chart/xlsx/jspdf/pdflib)
+//   - logout + handleSessionExpired
+//
+// [SESUAIKAN]
+//   1. appCode    — sama dengan APP_CODE di 01_ConfigAndBridge.gs
+//   2. appTitle   — judul app (untuk header & <app-login>)
+//   3. storagePrefix — HARUS sama dengan kunci dark-mode di Index.html
+//   4. platformUrl — URL /exec SI-PLATFORM (fallback default sudah ada)
+//   5. brand      — identitas sidebar
+//   6. menu       — daftar menu sidebar (grup, ikon, halaman)
+//   7. pageIcons  — ikon per halaman (untuk header)
+//   8. onNavigate — loader yang dipanggil saat user ganti halaman
+//   9. initApp    — loader yang dipanggil saat startup (silent)
+// ============================================================
 
-  function loadSession() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) { return null; }
-  }
-  function saveSession(s) {
-    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); } catch (e) {}
-  }
-  function clearSession() {
-    try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
-  }
+// ==================== MIXIN ====================
+// Gabungkan seluruh modul ke satu mixin yang dioper ke AppCore.create().
+// Cermin pola si-kompetensi (SIKompetensiMixin) & si-lahar.
+var StarterKitMixin = {
+  data: function () {
+    return Object.assign({}, window.StarterKitState.data());
+  },
+  computed: Object.assign({}, window.StarterKitState.computed),
+  methods: Object.assign(
+    {},
+    window.StarterKitHelpers.methods,
+    window.StarterKitApi.methods,
+    window.StarterKitActions.methods
+  )
+};
 
-  var methods = {
-    // Satu-satunya jalur ke server (pola si-platform/si-kompetensi)
-    callServer: function (action, data) {
-      var self = this;
-      return new Promise(function (resolve, reject) {
-        google.script.run
-          .withSuccessHandler(resolve)
-          .withFailureHandler(reject)
-          .api({ action: action, data: data || {}, token: self.session.token || '' });
-      });
-    },
+// ==================== BOOTSTRAP ====================
+var app = AppCore.create({
 
-    switchPage: function (id) {
-      this.currentPage = id;
-      if (this.isMobile) this.sidebarCollapsed = true;
-    },
+  // ---------- [SESUAIKAN] Identitas app ----------
+  appCode:       'SI-CONTOH',            // HARUS sama dengan APP_CODE di 01_ConfigAndBridge.gs
+  appTitle:      'SI-CONTOH',            // judul tampil di header & login
+  initialPage:   'dashboard',
+  storagePrefix: 'sicontoh',             // HARUS sama dengan kunci dark-mode di Index.html (sicontoh_dark)
+  platformUrl:   'https://script.google.com/macros/s/AKfycbwh_OUVqmxLcuF81FHmPZtT33Wrm8Ce9Da1SQ3hfkSr7gM5P8ofyAlHSgW40mq3eo-PoQ/exec',
 
-    toggleDark: function () {
-      this.isDarkMode = !this.isDarkMode;
-      document.documentElement.classList.toggle('dark', this.isDarkMode);
-    },
+  // ---------- [SESUAIKAN] Brand sidebar ----------
+  brand: {
+    title:    'SI-CONTOH',
+    subtitle: 'Pemkab Trenggalek',
+    logoIcon: 'fa-solid fa-cube',
+    logoChar: 'SC',
+    logoSvg:  ''
+  },
 
-    loadAll: function () {
-      var self = this;
-      self.loading = true;
-      Promise.all([
-        self.callServer('get_dashboard'),
-        self.callServer('get_pegawai_list'),
-        self.callServer('get_contoh_list')
-      ]).then(function (res) {
-        if (res[0] && res[0].success) self.dashboardStats = res[0].data || {};
-        if (res[1] && res[1].success) self.pegawaiList = res[1].data || [];
-        if (res[2] && res[2].success) self.contohList = res[2].data || [];
-        self.ready = true;
-      }).catch(function (err) {
-        self.errorMessage = 'Gagal memuat data: ' + (err && err.message ? err.message : err);
-        self.ready = true;
-      }).then(function () { self.loading = false; });
-    },
+  // ---------- [SESUAIKAN] Menu sidebar ----------
+  // Format: array grup. Tiap grup { name, items: [{ id, label, icon, adminOnly? }] }
+  //   id       — sama dengan currentPage di V_* (mis. 'dashboard' untuk <section v-if="currentPage === 'dashboard'">)
+  //   adminOnly — boolean (opsional) → hanya tampil untuk isAdmin
+  menu: [
+    { name: 'Utama', items: [
+      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high' }
+    ]}
+    // [SESUAIKAN] Tambah grup/halaman Anda:
+    // { name: 'Data', items: [
+    //   { id: 'aset',     label: 'Aset',      icon: 'fa-solid fa-boxes-stacked' },
+    //   { id: 'peminjaman', label: 'Peminjaman', icon: 'fa-solid fa-right-left' }
+    // ]},
+    // { name: 'Sistem', items: [
+    //   { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-solid fa-gear', adminOnly: true }
+    // ]}
+  ],
 
-    openContohModal: function (item) {
-      this.contohForm = item
-        ? { id: item.id, kode: item.kode, judul: item.judul, status: item.status, keterangan: item.keterangan }
-        : { judul: '', status: 'draft', keterangan: '' };
-      this.showContohModal = true;
-    },
+  // ---------- [SESUAIKAN] Ikon per halaman (untuk header) ----------
+  // Kunci = id halaman (sama dengan menu items), nilai = class Font Awesome.
+  pageIcons: {
+    dashboard: 'fa-solid fa-gauge-high'
+    // [SESUAIKAN] Tambah ikon untuk halaman baru:
+    // aset: 'fa-solid fa-boxes-stacked',
+    // peminjaman: 'fa-solid fa-right-left',
+    // pengaturan: 'fa-solid fa-gear'
+  },
 
-    saveContoh: function () {
-      var self = this;
-      if (!self.contohForm.judul) { self.errorMessage = 'Judul wajib diisi.'; return; }
-      self.saving = true;
-      self.callServer('save_contoh', self.contohForm).then(function (res) {
-        if (res && res.success) {
-          self.showContohModal = false;
-          return self.callServer('get_contoh_list').then(function (r2) {
-            if (r2 && r2.success) self.contohList = r2.data || [];
-          });
-        }
-        self.errorMessage = (res && res.error && res.error.message) || 'Gagal menyimpan.';
-      }).catch(function () { self.errorMessage = 'Gagal menyimpan.'; })
-        .then(function () { self.saving = false; });
-    },
-
-    deleteContoh: function (item) {
-      var self = this;
-      if (!window.confirm('Hapus data "' + item.judul + '"?')) return;
-      self.callServer('delete_contoh', { id: item.id }).then(function (res) {
-        if (res && res.success) {
-          self.contohList = self.contohList.filter(function (x) { return x.id !== item.id; });
-        }
-      });
-    },
-
-    logout: function () {
-      var self = this;
-      self.callServer('logout').then(function () {
-        clearSession();
-        self.session = { token: '', user: null };
-        self.ready = false;
-        self.errorMessage = 'Anda telah keluar. Buka ulang aplikasi dari SI-PLATFORM.';
-      });
-    },
-
-    // Bootstrap: tiket SSO di URL > sesi tersimpan > minta buka dari portal
-    boot: function () {
-      var self = this;
-      var ticket = (window.__TICKET__ || '').trim();
-      if (ticket) {
-        self.callServer('exchange_platform_ticket', { ticket: ticket }).then(function (res) {
-          if (res && res.success && res.data) {
-            self.session = { token: res.data.token, user: res.data.user };
-            saveSession(self.session);
-            self.loadAll();
-          } else {
-            self.ready = true;
-            self.errorMessage = (res && res.error && res.error.message) || 'Tiket SSO ditolak.';
-          }
-        }).catch(function () { self.ready = true; self.errorMessage = 'Gagal menghubungi server.'; });
-        return;
-      }
-      var stored = loadSession();
-      if (stored && stored.token) {
-        self.session = stored;
-        self.loadAll(); // loadAll gagal → checkAuth server yang menolak sesi basi
-        return;
-      }
-      self.ready = true;
-      self.errorMessage = 'Buka aplikasi ini dari katalog SI-PLATFORM agar masuk otomatis (SSO).';
+  // ---------- [SESUAIKAN] Loader saat user ganti halaman ----------
+  // `vm` = instance Vue (dari AppCore.create).
+  // Panggil loader dari J_Api — silent=true agar tidak spam toast.
+  onNavigate: function (vm, page) {
+    if (page === 'dashboard') {
+      // Refresh tiap buka dashboard — pakai non-silent agar user lihat progress
+      vm.loadDashboard(true);
+      vm.loadContoh();
     }
-  };
+    // [SESUAIKAN] Tambah handler untuk halaman baru:
+    // if (page === 'aset') { if (!vm.asetLoading) vm.loadAset(); }
+    // if (page === 'pengaturan') { /* <app-settings> auto-load */ }
+  },
 
-  var app = Vue.createApp({
-    data: APP_STATE.data,
-    computed: APP_STATE.computed,
-    methods: methods,
-    mounted: function () {
-      var self = this;
-      window.addEventListener('resize', function () {
-        self.isMobile = window.innerWidth < 768;
-        if (!self.isMobile) self.sidebarCollapsed = false;
-      });
-      this.boot();
-    }
-  });
+  // ---------- [SESUAIKAN] Loader saat startup (silent) ----------
+  // Dipanggil sekali saat app pertama kali siap (setelah token valid).
+  // Semua silent=true — cegah spam toast kalau backend/network lambat.
+  initApp: async function (vm) {
+    if (vm.dataLoaded) return;
 
-  // Registrasi SEMUA komponen kit dari CDN (pola teruji si-platform/si-kompetensi)
-  Object.keys(window.AppComponents || {}).forEach(function (n) {
-    if (n !== 'version') app.component(n, window.AppComponents[n]);
-  });
+    // Fase 1: paralel — modul independen
+    await Promise.all([
+      vm.loadDashboard(true),
+      vm.loadContoh(true)
+    ]);
 
-  app.mount('#app');
-})();
+    vm.dataLoaded = true;
+  },
+
+  // ---------- Mixin (WAJIB — jangan diubah) ----------
+  mixins: [StarterKitMixin]
+});
+
+// ==================== MOUNT ====================
+// Wajib: mount ke #app, agar v-cloak terlepas dan Vue render.
+app.mount('#app');
 </script>
