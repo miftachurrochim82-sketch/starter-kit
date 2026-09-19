@@ -1,39 +1,122 @@
 <script>
-// ==================== J_STATE: DATA & COMPUTED APLIKASI VUE ====================
-var APP_STATE = {
-  data: function () {
+// ============================================================
+// STARTER-KIT - J_State.html (v2.0.0)
+// ============================================================
+// State reaktif + computed untuk seluruh app.
+//
+// [SESUAIKAN] Ganti state contoh (dashboardData, contohList, contohForm)
+// dengan state bisnis Anda.
+//
+// Pola: state di `data()`, computed (turunan) di `computed: { ... }`.
+// Computed dipakai untuk filter, paginasi, dan turunan lain —
+// jangan bikin duplikat data mentah di data().
+// ============================================================
+
+window.StarterKitState = {
+
+  // ==================== DATA ====================
+  data() {
     return {
-      ready: false,             // true setelah sesi terverifikasi / SSO selesai
-      loading: false,
-      saving: false,
-      errorMessage: '',
-      session: { token: '', user: null },
-      currentPage: 'dashboard',
-      sidebarCollapsed: window.innerWidth < 768,
-      isMobile: window.innerWidth < 768,
-      isDarkMode: false,
-      dashboardStats: {},
-      pegawaiList: [],
-      contohList: [],
-      showContohModal: false,
-      contohForm: {}
+
+      // ---------- Health flag (dipakai oleh lifecycle di J_App) ----------
+      dataLoaded: false,
+
+      // ---------- Dashboard KPI ----------
+      // [SESUAIKAN] Field sesuai handler get_dashboard di 02_AppLogic.gs
+      dashboardData: {
+        totalPegawai: 0,
+        totalContoh:  0,
+        role:         'viewer',
+        nama:         ''
+      },
+
+      // ---------- Contoh (T_CONTOH) ----------
+      // [SESUAIKAN] Ganti nama state & field dengan bisnis Anda.
+      contohList:    [],
+      contohLoading: false,
+
+      // Filter aktif (dipakai <app-filter-bar> v-model)
+      contohFilters: {
+        search: '',
+        status: ''
+      },
+
+      // Paginasi client-side
+      contohPagination: { page: 1, limit: 10 },
+
+      // Modal state
+      showContohForm: false,
+      contohSaving:   false,
+
+      // Form data (di-copy sebelum save)
+      contohForm: {
+        id:         '',
+        judul:      '',
+        pegawai_id: '',
+        tanggal:    '',
+        status:     'draft',
+        keterangan: ''
+      }
+
     };
   },
+
+  // ==================== COMPUTED ====================
   computed: {
-    appBrand: function () {
-      return { title: 'SI-CONTOH', subtitle: 'Pemkab Trenggalek', logoChar: 'SC', logoIcon: 'fa-solid fa-cube' };
+
+    // ---------- KPI turunan ----------
+    // [SESUAIKAN] Sesuaikan dengan bisnis Anda.
+    kpiStatusAktif() {
+      return (this.contohList || []).filter(function (r) {
+        var st = String(r.status || '').toLowerCase();
+        return st === 'draft' || st === 'diajukan';
+      }).length;
     },
-    menuForKit: function () {
+
+    // ---------- Filter defs untuk <app-filter-bar> ----------
+    // Format: { key, label, type: 'text'|'select'|'date', options?, placeholder?, span? }
+    contohFilterDefs() {
       return [
-        {
-          name: 'Menu Utama',
-          items: [
-            { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high' }
-            // [SESUAIKAN] tambah halaman baru: { id: 'x', label: 'X', icon: 'fa-solid fa-...' }
-          ]
-        }
+        { key: 'search', label: 'Pencarian', type: 'text', placeholder: 'Cari kode, judul, keterangan…' },
+        { key: 'status', label: 'Status', type: 'select', options: [
+          { value: 'draft',    label: 'Draft' },
+          { value: 'diajukan', label: 'Diajukan' },
+          { value: 'selesai',  label: 'Selesai' }
+        ] }
       ];
+    },
+
+    // ---------- Filter list (client-side) ----------
+    // [SESUAIKAN] Field yang dipakai untuk search: contoh pakai kode, judul, keterangan.
+    filteredContoh() {
+      var f = this.contohFilters || {};
+      var q = String(f.search || '').toLowerCase().trim();
+      var st = String(f.status || '').toLowerCase().trim();
+      var self = this;
+
+      return (this.contohList || []).filter(function (r) {
+        if (st && String(r.status || '').toLowerCase().trim() !== st) return false;
+        if (q) {
+          var hay = [
+            r.kode, r.judul, r.keterangan,
+            self.namaPegawai(r.pegawai_id)
+          ].map(function (x) { return String(x || '').toLowerCase().trim(); }).join(' ');
+          if (hay.indexOf(q) === -1) return false;
+        }
+        return true;
+      });
+    },
+
+    // ---------- Paginasi (via helper kit AppCore) ----------
+    paginatedContoh() {
+      return AppCore.paginate(this.filteredContoh, this.contohPagination.page, this.contohPagination.limit);
+    },
+
+    contohTotalPages() {
+      return AppCore.pageCount(this.filteredContoh, this.contohPagination.limit);
     }
+
   }
+
 };
 </script>
