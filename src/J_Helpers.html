@@ -13,11 +13,11 @@
 //     this.formatDateTimeDisplay(v)
 //     this.formatRupiah(n)
 //     this.showToast(msg, type)
-//     this.loadLib(name, opts)     — chart/xlsx/jspdf/autoload
+//     this.loadLib(name, opts)     — chart/xlsx/jspdf/pdflib
 //     this.callServer(action, data)
 //
 //   Yang ditulis di sini HANYA yang khas app Anda
-//   (status mapping, kalkulasi domain, format unik).
+//   (status mapping, lookup domain, kalkulasi unik).
 //
 // [SESUAIKAN] Ganti helper contoh sesuai bisnis Anda.
 // ============================================================
@@ -27,29 +27,59 @@ window.StarterKitHelpers = {
 
     // ==================== STATUS BADGE MAPPING ====================
     /**
-     * Map status bisnis → badge status kit (<app-badge status="...">).
+     * Map status T_UTAMA → badge status kit (<app-badge status="...">).
      *
      * Kit mendukung status: disetujui/approved/aktif (hijau),
      * menunggu/pending (kuning), proses (biru), revisi (sky),
      * ditolak/rejected/inactive (merah), purple/pppk (ungu).
-     *
-     * [SESUAIKAN] Sesuaikan mapping dengan status bisnis Anda.
      */
-    badgeStatusContoh(status) {
+    badgeStatusUtama(status) {
       var s = String(status || '').toLowerCase().trim();
       if (s === 'draft')    return 'menunggu';
       if (s === 'diajukan') return 'info';
+      if (s === 'proses')   return 'proses';
       if (s === 'selesai')  return 'disetujui';
+      if (s === 'ditolak')  return 'ditolak';
       return 'menunggu';
     },
 
-    // ==================== LOOKUP PEGAWAI (nama lengkap + gelar) ====================
+    // ==================== LOOKUP DOMAIN ====================
     /**
-     * Ambil nama pegawai dengan prioritas field `nama_lengkap`
-     * (konvensi SIMPEG) — melengkapi AppCore.namaPegawai() yang
-     * hanya cek field `nama`.
-     *
-     * Return nama atau '' bila tidak ketemu.
+     * Ambil nama kategori dari `kategoriList` (M_KATEGORI).
+     * Fallback ke kode, lalu ke '(tanpa)'.
+     */
+    namaKategori_(id) {
+      var key = String(id || '').trim();
+      if (!key) return '—';
+      var list = this.kategoriList || [];
+      for (var i = 0; i < list.length; i++) {
+        var k = list[i] || {};
+        if (String(k.id || '').trim() === key) {
+          return k.nama || k.kode || key;
+        }
+      }
+      return key;   // fallback: tampilkan ID apa adanya
+    },
+
+    /**
+     * Ambil nama satuan dari `satuanList` (M_SATUAN).
+     */
+    namaSatuan_(id) {
+      var key = String(id || '').trim();
+      if (!key) return '—';
+      var list = this.satuanList || [];
+      for (var i = 0; i < list.length; i++) {
+        var s = list[i] || {};
+        if (String(s.id || '').trim() === key) {
+          return s.nama || s.simbol || key;
+        }
+      }
+      return key;
+    },
+
+    /**
+     * Nama pegawai — prioritas field `nama_lengkap` (konvensi SIMPEG),
+     * melengkapi AppCore.namaPegawai() yang hanya cek `nama`.
      */
     getPegawaiNama(id) {
       if (!id) return '';
@@ -69,7 +99,7 @@ window.StarterKitHelpers = {
     },
 
     /**
-     * NIP pegawai dari id-nya — helper pelengkap.
+     * NIP pegawai dari id-nya.
      */
     nipPegawai(id) {
       if (!id) return '-';
@@ -88,19 +118,17 @@ window.StarterKitHelpers = {
       return '-';
     },
 
-    // ==================== UTIL KECIL (domain) ====================
+    // ==================== UTIL KECIL ====================
     /**
      * Normalisasi string untuk perbandingan filter (lowercase + trim).
-     * Sama dengan CoreLib.normStr() di backend — tapi di sini
-     * versi frontend (tidak bisa akses CoreLib).
+     * Cermin CoreLib.normStr() versi frontend.
      */
     normStr(v) {
       return String(v == null ? '' : v).trim().toLowerCase();
     },
 
     /**
-     * Format nama dengan gelar: "BUDI SANTOSO, S.H., M.H." → "Budi Santoso, S.H., M.H."
-     * Kalau tidak ada gelar → Title Case biasa.
+     * Format nama dengan gelar: "BUDI SANTOSO, S.H." → "Budi Santoso, S.H."
      */
     formatNamaPegawai(str) {
       if (!str || str === '-') return '-';
@@ -112,14 +140,26 @@ window.StarterKitHelpers = {
         return depan + ', ' + gelar;
       }
       return s.toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); });
+    },
+
+    /**
+     * Format nilai uang ringkas untuk dashboard.
+     * 1500000 → "1,5 Jt"; 1500000000 → "1,5 M"; < 1 juta → "Rp 250.000"
+     */
+    formatRupiahRingkas_(n) {
+      var num = Number(n) || 0;
+      var abs = Math.abs(num);
+      if (abs >= 1e9) return (num / 1e9).toFixed(1).replace('.', ',') + ' M';
+      if (abs >= 1e6) return (num / 1e6).toFixed(1).replace('.', ',') + ' Jt';
+      if (abs >= 1e3) return (num / 1e3).toFixed(0) + ' Rb';
+      return this.formatRupiah(num);
     }
 
     // ==================== [SESUAIKAN] Helper bisnis Anda ====================
-    // Contoh kandidat:
-    //   hitungTotalNilai(list)          → jumlah kolom nilai
-    //   formatKodeAset(prefix, angka)   → 'AST-0001'
+    // Kandidat:
+    //   hitungTotalNilai(list)          → sum kolom nilai
     //   isExpiringSoon(tgl, hariAwal)   → boolean (H-90 alert)
-    //   kelipatan(n, base)              → pembulatan
+    //   warnaStatusKustom(status)       → class Tailwind
 
   }
 };
