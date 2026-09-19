@@ -2,68 +2,107 @@
      STARTER-KIT - V_Modals.html (v2.0.0)
      ============================================================
      Seluruh modal form terpusat di sini (pola si-kompetensi & si-lahar).
-     Semua modal = komponen kit <app-modal> (size 2xl, 3xl, dll).
+     Semua modal = komponen kit <app-modal>.
      State form hidup di root vm (J_State + J_Actions).
 
-     [SESUAIKAN] Ganti modal Contoh dengan modal bisnis Anda.
-
-     Urutan modal:
-       1) Contoh (form Tambah/Edit)
-       2) ... (tambahkan sesuai kebutuhan)
+     [SESUAIKAN] Ganti modal dengan bisnis Anda.
      ============================================================ -->
 
-  <!-- ================= MODAL FORM CONTOH ================= -->
-  <app-modal :show="showContohForm"
-             :title="contohForm.id ? 'Edit Data Contoh' : 'Data Contoh Baru'"
-             subtitle="Contoh form dengan berbagai jenis input"
-             icon="fa-solid fa-pen-to-square"
+  <!-- ================= MODAL FORM UTAMA (T_UTAMA) ================= -->
+  <app-modal :show="showUtamaForm"
+             :title="utamaForm.id ? 'Edit Data Utama' : 'Data Utama Baru'"
+             subtitle="Form transaksi utama"
+             icon="fa-solid fa-file-pen"
              size="2xl"
-             :loading="contohSaving"
+             :loading="utamaSaving"
              confirm-text="Simpan"
              cancel-text="Batal"
-             @close="showContohForm = false"
-             @confirm="saveContoh()">
-    <div class="space-y-4">
+             @close="showUtamaForm = false"
+             @confirm="saveUtama()">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
       <!-- Judul -->
-      <div>
+      <div class="md:col-span-2">
         <label class="form-label">Judul *</label>
         <input type="text"
-               v-model="contohForm.judul"
-               placeholder="Masukkan judul singkat"
+               v-model="utamaForm.judul"
+               placeholder="Judul singkat entri"
                class="input w-full">
       </div>
 
+      <!-- Deskripsi -->
+      <div class="md:col-span-2">
+        <label class="form-label">Deskripsi</label>
+        <textarea v-model="utamaForm.deskripsi"
+                  rows="2"
+                  placeholder="Keterangan lengkap (opsional)"
+                  class="input w-full resize-none"></textarea>
+      </div>
+
       <!-- Pegawai (picker SIMPEG) -->
-      <div>
-        <app-pegawai-picker v-model="contohForm.pegawai_id"
+      <div class="md:col-span-2">
+        <app-pegawai-picker v-model="utamaForm.pegawai_id"
                             label="Pegawai Penanggung Jawab"
                             placeholder="Ketik nama / NIP…"></app-pegawai-picker>
       </div>
 
-      <!-- Grid 2 kolom: Tanggal + Status -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label class="form-label">Tanggal</label>
-          <input type="date"
-                 v-model="contohForm.tanggal"
-                 class="input w-full">
-        </div>
-        <div>
-          <label class="form-label">Status</label>
-          <select v-model="contohForm.status" class="input w-full">
-            <option value="draft">Draft</option>
-            <option value="diajukan">Diajukan</option>
-            <option value="selesai">Selesai</option>
-          </select>
-        </div>
+      <!-- Kategori -->
+      <div>
+        <label class="form-label">Kategori</label>
+        <select v-model="utamaForm.kategori_id" class="input w-full">
+          <option value="">— Pilih Kategori —</option>
+          <option v-for="k in kategoriList" :key="k.id" :value="k.id">
+            {{ k.nama || k.kode }}
+          </option>
+        </select>
       </div>
 
-      <!-- Keterangan -->
+      <!-- Satuan -->
       <div>
-        <label class="form-label">Keterangan</label>
-        <textarea v-model="contohForm.keterangan"
-                  rows="3"
+        <label class="form-label">Satuan</label>
+        <select v-model="utamaForm.satuan_id" class="input w-full">
+          <option value="">— Pilih Satuan —</option>
+          <option v-for="s in satuanList" :key="s.id" :value="s.id">
+            {{ s.nama }}{{ s.simbol ? ' (' + s.simbol + ')' : '' }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Tanggal -->
+      <div>
+        <label class="form-label">Tanggal</label>
+        <input type="date" v-model="utamaForm.tanggal" class="input w-full">
+      </div>
+
+      <!-- Status -->
+      <div>
+        <label class="form-label">Status</label>
+        <select v-model="utamaForm.status" class="input w-full">
+          <option value="draft">Draft</option>
+          <option value="diajukan">Diajukan</option>
+          <option value="proses">Proses</option>
+          <option value="selesai">Selesai</option>
+          <option value="ditolak">Ditolak</option>
+        </select>
+      </div>
+
+      <!-- Jumlah -->
+      <div>
+        <label class="form-label">Jumlah</label>
+        <input type="number" min="0" v-model.number="utamaForm.jumlah" class="input w-full" placeholder="0">
+      </div>
+
+      <!-- Nilai -->
+      <div>
+        <label class="form-label">Nilai (Rp)</label>
+        <input type="number" min="0" v-model.number="utamaForm.nilai" class="input w-full" placeholder="0">
+      </div>
+
+      <!-- Catatan -->
+      <div class="md:col-span-2">
+        <label class="form-label">Catatan</label>
+        <textarea v-model="utamaForm.catatan"
+                  rows="2"
                   placeholder="Catatan tambahan (opsional)"
                   class="input w-full resize-none"></textarea>
       </div>
