@@ -2,13 +2,13 @@
 // ============================================================
 // STARTER-KIT - J_Actions.html (v2.0.0)
 // ============================================================
-// Handler aksi user (klik tombol / submit form / dsb).
+// Handler aksi user (klik tombol / submit form).
 //
 // PRINSIP:
 //   - Aksi UI yang memicu API → panggil loader dari J_Api.
 //   - Aksi UI murni (buka modal, reset filter) → cukup ubah state.
-//   - Klon record saat edit (jangan reference langsung) — cegah
-//     perubahan tidak sengaja sebelum "Simpan" ditekan.
+//   - Klon record saat edit (Object.assign) — cegah perubahan
+//     tidak sengaja sebelum "Simpan" ditekan.
 //
 // [SESUAIKAN] Ganti handler contoh dengan bisnis Anda.
 // ============================================================
@@ -16,90 +16,97 @@
 window.StarterKitActions = {
   methods: {
 
-    // ==================== CONTOH: FORM MODAL ====================
+    // ==================== T_UTAMA: FORM MODAL ====================
     /**
-     * Buka modal form. Kalau `row` diisi → mode edit (klon).
+     * Buka modal form T_UTAMA.
+     * Kalau `row` diisi → mode edit (klon).
      * Kalau kosong → mode tambah (form default).
      */
-    openContohForm(row) {
+    openUtamaForm(row) {
       if (row && row.id) {
-        // Mode edit — klon supaya perubahan tidak langsung mengubah list
-        this.contohForm = Object.assign({}, row);
+        // Mode edit — klon supaya tidak langsung mengubah list
+        this.utamaForm = Object.assign({}, row);
       } else {
         // Mode tambah — form default
-        this.contohForm = {
-          id:         '',
-          judul:      '',
-          pegawai_id: '',
-          tanggal:    '',
-          status:     'draft',
-          keterangan: ''
+        this.utamaForm = {
+          id:          '',
+          kode:        '',
+          judul:       '',
+          deskripsi:   '',
+          pegawai_id:  '',
+          kategori_id: '',
+          satuan_id:   '',
+          tanggal:     '',
+          jumlah:      0,
+          nilai:       0,
+          status:      'draft',
+          catatan:     ''
         };
       }
-      this.showContohForm = true;
+      this.showUtamaForm = true;
     },
 
     /**
-     * Simpan data. Validasi minimal di frontend sebelum kirim.
-     * Setelah sukses: tutup modal + refresh list + refresh dashboard.
+     * Simpan data T_UTAMA.
+     * Validasi minimal di frontend, lalu panggil loader di J_Api.
      */
-    async saveContoh() {
+    async saveUtama() {
       // Validasi frontend (minimal — backend tetap validasi)
-      if (!this.contohForm.judul || !String(this.contohForm.judul).trim()) {
+      if (!String(this.utamaForm.judul || '').trim()) {
         this.showToast('Judul wajib diisi.', 'error');
         return;
       }
 
-      this.contohSaving = true;
+      this.utamaSaving = true;
       try {
-        var ok = await this.saveContohData();
+        var ok = await this.saveUtamaData();
         if (ok) {
           this.showToast('Data berhasil disimpan.', 'success');
-          this.showContohForm = false;
-          await this.loadContoh();        // refresh list
+          this.showUtamaForm = false;
+          await this.loadUtama();         // refresh tabel
           await this.loadDashboard(true); // refresh KPI (silent)
         }
       } finally {
-        this.contohSaving = false;
+        this.utamaSaving = false;
       }
     },
 
     /**
-     * Hapus data — konfirmasi dulu.
+     * Hapus data T_UTAMA — konfirmasi dulu.
      */
-    async deleteContoh(row) {
+    async deleteUtama(row) {
       if (!row || !row.id) return;
       if (!confirm('Yakin ingin menghapus data ini?')) return;
 
-      var ok = await this.deleteContohData(row.id);
+      var ok = await this.deleteUtamaData(row.id);
       if (ok) {
         this.showToast('Data berhasil dihapus.', 'success');
-        await this.loadContoh();
+        await this.loadUtama();
         await this.loadDashboard(true);
       }
     },
 
     // ==================== FILTER ====================
     /**
-     * Dipanggil oleh <app-filter-bar> @change.
+     * Dipanggil <app-filter-bar> @change.
      * Reset paginasi ke halaman 1 saat filter berubah.
      */
-    onFilterContohChange() {
-      this.contohPagination.page = 1;
+    onFilterUtamaChange() {
+      this.utamaPagination.page = 1;
     },
 
-    // ==================== UTIL UI ====================
+    // ==================== UI UTIL ====================
     /**
-     * Toggle sidebar collapse — dipanggil dari <app-sidebar> @toggle.
+     * Toggle sidebar collapse — dipanggil <app-sidebar> @toggle.
+     * (Bisa juga: `this.$root.toggleSidebar()` — dari AppCore.)
      */
     toggleSidebar() {
       this.sidebarCollapsed = !this.sidebarCollapsed;
     },
 
-    // ==================== LOGOUT & SSO ====================
+    // ==================== LOGOUT ====================
     /**
-     * Logout — hapus sesi via backend + reset state frontend.
-     * AppCore.logout() sudah handle call backend + reset token + redirect.
+     * Logout — AppCore.logout() sudah handle call backend + reset state.
      */
     async logout() {
       try {
@@ -107,14 +114,16 @@ window.StarterKitActions = {
       } catch (e) {
         console.error('Logout error:', e);
       }
-    },
-
-    /**
-     * Buka modal data baru — shortcut dari tombol hero / empty-state.
-     */
-    bukaTambahContoh() {
-      this.openContohForm();
     }
+
+    // ==================== PLACEHOLDER 8 SHEET LAIN ====================
+    // Buka saat Anda menambah domain (mis. T_ITEM, T_JADWAL).
+    // Pola sama persis dengan openUtamaForm/saveUtama/deleteUtama:
+    //
+    // openItemForm(row) { ... }
+    // async saveItem()  { ... }
+    // async deleteItem(row) { ... }
+    // onFilterItemChange() { ... }
 
   }
 };
