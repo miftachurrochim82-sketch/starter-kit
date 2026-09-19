@@ -1,11 +1,14 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_App.html (v2.0.0) — File terakhir
+// STARTER-KIT - J_App.html (v2.0.1) — File terakhir
 // ============================================================
 // Bootstrap Vue 3 via AppCore.create() (kit CDN @v2.8.1).
 //
 // Urutan include di Index.html (WAJIB):
 //   J_State → J_Helpers → J_Api → J_Actions → J_App
+//
+// v2.0.1 — `initApp` pakai `vm.loadAll(true)` (DRY):
+//          satu daftar loader, tidak duplikasi dengan tombol Refresh.
 //
 // Yang DIURUS AppCore (jangan bikin ulang):
 //   - Vue.createApp + registrasi komponen kit
@@ -24,8 +27,8 @@
 //   5. brand         — identitas sidebar
 //   6. menu          — daftar menu sidebar
 //   7. pageIcons     — ikon per halaman
-//   8. onNavigate    — loader yang dipanggil saat ganti halaman
-//   9. initApp       — loader startup (silent)
+//   8. onNavigate    — loader saat ganti halaman
+//   9. initApp       — loader startup (silent) — sekarang 1 baris
 // ============================================================
 
 // ==================== MIXIN ====================
@@ -96,9 +99,8 @@ var app = AppCore.create({
   onNavigate: function (vm, page) {
 
     if (page === 'dashboard') {
-      // Refresh tiap buka dashboard
-      vm.loadDashboard(true);
-      vm.loadUtama();
+      // Refresh tiap buka dashboard — loadAll paralel, cepat.
+      vm.loadAll();
     }
 
     // [SESUAIKAN] Handler halaman lain:
@@ -113,16 +115,14 @@ var app = AppCore.create({
 
   // ---------- [SESUAIKAN] Loader saat startup (semua silent) ----------
   // Dipanggil sekali saat app pertama kali siap (setelah token valid).
-  // Semua silent=true — cegah spam toast kalau backend/network lambat.
+  // v2.0.1: DRY — pakai `vm.loadAll(true)` dari J_Api.html.
+  //   Kalau Anda menambah loader baru, cukup tambah di `loadAll()` —
+  //   initApp otomatis ikut (tidak perlu edit 2 tempat).
   initApp: async function (vm) {
     if (vm.dataLoaded) return;
 
-    // Fase 1: paralel — modul independen
-    await Promise.all([
-      vm.loadMasterSatelit(true),
-      vm.loadDashboard(true),
-      vm.loadUtama(true)
-    ]);
+    // Semua loader paralel, silent = true (cegah spam toast saat startup).
+    await vm.loadAll(true);
 
     // Fase 2 (opsional): loader yang butuh hasil fase 1
     // Contoh: setelah master satelit ada, baru load list yang butuh dropdown.
