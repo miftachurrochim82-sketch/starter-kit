@@ -1,77 +1,124 @@
-<!-- ==================== HALAMAN: DASHBOARD (contoh pola) ==================== -->
-<div v-if="currentPage === 'dashboard'" class="space-y-6">
+<!-- ============================================================
+     STARTER-KIT - V_Dashboard.html (v2.0.0)
+     ============================================================
+     Contoh halaman Dashboard dengan kit CDN @v2.8.1:
+       - 4 kartu KPI (<app-stat-card>)
+       - Tabel data (<app-crud-table>) + aksi baris
+       - Filter (<app-filter-bar>) — search + status
+       - Empty state (<app-empty-state>) + skeleton
+       - Tombol "Tambah" (buka modal di V_Modals)
 
-  <!-- Baris statistik: app-stat-card -->
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-    <app-stat-card title="Pegawai (SIMPEG)" :value="dashboardStats.totalPegawai || 0" icon="fa-solid fa-users" color="sky" subtext="Master read-only"></app-stat-card>
-    <app-stat-card title="Data Contoh" :value="dashboardStats.totalContoh || 0" icon="fa-solid fa-database" color="emerald" subtext="Transaksi app ini"></app-stat-card>
-    <app-stat-card title="Role Saya" :value="dashboardStats.role || '-'" icon="fa-solid fa-shield-halved" color="purple" :subtext="dashboardStats.nama || ''"></app-stat-card>
-  </div>
+     [SESUAIKAN] Ganti label, kolom, dan field dengan bisnis Anda.
+     Pola identik dengan si-kompetensi & si-lahar.
+     ============================================================ -->
 
-  <!-- Contoh CRUD: app-crud-table + app-modal -->
-  <div class="flex justify-between items-center gap-3">
-    <h2 class="text-base font-bold text-slate-900 dark:text-white">Transaksi Contoh (T_CONTOH)</h2>
-    <button type="button" @click="openContohModal()" class="btn btn-primary"><i class="fa-solid fa-plus"></i> Tambah</button>
-  </div>
+<section v-if="currentPage === 'dashboard'" class="space-y-6 animate-fade-in">
 
-  <app-crud-table
-    :items="contohList"
-    :columns="[{ key: 'kode', label: 'Kode' }, { key: 'judul', label: 'Judul' }, { key: 'status', label: 'Status' }, { key: 'aksi', label: 'Aksi', thClass: 'text-right' }]"
-    :loading="loading"
-    empty-text="Belum ada data contoh."
-    @change-page="() => {}">
-    <template #row="{ row: item }">
-      <td class="py-3 px-4 font-mono text-xs text-emerald-700 font-bold dark:text-emerald-400">{{ item.kode }}</td>
-      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">{{ item.judul }}</td>
-      <td class="py-3 px-4"><app-badge :status="item.status === 'selesai' ? 'approved' : (item.status === 'diajukan' ? 'menunggu' : 'info')" :label="item.status"></app-badge></td>
-      <td class="py-3 px-4 text-right">
-        <button type="button" @click="openContohModal(item)" class="p-2 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100" title="Edit"><i class="fa-solid fa-pen-to-square text-xs"></i></button>
-        <button type="button" @click="deleteContoh(item)" class="p-2 rounded-xl bg-rose-50 text-rose-600 hover:bg-rose-100" title="Hapus"><i class="fa-solid fa-trash-can text-xs"></i></button>
-      </td>
-    </template>
-  </app-crud-table>
-
-  <!-- Demo master SIMPEG (read-only, tolerant reader) -->
-  <h2 class="text-base font-bold text-slate-900 dark:text-white">Master Pegawai (dari SIMPEG)</h2>
-  <app-crud-table
-    :items="pegawaiList.slice(0, 10)"
-    :columns="[{ key: 'nip', label: 'NIP' }, { key: 'nama', label: 'Nama' }, { key: 'email', label: 'Email' }]"
-    :loading="loading"
-    empty-text="Master pegawai belum terbaca."
-    @change-page="() => {}">
-    <template #row="{ row: p }">
-      <td class="py-3 px-4 font-mono text-xs">{{ p.nip }}</td>
-      <td class="py-3 px-4 font-bold text-slate-900 dark:text-white">{{ p.nama }}</td>
-      <td class="py-3 px-4 text-slate-500 dark:text-slate-400">{{ p.email || '-' }}</td>
-    </template>
-  </app-crud-table>
-</div>
-
-<!-- Modal form contoh: app-modal -->
-<app-modal
-  :show="showContohModal"
-  :title="contohForm.id ? 'Edit Data Contoh' : 'Tambah Data Contoh'"
-  icon="fa-solid fa-database"
-  :loading="saving"
-  confirm-text="Simpan"
-  @close="showContohModal = false"
-  @confirm="saveContoh">
-  <div class="space-y-4">
+  <!-- ==================== HEADER ==================== -->
+  <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800 pb-4">
     <div>
-      <label class="form-label">Judul *</label>
-      <input v-model="contohForm.judul" class="form-input" placeholder="Judul transaksi">
+      <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-white">
+        <i class="fa-solid fa-gauge-high text-emerald-600 dark:text-emerald-400"></i>
+        Dashboard
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+        Ringkasan aplikasi &amp; daftar data contoh.
+      </p>
     </div>
-    <div>
-      <label class="form-label">Status</label>
-      <select v-model="contohForm.status" class="form-input">
-        <option value="draft">Draft</option>
-        <option value="diajukan">Diajukan</option>
-        <option value="selesai">Selesai</option>
-      </select>
-    </div>
-    <div>
-      <label class="form-label">Keterangan</label>
-      <textarea v-model="contohForm.keterangan" rows="3" class="form-input" placeholder="Catatan tambahan"></textarea>
+    <div class="flex flex-wrap gap-2 self-start md:self-auto">
+      <button @click="loadAll()" class="btn btn-secondary text-xs">
+        <i class="fa-solid fa-rotate"></i>
+        <span>Refresh</span>
+      </button>
+      <button v-if="isAdmin || isVerifikator || true" @click="openContohForm()" class="btn btn-primary text-xs">
+        <i class="fa-solid fa-plus"></i>
+        <span>Tambah Contoh</span>
+      </button>
     </div>
   </div>
-</app-modal>
+
+  <!-- ==================== KPI CARDS ==================== -->
+  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+    <app-stat-card title="Total Pegawai"
+                   :value="dashboardData.totalPegawai || 0"
+                   icon="fa-solid fa-users"
+                   color="sky"
+                   subtext="SIMPEG"></app-stat-card>
+
+    <app-stat-card title="Total Contoh"
+                   :value="dashboardData.totalContoh || 0"
+                   icon="fa-solid fa-list-check"
+                   color="emerald"
+                   subtext="data tercatat"></app-stat-card>
+
+    <app-stat-card title="Status Aktif"
+                   :value="kpiStatusAktif"
+                   icon="fa-solid fa-circle-check"
+                   color="amber"
+                   subtext="draft + diajukan"></app-stat-card>
+
+    <app-stat-card title="Hak Akses"
+                   :value="dashboardData.role || 'viewer'"
+                   icon="fa-solid fa-shield-halved"
+                   color="purple"
+                   :subtext="dashboardData.nama || 'user'"></app-stat-card>
+  </div>
+
+  <!-- ==================== FILTER BAR ==================== -->
+  <div class="card p-3">
+    <app-filter-bar :filters="contohFilterDefs"
+                    v-model="contohFilters"
+                    @change="onFilterContohChange"></app-filter-bar>
+  </div>
+
+  <!-- ==================== TABEL ==================== -->
+  <app-skeleton v-if="contohLoading" type="table"></app-skeleton>
+
+  <div v-else-if="filteredContoh.length > 0">
+    <app-crud-table :items="paginatedContoh"
+                    :columns="[
+                      { label: 'Kode' },
+                      { label: 'Judul' },
+                      { label: 'Pegawai', thClass: 'hidden md:table-cell' },
+                      { label: 'Tanggal', thClass: 'hidden md:table-cell' },
+                      { label: 'Status' },
+                      { label: 'Aksi', thClass: 'text-right pr-6' }
+                    ]"
+                    :page="contohPagination.page"
+                    :total-pages="contohTotalPages"
+                    :total-data="filteredContoh.length"
+                    @change-page="contohPagination.page = $event">
+      <template #row="{ row }">
+        <td class="py-3 px-4 font-mono font-bold text-emerald-600 text-xs">{{ row.kode }}</td>
+        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">{{ row.judul }}</td>
+        <td class="py-3 px-4 hidden md:table-cell text-slate-700 dark:text-slate-300">
+          {{ namaPegawai(row.pegawai_id) }}
+        </td>
+        <td class="py-3 px-4 hidden md:table-cell text-xs text-slate-500">
+          {{ formatDateDisplay(row.tanggal) }}
+        </td>
+        <td class="py-3 px-4">
+          <app-badge size="sm"
+                     :status="badgeStatusContoh(row.status)"
+                     :label="row.status || 'draft'"></app-badge>
+        </td>
+        <td class="py-3 pl-4 pr-6 text-right whitespace-nowrap">
+          <button @click="openContohForm(row)" class="btn-icon mr-1.5" title="Edit">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button v-if="isAdmin" @click="deleteContoh(row)" class="btn-icon btn-icon-danger" title="Hapus">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </td>
+      </template>
+    </app-crud-table>
+  </div>
+
+  <app-empty-state v-else
+                   icon="fa-solid fa-inbox"
+                   title="Belum Ada Data"
+                   subtitle="Klik tombol Tambah Contoh untuk membuat data pertama."
+                   action-label="Tambah Contoh"
+                   @action="openContohForm()"></app-empty-state>
+
+</section>
