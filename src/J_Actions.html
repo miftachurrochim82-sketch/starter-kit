@@ -1,0 +1,121 @@
+<script>
+// ============================================================
+// STARTER-KIT - J_Actions.html (v2.0.0)
+// ============================================================
+// Handler aksi user (klik tombol / submit form / dsb).
+//
+// PRINSIP:
+//   - Aksi UI yang memicu API → panggil loader dari J_Api.
+//   - Aksi UI murni (buka modal, reset filter) → cukup ubah state.
+//   - Klon record saat edit (jangan reference langsung) — cegah
+//     perubahan tidak sengaja sebelum "Simpan" ditekan.
+//
+// [SESUAIKAN] Ganti handler contoh dengan bisnis Anda.
+// ============================================================
+
+window.StarterKitActions = {
+  methods: {
+
+    // ==================== CONTOH: FORM MODAL ====================
+    /**
+     * Buka modal form. Kalau `row` diisi → mode edit (klon).
+     * Kalau kosong → mode tambah (form default).
+     */
+    openContohForm(row) {
+      if (row && row.id) {
+        // Mode edit — klon supaya perubahan tidak langsung mengubah list
+        this.contohForm = Object.assign({}, row);
+      } else {
+        // Mode tambah — form default
+        this.contohForm = {
+          id:         '',
+          judul:      '',
+          pegawai_id: '',
+          tanggal:    '',
+          status:     'draft',
+          keterangan: ''
+        };
+      }
+      this.showContohForm = true;
+    },
+
+    /**
+     * Simpan data. Validasi minimal di frontend sebelum kirim.
+     * Setelah sukses: tutup modal + refresh list + refresh dashboard.
+     */
+    async saveContoh() {
+      // Validasi frontend (minimal — backend tetap validasi)
+      if (!this.contohForm.judul || !String(this.contohForm.judul).trim()) {
+        this.showToast('Judul wajib diisi.', 'error');
+        return;
+      }
+
+      this.contohSaving = true;
+      try {
+        var ok = await this.saveContohData();
+        if (ok) {
+          this.showToast('Data berhasil disimpan.', 'success');
+          this.showContohForm = false;
+          await this.loadContoh();        // refresh list
+          await this.loadDashboard(true); // refresh KPI (silent)
+        }
+      } finally {
+        this.contohSaving = false;
+      }
+    },
+
+    /**
+     * Hapus data — konfirmasi dulu.
+     */
+    async deleteContoh(row) {
+      if (!row || !row.id) return;
+      if (!confirm('Yakin ingin menghapus data ini?')) return;
+
+      var ok = await this.deleteContohData(row.id);
+      if (ok) {
+        this.showToast('Data berhasil dihapus.', 'success');
+        await this.loadContoh();
+        await this.loadDashboard(true);
+      }
+    },
+
+    // ==================== FILTER ====================
+    /**
+     * Dipanggil oleh <app-filter-bar> @change.
+     * Reset paginasi ke halaman 1 saat filter berubah.
+     */
+    onFilterContohChange() {
+      this.contohPagination.page = 1;
+    },
+
+    // ==================== UTIL UI ====================
+    /**
+     * Toggle sidebar collapse — dipanggil dari <app-sidebar> @toggle.
+     */
+    toggleSidebar() {
+      this.sidebarCollapsed = !this.sidebarCollapsed;
+    },
+
+    // ==================== LOGOUT & SSO ====================
+    /**
+     * Logout — hapus sesi via backend + reset state frontend.
+     * AppCore.logout() sudah handle call backend + reset token + redirect.
+     */
+    async logout() {
+      try {
+        await this.$root.logout();
+      } catch (e) {
+        console.error('Logout error:', e);
+      }
+    },
+
+    /**
+     * Buka modal data baru — shortcut dari tombol hero / empty-state.
+     */
+    bukaTambahContoh() {
+      this.openContohForm();
+    }
+
+  }
+};
+</script>
