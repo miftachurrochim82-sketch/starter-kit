@@ -6,12 +6,22 @@
 //
 // Bagian yang perlu Anda sesuaikan ditandai [SESUAIKAN].
 //
-// Yang DIURUS CoreLib (jangan bikin sendiri):
-//   - DB engine sheet (getDb, ensureSheet, getSheetDataCached, apiSave, apiDelete)
-//   - SSO + sesi (exchangePlatformTicket, checkAuth, logoutUser)
-//   - Dispatcher + actionLevels fail-closed (dispatchAction)
-//   - Util (normId, normStr, parseDate, whitelist, genUniqueCode, todayIsoLocal)
-//   - Setup (initDatabase, executeAppSetup)
+// ⚡ SKEMA 10 SHEET (standar ekosistem: master 3–5 + tabel ≥3):
+//   Master (3):
+//     M_REFERENSI   — referensi umum (kategori/kode/nama_nilai)
+//     M_KATEGORI    — master kategori
+//     M_SATUAN      — master satuan
+//   Tabel (7):
+//     T_UTAMA       — transaksi utama
+//     T_ITEM        — item/detail dari T_UTAMA
+//     T_LOGBOOK     — log/riwayat kejadian
+//     T_LAMPIRAN    — lampiran dokumen (multi per entri)
+//     T_APPROVAL    — workflow persetujuan/verifikasi
+//     T_JADWAL      — jadwal/kalender agenda
+//     T_REKAP       — rekap periodik
+//
+// Referensi SIMPEG (PEGAWAI/JABATAN/UNIT_KERJA) & sheet uji ZZ_TEST_CRUD
+// tidak dihitung sebagai budget sheet bisnis.
 // ============================================================
 
 // ==================== §1 KONSTANTA GLOBAL ====================
@@ -55,24 +65,37 @@ var PLATFORM_API_URL = CoreLib.getEnvProperty('PLATFORM_API_URL', appProps_())
   || DEFAULT_PLATFORM_URL;
 
 // ==================== §3 SKEMA SHEET ====================
-// [SESUAIKAN] Hapus T_CONTOH, ganti dengan sheet transaksi bisnismu.
-// Kolom audit (created_at..deleted_at) WAJIB — dipakai CoreLib.
-// Struktur total: master 3–5 + tabel ≥3 (rekomendasi Gate 0).
+// [SESUAIKAN] Anda bebas ganti nama sheet bisnis (mis. T_UTAMA → T_ASET).
+// Yang penting: kolom audit (created_at..deleted_at) ada — dipakai CoreLib.
 
 var LOCAL_SHEETS = {
-  // Master / referensi
+  // Master (3)
   M_REFERENSI: 'M_REFERENSI',
-  // [SESUAIKAN] tambah master-master lain di sini
-  // Tabel transaksi
-  T_CONTOH:    'T_CONTOH'
-  // [SESUAIKAN] tambah tabel-tabel lain di sini
+  M_KATEGORI:  'M_KATEGORI',
+  M_SATUAN:    'M_SATUAN',
+  // Tabel (7)
+  T_UTAMA:     'T_UTAMA',
+  T_ITEM:      'T_ITEM',
+  T_LOGBOOK:   'T_LOGBOOK',
+  T_LAMPIRAN:  'T_LAMPIRAN',
+  T_APPROVAL:  'T_APPROVAL',
+  T_JADWAL:    'T_JADWAL',
+  T_REKAP:     'T_REKAP'
 };
 
 // Prefix ID per-sheet (dipakai localPreSaveHook_ + CoreLib.genUniqueCode).
-// [SESUAIKAN] sesuaikan dengan sheet Anda.
+// [SESUAIKAN] Boleh diubah sesuai singkatan Anda.
 var LOCAL_ID_PREFIX_ = {
   'M_REFERENSI': 'ref',
-  'T_CONTOH':    'cth'
+  'M_KATEGORI':  'kat',
+  'M_SATUAN':    'sat',
+  'T_UTAMA':     'utm',
+  'T_ITEM':      'itm',
+  'T_LOGBOOK':   'log',
+  'T_LAMPIRAN':  'lmp',
+  'T_APPROVAL':  'apr',
+  'T_JADWAL':    'jdw',
+  'T_REKAP':     'rkp'
 };
 
 // Alias nama sheet SIMPEG → kanonik (dibaca dari MASTER via CoreLib)
@@ -94,25 +117,74 @@ function isSimpegSheet_(sheetName) {
   return canonicalSimpegSheet_(sheetName) !== null;
 }
 
-// Sheet referensi app (prefix 'M_') — cache lebih panjang, tidak termasuk SIMPEG
+// Sheet referensi app (prefix 'M_') — cache lebih panjang
 function isRefSheet_(name) {
   return String(name || '').toUpperCase().indexOf('M_') === 0;
 }
 
-// Header map gabungan (lokal + SIMPEG + ZZ_TEST_CRUD untuk test).
-// [SESUAIKAN] ganti T_CONTOH dengan tabel-tabel bisnis Anda.
+// ==================== §3b HEADER MAP ====================
+// Header lengkap semua sheet bisnis + ZZ_TEST_CRUD + 3 SIMPEG.
+//
+// ⚠️ Kolom audit ('created_at','updated_at','created_by','updated_by','deleted_at')
+// WAJIB ada di setiap sheet — dipakai CoreLib untuk tracking.
+//
+// [SESUAIKAN] Field bisnis per sheet — bebas diubah sesuai kebutuhan.
+//             Yang penting: 'id' selalu kolom pertama.
+
 var ALL_SHEET_HEADERS = {
+
+  // ==================== MASTER BISNIS ====================
   M_REFERENSI: [
     'id', 'kategori', 'kode', 'nama_nilai', 'urutan', 'status_aktif', 'keterangan',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
-  T_CONTOH: [
-    'id', 'kode', 'judul', 'pegawai_id', 'tanggal', 'status', 'keterangan',
+  M_KATEGORI: [
+    'id', 'kode', 'nama', 'parent_id', 'deskripsi', 'urutan', 'status_aktif',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
-  // Sheet sekali-pakai untuk CoreLib.runCoreTests (aman: 1 sheet kosong)
+  M_SATUAN: [
+    'id', 'kode', 'nama', 'simbol', 'keterangan', 'status_aktif',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+
+  // ==================== TABEL BISNIS ====================
+  T_UTAMA: [
+    'id', 'kode', 'judul', 'deskripsi', 'pegawai_id', 'kategori_id', 'satuan_id',
+    'tanggal', 'jumlah', 'nilai', 'status', 'catatan',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  T_ITEM: [
+    'id', 'utama_id', 'nama_item', 'kode_item', 'jumlah', 'satuan_id', 'nilai', 'catatan',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  T_LOGBOOK: [
+    'id', 'utama_id', 'tanggal', 'pegawai_id', 'aksi', 'catatan_sebelum', 'catatan_sesudah',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  T_LAMPIRAN: [
+    'id', 'utama_id', 'jenis_dokumen', 'nama_dokumen', 'url', 'keterangan',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  T_APPROVAL: [
+    'id', 'utama_id', 'urutan', 'role_approver', 'approver_id', 'status',
+    'catatan', 'tanggal_approve',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  T_JADWAL: [
+    'id', 'utama_id', 'judul', 'tanggal_mulai', 'tanggal_selesai', 'lokasi',
+    'pegawai_id', 'status', 'keterangan',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  T_REKAP: [
+    'id', 'periode', 'pegawai_id', 'unit_id', 'kategori_id',
+    'total_item', 'total_nilai', 'ringkasan_json', 'status_rekap', 'generated_at',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+
+  // ==================== INFRA UJI (dipakai CoreLib.runCoreTests) ====================
   ZZ_TEST_CRUD: ['id', 'laporan_id', 'nama', 'no_hp', 'catatan_baru'],
-  // SIMPEG (read-only — hanya dokumentasi skema master)
+
+  // ==================== SIMPEG (read-only — dokumentasi skema master) ====================
   PEGAWAI: [
     'pegawai_id', 'nip', 'nik', 'nama', 'gelar_depan', 'gelar_belakang',
     'jenis_kelamin', 'tanggal_lahir', 'pangkat_golongan', 'status_kepegawaian',
@@ -151,7 +223,8 @@ function normalizeEntityId_(id) {
 
 var ID_FIELDS_TO_NORMALIZE_ = [
   'pegawai_id', 'unit_id', 'jabatan_id', 'atasan_id',
-  'plt_pegawai_id', 'kepala_unit_id', 'kepala_pegawai_id'
+  'plt_pegawai_id', 'kepala_unit_id', 'kepala_pegawai_id',
+  'kategori_id', 'satuan_id', 'utama_id', 'approver_id'
 ];
 
 function normalizeEntityIdFields_(obj) {
@@ -206,7 +279,9 @@ function getSheetData_(sheetName, options) {
 
   var canonicalSimpeg = canonicalSimpegSheet_(sheetName);
   var lookupName = canonicalSimpeg || sheetName;
-  var coreOptions = canonicalSimpeg ? { masterSsId: MASTER_SPREADSHEET_ID, isRefFunc: isRefSheet_ } : { isRefFunc: isRefSheet_ };
+  var coreOptions = canonicalSimpeg
+    ? { masterSsId: MASTER_SPREADSHEET_ID, isRefFunc: isRefSheet_ }
+    : { isRefFunc: isRefSheet_ };
 
   var records;
   try {
@@ -284,39 +359,39 @@ function findRecordById_(sheetName, id) {
   return null;
 }
 
-// ==================== §6 PRE-SAVE HOOK (P1) ====================
+// ==================== §6 PRE-SAVE HOOK (P1 + P2) ====================
 // P1: id kosong → generate (cegah PK jatuh ke kolom lain = data loss).
-// P2 (kunci verifikasi): hanya dipakai bila app punya tabel dengan status verifikasi.
-// [SESUAIKAN] tambah blok P2 bila app Anda punya tabel verifikasi (lihat si-kompetensi).
+// P2: kunci field verifikasi untuk sheet dengan workflow approval.
 function localPreSaveHook_(canonical, record, actor) {
   var C = String(canonical || '').toUpperCase();
 
-  // P1: generate id kalau kosong (prefix per-sheet, konsisten kode lama)
+  // P1: generate id kalau kosong (prefix per-sheet)
   if (!record.id || String(record.id).trim() === '') {
     var pfx = LOCAL_ID_PREFIX_[C]
            || C.replace(/^M_/, '').replace(/^T_/, '').substring(0, 3).toLowerCase();
     record.id = pfx + '-' + String(Date.now()).slice(-6);
   }
 
-  // [SESUAIKAN] P2 — kunci field verifikasi. Contoh (uncomment & sesuaikan):
-  // if (C === 'T_VERIFIKASI') {
-  //   var actorRole = String((actor && actor.role) || 'viewer').toLowerCase();
-  //   var isVerifikator = ['verifikator', 'admin', 'super'].indexOf(actorRole) !== -1;
-  //   if (!isVerifikator) {
-  //     var old = findRecordById_(canonical, record.id);
-  //     record.status_verifikasi   = old ? (old.status_verifikasi   || 'menunggu') : 'menunggu';
-  //     record.verifikator_id      = old ? (old.verifikator_id      || '')         : '';
-  //     record.tanggal_verifikasi  = old ? (old.tanggal_verifikasi  || '')         : '';
-  //   }
-  // }
+  // P2: kunci field status verifikasi — hanya role verifikator+ yang boleh ubah
+  // (sesuai pola si-lahar & si-kompetensi untuk T_APPROVAL)
+  if (C === 'T_APPROVAL') {
+    var actorRole = String((actor && actor.role) || 'viewer').toLowerCase();
+    var isVerifikator = ['verifikator', 'admin', 'super'].indexOf(actorRole) !== -1;
+
+    if (!isVerifikator) {
+      var old = findRecordById_(canonical, record.id);
+      record.status         = old ? (old.status         || 'menunggu') : 'menunggu';
+      record.approver_id    = old ? (old.approver_id    || '')         : '';
+      record.tanggal_approve = old ? (old.tanggal_approve || '')       : '';
+    }
+  }
 
   return { record: record };
 }
 
 // ==================== §7 KONTRAK DISPATCHER v2 ====================
-// Format konsisten dengan CoreLib.dispatchAction.
 // actionLevels fail-closed: aksi tak dikenal = 'viewer' (default dispatcher).
-// [SESUAIKAN] tambah/hapus entry sesuai handler Anda di 02_AppLogic.gs.
+// [SESUAIKAN] Entry di sini WAJIB sinkron dengan buildLocalHandlers_() di 02_AppLogic.gs.
 function getAppConfig_() {
   return {
     // ---- Identitas & sumber data ----
@@ -358,10 +433,36 @@ function getAppConfig_() {
       'get_jabatan_list':     'viewer',
       'get_master_satelit':   'viewer',
 
-      // [SESUAIKAN] Aksi bisnis Anda — contoh:
-      'get_contoh_list':      'viewer',
-      'save_contoh':          'user',      // ownership di handler bila perlu
-      'delete_contoh':        'admin',     // atau 'user' + guard ownership di handler
+      // ---------- M_REFERENSI (domain contoh) ----------
+      'get_referensi_list':   'viewer',
+      'save_referensi':       'verifikator',
+      'delete_referensi':     'verifikator',
+
+      // ---------- T_UTAMA (domain contoh) ----------
+      'get_utama_list':       'viewer',
+      'save_utama':           'user',
+      'delete_utama':         'user',
+      'get_utama_detail':     'viewer',
+
+      // [SESUAIKAN] Handler untuk sheet lain (buka komentar ketika handler
+      // sudah diimplementasikan di 02_AppLogic.gs):
+      // 'get_kategori_list':    'viewer',
+      // 'save_kategori':        'verifikator',
+      // 'get_satuan_list':      'viewer',
+      // 'save_satuan':          'verifikator',
+      // 'get_item_list':        'viewer',
+      // 'save_item':            'user',
+      // 'get_logbook_list':     'viewer',
+      // 'save_logbook':         'user',
+      // 'get_lampiran_list':    'viewer',
+      // 'save_lampiran':        'user',
+      // 'get_approval_list':    'viewer',
+      // 'save_approval':        'user',
+      // 'verifikasi_approval':  'verifikator',
+      // 'get_jadwal_list':      'viewer',
+      // 'save_jadwal':          'user',
+      // 'get_rekap_list':       'viewer',
+      // 'generate_rekap':       'verifikator',
 
       // Generic routing (default admin — dipakai jarang)
       'save':                 'admin',
