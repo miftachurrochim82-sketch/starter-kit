@@ -1,0 +1,136 @@
+<script>
+// ============================================================
+// STARTER-KIT - J_Api.html (v2.0.0)
+// ============================================================
+// Loader data dari backend (CoreLib.dispatchAction).
+//
+// PRINSIP:
+//   - Semua panggilan lewat `this.callServer(action, data)` — dari AppCore.
+//   - Respons format: { success: true, data } | { success:false, code, error }
+//   - Parameter `silent` = true → tidak munculkan toast (untuk init phase).
+//   - Loader hanya mengubah state; tidak menghitung turunan
+//     (itu tugas computed di J_State).
+//
+// [SESUAIKAN] Ganti loader contoh (loadContoh, saveContohData, deleteContohData)
+// dengan bisnis Anda. Nama file ini boleh tetap `J_Api.html`.
+// ============================================================
+
+window.StarterKitApi = {
+  methods: {
+
+    // ==================== DASHBOARD ====================
+    /**
+     * Load dashboard ringkas (jumlah pegawai + jumlah contoh).
+     */
+    async loadDashboard(silent) {
+      var isSilent = silent === true;
+      try {
+        var res = await this.callServer('get_dashboard');
+        if (res && res.success && res.data) {
+          this.dashboardData = Object.assign({
+            totalPegawai: 0,
+            totalContoh:  0,
+            role:         'viewer',
+            nama:         ''
+          }, res.data);
+        } else if (!isSilent) {
+          this.showToast('Gagal memuat dashboard.', 'error');
+        }
+      } catch (e) {
+        console.error('Gagal load dashboard:', e);
+        if (!isSilent) this.showToast('Error koneksi saat memuat dashboard.', 'error');
+      }
+    },
+
+    // ==================== CONTOH (T_CONTOH) ====================
+    /**
+     * Load list contoh. [SESUAIKAN] ganti nama & action.
+     */
+    async loadContoh(silent) {
+      var isSilent = silent === true;
+      this.contohLoading = true;
+      try {
+        var res = await this.callServer('get_contoh_list');
+        if (res && res.success) {
+          this.contohList = res.data || [];
+        } else if (!isSilent) {
+          this.showToast((res && res.error) || 'Gagal memuat data.', 'error');
+        }
+      } catch (e) {
+        console.error('Gagal load contoh:', e);
+        if (!isSilent) this.showToast('Error koneksi saat memuat data.', 'error');
+      } finally {
+        this.contohLoading = false;
+      }
+    },
+
+    /**
+     * Simpan (insert / update) — record lengkap dari this.contohForm.
+     * Return true bila sukses, false bila gagal.
+     */
+    async saveContohData() {
+      try {
+        var res = await this.callServer('save_contoh', { record: this.contohForm });
+        if (res && res.success) return true;
+        this.showToast((res && res.error) || 'Gagal menyimpan.', 'error');
+        return false;
+      } catch (e) {
+        console.error('Gagal save contoh:', e);
+        this.showToast('Error koneksi saat menyimpan.', 'error');
+        return false;
+      }
+    },
+
+    /**
+     * Hapus record berdasarkan id.
+     * Return true bila sukses.
+     */
+    async deleteContohData(id) {
+      try {
+        var res = await this.callServer('delete_contoh', { id: id });
+        if (res && res.success) return true;
+        this.showToast((res && res.error) || 'Gagal menghapus.', 'error');
+        return false;
+      } catch (e) {
+        console.error('Gagal delete contoh:', e);
+        this.showToast('Error koneksi saat menghapus.', 'error');
+        return false;
+      }
+    },
+
+    // ==================== ORKESTRASI ====================
+    /**
+     * Load semua modul utama — dipakai tombol Refresh dan init phase.
+     * [SESUAIKAN] tambah loader lain bila app punya modul lebih banyak.
+     */
+    async loadAll(silent) {
+      var isSilent = silent === true;
+      await Promise.all([
+        this.loadDashboard(isSilent),
+        this.loadContoh(isSilent)
+      ]);
+    },
+
+    // ==================== KONFIGURASI (Script Properties) ====================
+    /**
+     * Load konfigurasi app (dipakai <app-settings> bila ditambahkan).
+     */
+    async loadConfig(silent) {
+      var isSilent = silent === true;
+      try {
+        var res = await this.callServer('get_config');
+        if (res && res.success) {
+          return res.data || [];
+        }
+        if (!isSilent) this.showToast((res && res.error) || 'Gagal memuat konfigurasi.', 'error');
+        return [];
+      } catch (e) {
+        console.error('Gagal load config:', e);
+        if (!isSilent) this.showToast('Error koneksi saat memuat konfigurasi.', 'error');
+        return [];
+      }
+    }
+
+  }
+};
+</script>
