@@ -1,15 +1,11 @@
 // ============================================================
 // STARTER-KIT - 99_TestSuite.gs (v2.0.0 — CoreLib-First)
 // ============================================================
-// Test suite mengikuti pola si-kompetensi v3.0.1 & si-lahar v2.0:
-//   1) runLibraryTests()      → CoreLib.runCoreTests (target 42/0/1)
-//   2) testAdopsiG18d()       → verifikasi util publik CoreLib v2.3.0
-//   3) testDispatcherRouting()→ registry handler + fail-closed
-//   4) runAllTestsStarterKit()→ satu pintu eksekusi
-//
-// Karena starter-kit TIDAK punya domain bisnis, tidak ada
-// runDomainTestsSI() — kalau app Anda mulai punya logika bisnis,
-// tambahkan test domain sendiri mengikuti pola si-kompetensi.
+// Test suite mengikuti pola si-kompetensi v3.0.1 & si-lahar v2.1.0:
+//   1) runLibraryTests()            → CoreLib.runCoreTests (target 42/0/1)
+//   2) testAdopsiG18d()             → util publik CoreLib v2.3.0 (13/13)
+//   3) testDispatcherRouting()      → registry handler + fail-closed
+//   4) runDomainTestsStarterKit()   → domain M_REFERENSI + T_UTAMA + hook
 //
 // Jalankan dari editor GAS:
 //   - Satu per satu saat debug.
@@ -40,6 +36,17 @@ function testCtx_() {
   };
 }
 
+// Helper assertion (pola sama dengan CoreLib 99 & si-kompetensi)
+function _assert_(results, name, condition, detail) {
+  if (condition) {
+    results.push({ name: name, status: 'PASS' });
+    Logger.log('  ✅ ' + name);
+  } else {
+    results.push({ name: name, status: 'FAIL', detail: detail || '' });
+    Logger.log('  ❌ ' + name + ' — ' + (detail || ''));
+  }
+}
+
 // ==================== §2 RUNNER: CoreLib regression ====================
 
 /**
@@ -66,10 +73,6 @@ function runLibraryTests() {
 
 // ==================== §3 RUNNER: Adopsi CoreLib v2.3.0 ====================
 
-/**
- * Verifikasi util publik CoreLib v2.3.0 yang dipakai app ini.
- * Murni in-memory — tidak menyentuh sheet.
- */
 function testAdopsiG18d() {
   Logger.log('==========================================================');
   Logger.log('🔗 UJI ADOPSI CORELIB v2.3.0 (G18d) — ' + APP_CODE);
@@ -142,11 +145,6 @@ function testAdopsiG18d() {
 
 // ==================== §4 RUNNER: Routing & Fail-Closed ====================
 
-/**
- * Verifikasi bahwa semua aksi di buildLocalHandlers_ terdaftar,
- * punya entry di actionLevels (kecuali yang di-handle CoreLib native),
- * dan dispatcher mengembalikan response yang benar.
- */
 function testDispatcherRouting() {
   Logger.log('==========================================================');
   Logger.log('🚏 UJI ROUTING DISPATCHER + REGISTRY HANDLER');
@@ -165,7 +163,7 @@ function testDispatcherRouting() {
   // Aksi yang di-handle CoreLib native (tidak perlu handler lokal)
   var NATIVE_ACTIONS = ['exchange_platform_ticket', 'exchange_sso_ticket', 'logout'];
 
-  // Aksi builtin CoreLib.dispatchAction (punya handler internal, tidak perlu lokal)
+  // Aksi builtin CoreLib.dispatchAction (punya handler internal)
   var BUILTIN_DISPATCH = ['ping', 'save', 'delete'];
 
   // 1. Registry terisi
@@ -191,7 +189,7 @@ function testDispatcherRouting() {
           'Semua actionLevels punya handler' +
           (missingHandlers.length ? ' — MISSING: ' + missingHandlers.join(', ') : ''));
 
-  // 4. Ping TANPA token → ditolak (fail-closed di langkah auth)
+  // 4. Ping TANPA token → ditolak
   var ping = handleAction({ action: 'ping' });
   verdict(ping && ping.success === false,
           'ping tanpa token DITOLAK (fail-closed)');
@@ -211,8 +209,16 @@ function testDispatcherRouting() {
           'delete KONFIGURASI tanpa auth DITOLAK: code=' + (delHack && delHack.code));
 
   // 7. Handler kritis tersedia
-  ['get_dashboard', 'get_pegawai_list', 'get_contoh_list', 'save_contoh',
-   'delete_contoh', 'init_database', 'get_config'].forEach(function (a) {
+  var critical = [
+    'ping', 'get_dashboard', 'dashboard',
+    'get_pegawai_list', 'get_unit_list', 'get_jabatan_list',
+    'get_master_satelit', 'get_config', 'save_config_item',
+    'init_database',
+    // Domain contoh
+    'get_referensi_list', 'save_referensi', 'delete_referensi',
+    'get_utama_list', 'get_utama_detail', 'save_utama', 'delete_utama'
+  ];
+  critical.forEach(function (a) {
     verdict(typeof handlers[a] === 'function', 'handler tersedia: ' + a);
   });
 
@@ -223,11 +229,317 @@ function testDispatcherRouting() {
   return { ok: ok, fail: fail };
 }
 
-// ==================== §5 RUNNER: Diagnostics ====================
+// ==================== §5 RUNNER: Domain Test (M_REFERENSI + T_UTAMA + Hook) ====================
 
 /**
- * Diagnostik kesehatan sistem — verifikasi CoreLib, DB, schema.
+ * Agregat test domain starter-kit.
+ * Setiap test independen & idempoten (data uji di-cleanup).
  */
+function runDomainTestsStarterKit() {
+  Logger.log('==========================================================');
+  Logger.log('🎯 TEST DOMAIN ' + APP_CODE);
+  Logger.log('==========================================================');
+
+  var results = [];
+  results = results.concat(testDomainReferensi());
+  results = results.concat(testDomainUtama());
+  results = results.concat(testSimpegReadOnly());
+  results = results.concat(testLocalPreSaveHook());
+  results = results.concat(testInitDatabaseSchema());
+
+  var pass = results.filter(function (r) { return r.status === 'PASS'; }).length;
+  var fail = results.filter(function (r) { return r.status === 'FAIL'; }).length;
+  var skip = results.filter(function (r) { return r.status === 'SKIP'; }).length;
+
+  Logger.log('');
+  Logger.log('==========================================================');
+  Logger.log('RINGKASAN DOMAIN: PASS=' + pass + ' / FAIL=' + fail + ' / SKIP=' + skip);
+  Logger.log('==========================================================');
+
+  if (fail > 0) {
+    Logger.log('');
+    Logger.log('=== FAIL DETAILS ===');
+    results.filter(function (r) { return r.status === 'FAIL'; }).forEach(function (r) {
+      Logger.log('❌ ' + r.name + ': ' + r.detail);
+    });
+  }
+
+  return { pass: pass, fail: fail, skip: skip, results: results };
+}
+
+// ---------- Domain M_REFERENSI ----------
+
+function testDomainReferensi() {
+  Logger.log('');
+  Logger.log('--- M_REFERENSI ---');
+  var results = [];
+
+  // TC-R1: save valid → success + kode
+  try {
+    var r1 = saveReferensi_({
+      kategori: 'test_kategori',
+      kode: 'TST-' + Date.now(),
+      nama_nilai: 'Test Nilai ' + Date.now(),
+      urutan: 99,
+      status_aktif: 'true'
+    }, TEST_USER_ADMIN_);
+    _assert_(results, 'REF.1 save valid → success',
+      r1.success && r1.data && r1.data.id,
+      'error: ' + (r1.error || 'no id'));
+
+    // Cleanup
+    if (r1.success && r1.data && r1.data.id) {
+      softDeleteRecord_('M_REFERENSI', r1.data.id, TEST_USER_ADMIN_);
+    }
+  } catch (e) { _assert_(results, 'REF.1 save valid', false, e.message); }
+
+  // TC-R2: save tanpa kategori → BAD_REQUEST
+  try {
+    var r2 = saveReferensi_({ nama_nilai: 'X' }, TEST_USER_ADMIN_);
+    _assert_(results, 'REF.2 save tanpa kategori DITOLAK',
+      !r2.success && r2.code === 'BAD_REQUEST',
+      'code=' + (r2.code || '-'));
+  } catch (e) { _assert_(results, 'REF.2', false, e.message); }
+
+  // TC-R3: save tanpa nama_nilai → BAD_REQUEST
+  try {
+    var r3 = saveReferensi_({ kategori: 'x' }, TEST_USER_ADMIN_);
+    _assert_(results, 'REF.3 save tanpa nama_nilai DITOLAK',
+      !r3.success && r3.code === 'BAD_REQUEST',
+      'code=' + (r3.code || '-'));
+  } catch (e) { _assert_(results, 'REF.3', false, e.message); }
+
+  // TC-R4: delete tanpa ID → BAD_REQUEST
+  try {
+    var r4 = deleteReferensi_({}, TEST_USER_ADMIN_);
+    _assert_(results, 'REF.4 delete tanpa ID DITOLAK',
+      !r4.success && r4.code === 'BAD_REQUEST',
+      'code=' + (r4.code || '-'));
+  } catch (e) { _assert_(results, 'REF.4', false, e.message); }
+
+  // TC-R5: get list → success
+  try {
+    var r5 = getReferensiList_({});
+    _assert_(results, 'REF.5 get list → success',
+      r5.success && Array.isArray(r5.data),
+      'error: ' + (r5.error || '-'));
+  } catch (e) { _assert_(results, 'REF.5', false, e.message); }
+
+  // TC-R6: get list filter only_active
+  try {
+    var r6 = getReferensiList_({ only_active: true });
+    var allActive = (r6.data || []).every(function (r) {
+      return String(r.status_aktif || '').toLowerCase() !== 'false';
+    });
+    _assert_(results, 'REF.6 filter only_active benar',
+      r6.success && allActive,
+      'error: ' + (r6.error || '-'));
+  } catch (e) { _assert_(results, 'REF.6', false, e.message); }
+
+  return results;
+}
+
+// ---------- Domain T_UTAMA ----------
+
+function testDomainUtama() {
+  Logger.log('');
+  Logger.log('--- T_UTAMA ---');
+  var results = [];
+
+  // TC-U1: save valid → success + kode auto
+  var savedId = '';
+  try {
+    var r1 = saveUtama_({
+      judul: 'Test Utama ' + Date.now(),
+      deskripsi: 'Deskripsi uji',
+      tanggal: CoreLib.todayIsoLocal(),
+      status: 'draft'
+    }, TEST_USER_USER_);
+    _assert_(results, 'UTM.1 save valid → success + kode auto',
+      r1.success && r1.data && r1.data.id && r1.data.kode,
+      'error: ' + (r1.error || 'no kode'));
+    savedId = (r1.success && r1.data) ? r1.data.id : '';
+  } catch (e) { _assert_(results, 'UTM.1', false, e.message); }
+
+  // TC-U2: save tanpa judul → BAD_REQUEST
+  try {
+    var r2 = saveUtama_({ deskripsi: 'X' }, TEST_USER_USER_);
+    _assert_(results, 'UTM.2 save tanpa judul DITOLAK',
+      !r2.success && r2.code === 'BAD_REQUEST',
+      'code=' + (r2.code || '-'));
+  } catch (e) { _assert_(results, 'UTM.2', false, e.message); }
+
+  // TC-U3: get detail NOT_FOUND
+  try {
+    var r3 = getUtamaDetail_({ id: 'nonexistent-xyz-' + Date.now() }, TEST_USER_USER_);
+    _assert_(results, 'UTM.3 get detail ID tidak ada → NOT_FOUND',
+      !r3.success && r3.code === 'NOT_FOUND',
+      'code=' + (r3.code || '-'));
+  } catch (e) { _assert_(results, 'UTM.3', false, e.message); }
+
+  // TC-U4: get detail ID valid → success
+  if (savedId) {
+    try {
+      var r4 = getUtamaDetail_({ id: savedId }, TEST_USER_USER_);
+      _assert_(results, 'UTM.4 get detail ID valid → success',
+        r4.success && r4.data && r4.data.id === savedId,
+        'error: ' + (r4.error || 'no data'));
+    } catch (e) { _assert_(results, 'UTM.4', false, e.message); }
+  }
+
+  // TC-U5: get list → success
+  try {
+    var r5 = getUtamaList_({}, TEST_USER_USER_);
+    _assert_(results, 'UTM.5 get list → success',
+      r5.success && Array.isArray(r5.data),
+      'error: ' + (r5.error || '-'));
+  } catch (e) { _assert_(results, 'UTM.5', false, e.message); }
+
+  // TC-U6: filter status='draft' → hanya draft
+  try {
+    var r6 = getUtamaList_({ status: 'draft' }, TEST_USER_USER_);
+    var allDraft = (r6.data || []).every(function (r) {
+      return String(r.status || '').toLowerCase() === 'draft';
+    });
+    _assert_(results, 'UTM.6 filter status=draft benar',
+      r6.success && allDraft,
+      'error: ' + (r6.error || '-'));
+  } catch (e) { _assert_(results, 'UTM.6', false, e.message); }
+
+  // TC-U7: delete tanpa ID → BAD_REQUEST
+  try {
+    var r7 = deleteUtama_({}, TEST_USER_USER_);
+    _assert_(results, 'UTM.7 delete tanpa ID DITOLAK',
+      !r7.success && r7.code === 'BAD_REQUEST',
+      'code=' + (r7.code || '-'));
+  } catch (e) { _assert_(results, 'UTM.7', false, e.message); }
+
+  // Cleanup
+  if (savedId) {
+    try { softDeleteRecord_('T_UTAMA', savedId, TEST_USER_USER_); } catch (e) {}
+  }
+
+  return results;
+}
+
+// ---------- SIMPEG Read-Only Protection ----------
+
+function testSimpegReadOnly() {
+  Logger.log('');
+  Logger.log('--- SIMPEG READ-ONLY (PEGAWAI/UNIT_KERJA/JABATAN) ---');
+  var results = [];
+
+  ['PEGAWAI', 'UNIT_KERJA', 'JABATAN'].forEach(function (sheet) {
+    var blocked = 0;
+    try { saveRecord_(sheet, { id: 'X-TEST' }, TEST_USER_ADMIN_); } catch (e) { blocked++; }
+    try { softDeleteRecord_(sheet, 'X-TEST', TEST_USER_ADMIN_); } catch (e) { blocked++; }
+    _assert_(results, 'RO.' + sheet + ' ditolak di 2/2 jalur',
+      blocked === 2, 'blocked ' + blocked + '/2');
+  });
+
+  return results;
+}
+
+// ---------- localPreSaveHook_ (P1 + P2) ----------
+
+function testLocalPreSaveHook() {
+  Logger.log('');
+  Logger.log('--- LOCAL PRE-SAVE HOOK (P1: gen-id, P2: kunci verifikasi) ---');
+  var results = [];
+
+  // P1.1 — prefix per sheet
+  try {
+    var r1 = localPreSaveHook_('M_REFERENSI', {}, TEST_USER_USER_);
+    _assert_(results, 'P1.1 id auto-generate prefix "ref-"',
+      r1 && r1.record && /^ref\-/.test(r1.record.id),
+      'id: ' + (r1 && r1.record && r1.record.id));
+  } catch (e) { _assert_(results, 'P1.1', false, e.message); }
+
+  try {
+    var r2 = localPreSaveHook_('T_UTAMA', {}, TEST_USER_USER_);
+    _assert_(results, 'P1.2 id auto-generate prefix "utm-"',
+      r2 && r2.record && /^utm\-/.test(r2.record.id),
+      'id: ' + (r2 && r2.record && r2.record.id));
+  } catch (e) { _assert_(results, 'P1.2', false, e.message); }
+
+  try {
+    var r3 = localPreSaveHook_('T_APPROVAL', {}, TEST_USER_USER_);
+    _assert_(results, 'P1.3 id auto-generate prefix "apr-"',
+      r3 && r3.record && /^apr\-/.test(r3.record.id),
+      'id: ' + (r3 && r3.record && r3.record.id));
+  } catch (e) { _assert_(results, 'P1.3', false, e.message); }
+
+  // P2.1 — non-verifikator update T_APPROVAL → status='menunggu'
+  try {
+    var r4 = localPreSaveHook_('T_APPROVAL',
+      { id: 'apr-test-' + Date.now() }, TEST_USER_USER_);
+    _assert_(results, 'P2.1 non-verifikator update T_APPROVAL → status=menunggu',
+      r4 && r4.record && r4.record.status === 'menunggu',
+      'status: ' + (r4 && r4.record && r4.record.status));
+  } catch (e) { _assert_(results, 'P2.1', false, e.message); }
+
+  // P2.2 — verifikator bebas set status
+  try {
+    var r5 = localPreSaveHook_('T_APPROVAL',
+      { id: 'apr-test2-' + Date.now(), status: 'disetujui' }, TEST_USER_VERIF_);
+    _assert_(results, 'P2.2 verifikator bebas status (hook tidak intervensi)',
+      r5 && r5.record && r5.record.status === 'disetujui',
+      'status: ' + (r5 && r5.record && r5.record.status));
+  } catch (e) { _assert_(results, 'P2.2', false, e.message); }
+
+  return results;
+}
+
+// ---------- Init Database Schema (10 sheet) ----------
+
+function testInitDatabaseSchema() {
+  Logger.log('');
+  Logger.log('--- SKEMA 10 SHEET (initDatabase) ---');
+  var results = [];
+
+  try {
+    var ss = CoreLib.getDb(SPREADSHEET_ID);
+
+    // Cek 10 sheet bisnis ada
+    var sheetsBisnis = Object.keys(LOCAL_SHEETS).map(function (k) { return LOCAL_SHEETS[k]; });
+    var missing = sheetsBisnis.filter(function (name) {
+      return !ss.getSheetByName(name);
+    });
+    _assert_(results, 'SCHEMA.1 10 sheet bisnis terbuat (' + sheetsBisnis.length + ')',
+      missing.length === 0,
+      missing.length ? 'MISSING: ' + missing.join(', ') : '');
+
+    // Cek ZZ_TEST_CRUD ada
+    var shTest = ss.getSheetByName('ZZ_TEST_CRUD');
+    _assert_(results, 'SCHEMA.2 ZZ_TEST_CRUD ada',
+      !!shTest,
+      'jalankan initDatabase() dulu bila belum ada');
+
+    // Cek kolom audit ada di setiap sheet bisnis
+    var auditCols = ['created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'];
+    var noAudit = [];
+    sheetsBisnis.forEach(function (name) {
+      var sh = ss.getSheetByName(name);
+      if (!sh) return;
+      var lastCol = sh.getLastColumn();
+      if (lastCol < 1) { noAudit.push(name + ' (kosong)'); return; }
+      var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0].map(String);
+      var missingAudit = auditCols.filter(function (c) { return headers.indexOf(c) === -1; });
+      if (missingAudit.length) noAudit.push(name + ' (' + missingAudit.join(',') + ')');
+    });
+    _assert_(results, 'SCHEMA.3 kolom audit lengkap di semua sheet',
+      noAudit.length === 0,
+      noAudit.length ? 'MISSING: ' + noAudit.join('; ') : '');
+
+  } catch (e) {
+    _assert_(results, 'SCHEMA.1-3 cek skema', false, e.message);
+  }
+
+  return results;
+}
+
+// ==================== §6 RUNNER: Diagnostics ====================
+
 function runAllDiagnostics() {
   Logger.log('==========================================================');
   Logger.log('🔍 DIAGNOSTIK KESEHATAN ' + APP_CODE);
@@ -250,7 +562,7 @@ function runAllDiagnostics() {
     Logger.log('❌ DB lokal GAGAL: ' + e.message);
   }
 
-  // 3. Skema sheet lokal
+  // 3. Skema 10 sheet
   try {
     var ss = CoreLib.getDb(SPREADSHEET_ID);
     Object.keys(LOCAL_SHEETS).forEach(function (k) {
@@ -264,27 +576,24 @@ function runAllDiagnostics() {
     });
     var shTest = ss.getSheetByName('ZZ_TEST_CRUD');
     Logger.log((shTest ? '✅' : '⚠️ ') + ' ZZ_TEST_CRUD : ' +
-      (shTest ? Math.max(0, shTest.getLastRow() - 1) + ' baris' : 'belum dibuat (jalankan initDatabase)'));
+      (shTest ? Math.max(0, shTest.getLastRow() - 1) + ' baris' : 'belum dibuat'));
   } catch (e) { Logger.log('❌ Cek skema gagal: ' + e.message); }
 
-  // 4. SIMPEG reference (baca via master)
+  // 4. SIMPEG reference
   try {
     Logger.log('✅ PEGAWAI (master): ' + getSheetData_('PEGAWAI').length + ' data');
     Logger.log('✅ UNIT_KERJA (master): ' + getSheetData_('UNIT_KERJA').length + ' data');
     Logger.log('✅ JABATAN (master): ' + getSheetData_('JABATAN').length + ' data');
   } catch (e) { Logger.log('❌ SIMPEG read: ' + e.message + ' (cek MASTER_SPREADSHEET_ID!)'); }
 
-  // 5. Adopsi G18d (murni in-memory)
+  // 5. Adopsi G18d
   try { testAdopsiG18d(); } catch (e) { Logger.log('❌ testAdopsiG18d: ' + e.message); }
 
   Logger.log('🏁 DIAGNOSTIK SELESAI');
 }
 
-// ==================== §6 DIAGNOSTIK SSO (manual, opsional) ====================
+// ==================== §7 DIAGNOSTIK SSO (manual, opsional) ====================
 
-/**
- * Diagnostik koneksi SSO ke portal utama. Manual run dari editor.
- */
 function testKoneksiKePortalSso() {
   Logger.log('==========================================================');
   Logger.log('🔍 DIAGNOSTIK KONEKSI SSO KE PORTAL UTAMA');
@@ -327,10 +636,6 @@ function testKoneksiKePortalSso() {
   Logger.log('==========================================================');
 }
 
-/**
- * Uji alur SSO end-to-end dengan tiket valid.
- * Isi `ticketValid` dari hasil createTestTicket di Global App / SI-PLATFORM.
- */
 function testFullSsoIntegrationFlow() {
   Logger.log('==========================================================');
   Logger.log('🚀 UJI INTEGRASI ALUR SSO PENUH (' + APP_CODE + ')');
@@ -368,14 +673,8 @@ function testFullSsoIntegrationFlow() {
   Logger.log('==========================================================');
 }
 
-// ==================== §7 AGREGAT: Semua Test ====================
+// ==================== §8 AGREGAT: Semua Test ====================
 
-/**
- * Satu pintu: semua test starter-kit (library + adopsi + routing).
- *
- * Catatan: test SSO (testKoneksiKePortalSso, testFullSsoIntegrationFlow)
- * adalah diagnostik manual — tidak dipanggil otomatis di sini.
- */
 function runAllTestsStarterKit() {
   Logger.log('##########################################################');
   Logger.log('##  TEST SUITE LENGKAP ' + APP_CODE + ' v2.0.0');
@@ -391,20 +690,26 @@ function runAllTestsStarterKit() {
   var routing = testDispatcherRouting();
   Logger.log('');
 
+  var domain = runDomainTestsStarterKit();
+  Logger.log('');
+
   Logger.log('##########################################################');
   Logger.log('##  REKAP AKHIR');
   Logger.log('##  Library (CoreLib) : PASS ' + libRecap.passed + ' / FAIL ' + libRecap.failed + ' / SKIP ' + libRecap.skipped);
   Logger.log('##  Adopsi G18d       : ' + adopsi.ok + ' lolos / ' + adopsi.fail + ' gagal');
   Logger.log('##  Routing           : ' + routing.ok + ' lolos / ' + routing.fail + ' gagal');
+  Logger.log('##  Domain            : PASS ' + domain.pass + ' / FAIL ' + domain.fail + ' / SKIP ' + domain.skip);
   Logger.log('##########################################################');
 
-  var allPass = (libRecap.failed === 0) && (adopsi.fail === 0) && (routing.fail === 0);
+  var allPass = (libRecap.failed === 0) && (adopsi.fail === 0) &&
+                (routing.fail === 0) && (domain.fail === 0);
   Logger.log(allPass ? '🎉 SEMUA TEST HIJAU.' : '⚠️ Ada test GAGAL — cek log di atas.');
 
   return {
     library: libRecap,
     adopsi:  adopsi,
     routing: routing,
+    domain:  domain,
     allPass: allPass
   };
 }
