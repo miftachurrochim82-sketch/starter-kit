@@ -1,15 +1,16 @@
 <!-- ============================================================
-     STARTER-KIT - V_Dashboard.html (v2.0.0)
+     STARTER-KIT - V_Dashboard.html (v2.1.0)
      ============================================================
-     Contoh halaman Dashboard dengan kit CDN @v2.8.1:
-       - 4 kartu KPI (<app-stat-card>)
-       - Tabel data (<app-crud-table>) + aksi baris
-       - Filter (<app-filter-bar>) — search + status
-       - Empty state (<app-empty-state>) + skeleton
-       - Tombol "Tambah" (buka modal di V_Modals)
+     Dashboard contoh dengan kit CDN @v2.8.1:
+       Row 1: 4 kartu KPI (<app-stat-card>)
+       Row 2: 2 chart (<app-chart-bar> + <app-chart-doughnut>)
+       Row 3: filter + tabel (<app-crud-table>) + aksi baris
+       + blok KOMENTAR untuk naik ke "Executive" (4 chart + 4 tabel)
+
+     Agregat chart dihitung di frontend dari `utamaList` yang sudah
+     dimuat — TIDAK butuh handler backend tambahan.
 
      [SESUAIKAN] Ganti label, kolom, dan field dengan bisnis Anda.
-     Pola identik dengan si-kompetensi & si-lahar.
      ============================================================ -->
 
 <section v-if="currentPage === 'dashboard'" class="space-y-6 animate-fade-in">
@@ -22,7 +23,7 @@
         Dashboard
       </h2>
       <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-        Ringkasan aplikasi &amp; daftar data contoh.
+        Ringkasan data &amp; daftar transaksi utama.
       </p>
     </div>
     <div class="flex flex-wrap gap-2 self-start md:self-auto">
@@ -30,95 +31,166 @@
         <i class="fa-solid fa-rotate"></i>
         <span>Refresh</span>
       </button>
-      <button v-if="isAdmin || isVerifikator || true" @click="openContohForm()" class="btn btn-primary text-xs">
+      <button @click="openUtamaForm()" class="btn btn-primary text-xs">
         <i class="fa-solid fa-plus"></i>
-        <span>Tambah Contoh</span>
+        <span>Tambah Data</span>
       </button>
     </div>
   </div>
 
-  <!-- ==================== KPI CARDS ==================== -->
+  <!-- ==================== ROW 1: KPI CARDS ==================== -->
   <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
-    <app-stat-card title="Total Pegawai"
-                   :value="dashboardData.totalPegawai || 0"
-                   icon="fa-solid fa-users"
-                   color="sky"
-                   subtext="SIMPEG"></app-stat-card>
-
-    <app-stat-card title="Total Contoh"
-                   :value="dashboardData.totalContoh || 0"
+    <app-stat-card title="Total Data"
+                   :value="dashboardData.totalUtama || 0"
                    icon="fa-solid fa-list-check"
                    color="emerald"
-                   subtext="data tercatat"></app-stat-card>
+                   subtext="semua status"></app-stat-card>
 
-    <app-stat-card title="Status Aktif"
-                   :value="kpiStatusAktif"
-                   icon="fa-solid fa-circle-check"
+    <app-stat-card title="Sedang Proses"
+                   :value="dashboardData.totalAktif || 0"
+                   icon="fa-solid fa-hourglass-half"
                    color="amber"
-                   subtext="draft + diajukan"></app-stat-card>
+                   subtext="draft / diajukan / proses"></app-stat-card>
 
-    <app-stat-card title="Hak Akses"
-                   :value="dashboardData.role || 'viewer'"
-                   icon="fa-solid fa-shield-halved"
+    <app-stat-card title="Selesai"
+                   :value="dashboardData.totalSelesai || 0"
+                   icon="fa-solid fa-circle-check"
+                   color="sky"
+                   subtext="tuntas"></app-stat-card>
+
+    <app-stat-card title="Pegawai"
+                   :value="dashboardData.totalPegawai || 0"
+                   icon="fa-solid fa-users"
                    color="purple"
-                   :subtext="dashboardData.nama || 'user'"></app-stat-card>
+                   subtext="SIMPEG"></app-stat-card>
   </div>
 
-  <!-- ==================== FILTER BAR ==================== -->
+  <!-- ==================== ROW 2: CHART ==================== -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <!-- Tren 12 bulan — col-span-2 -->
+    <div class="lg:col-span-2">
+      <app-chart-bar :labels="chartTrenLabels"
+                     :datasets="chartTrenDatasets"
+                     :colors="chartTrenColors"
+                     title="Tren Data 12 Bulan"
+                     :height="220"></app-chart-bar>
+    </div>
+
+    <!-- Distribusi status — col-span-1 -->
+    <app-chart-doughnut :labels="chartStatusLabels"
+                        :datasets="chartStatusDatasets"
+                        :colors="chartStatusColors"
+                        title="Distribusi Status"
+                        :height="220"
+                        :legend="true"></app-chart-doughnut>
+  </div>
+
+  <!-- ============================================================
+       ROW 2b — KOMENTAR: siap naik ke "Executive" (2 chart lagi).
+       Buka komentar bila Anda punya data kategori & unit yang sudah terisi.
+       Butuh: computed chartKategoriLabels/Datasets + chartUnitLabels/Datasets
+       (sudah disiapkan sebagai komentar di J_State.html).
+       ============================================================ -->
+  <!--
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <app-chart-bar :labels="chartKategoriLabels"
+                   :datasets="chartKategoriDatasets"
+                   title="Top Kategori"
+                   :height="220"></app-chart-bar>
+
+    <app-chart-bar :labels="chartUnitLabels"
+                   :datasets="chartUnitDatasets"
+                   title="Distribusi per Unit Kerja"
+                   :height="220"></app-chart-bar>
+  </div>
+  -->
+
+  <!-- ==================== ROW 3: FILTER + TABEL ==================== -->
   <div class="card p-3">
-    <app-filter-bar :filters="contohFilterDefs"
-                    v-model="contohFilters"
-                    @change="onFilterContohChange"></app-filter-bar>
+    <app-filter-bar :filters="utamaFilterDefs"
+                    v-model="utamaFilters"
+                    @change="onFilterUtamaChange"></app-filter-bar>
   </div>
 
-  <!-- ==================== TABEL ==================== -->
-  <app-skeleton v-if="contohLoading" type="table"></app-skeleton>
+  <app-skeleton v-if="utamaLoading" type="table"></app-skeleton>
 
-  <div v-else-if="filteredContoh.length > 0">
-    <app-crud-table :items="paginatedContoh"
-                    :columns="[
-                      { label: 'Kode' },
-                      { label: 'Judul' },
-                      { label: 'Pegawai', thClass: 'hidden md:table-cell' },
-                      { label: 'Tanggal', thClass: 'hidden md:table-cell' },
-                      { label: 'Status' },
-                      { label: 'Aksi', thClass: 'text-right pr-6' }
-                    ]"
-                    :page="contohPagination.page"
-                    :total-pages="contohTotalPages"
-                    :total-data="filteredContoh.length"
-                    @change-page="contohPagination.page = $event">
-      <template #row="{ row }">
-        <td class="py-3 px-4 font-mono font-bold text-emerald-600 text-xs">{{ row.kode }}</td>
-        <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">{{ row.judul }}</td>
-        <td class="py-3 px-4 hidden md:table-cell text-slate-700 dark:text-slate-300">
-          {{ namaPegawai(row.pegawai_id) }}
-        </td>
-        <td class="py-3 px-4 hidden md:table-cell text-xs text-slate-500">
-          {{ formatDateDisplay(row.tanggal) }}
-        </td>
-        <td class="py-3 px-4">
-          <app-badge size="sm"
-                     :status="badgeStatusContoh(row.status)"
-                     :label="row.status || 'draft'"></app-badge>
-        </td>
-        <td class="py-3 pl-4 pr-6 text-right whitespace-nowrap">
-          <button @click="openContohForm(row)" class="btn-icon mr-1.5" title="Edit">
-            <i class="fa-solid fa-pen"></i>
-          </button>
-          <button v-if="isAdmin" @click="deleteContoh(row)" class="btn-icon btn-icon-danger" title="Hapus">
-            <i class="fa-solid fa-trash-can"></i>
-          </button>
-        </td>
-      </template>
-    </app-crud-table>
-  </div>
+  <app-crud-table v-else-if="filteredUtama.length > 0"
+                  :items="paginatedUtama"
+                  :columns="[
+                    { label: 'Kode' },
+                    { label: 'Judul' },
+                    { label: 'Pegawai', thClass: 'hidden md:table-cell' },
+                    { label: 'Kategori', thClass: 'hidden lg:table-cell' },
+                    { label: 'Tanggal', thClass: 'hidden md:table-cell' },
+                    { label: 'Status', thClass: 'text-center' },
+                    { label: 'Aksi', thClass: 'text-right pr-6' }
+                  ]"
+                  :page="utamaPagination.page"
+                  :total-pages="utamaTotalPages"
+                  :total-data="filteredUtama.length"
+                  @change-page="utamaPagination.page = $event">
+    <template #row="{ row }">
+      <td class="py-3 px-4 font-mono font-bold text-emerald-600 text-xs">{{ row.kode }}</td>
+      <td class="py-3 px-4 font-bold text-slate-800 dark:text-slate-100">
+        {{ row.judul }}
+        <div v-if="row.deskripsi" class="text-[11px] text-slate-500 dark:text-slate-400 font-normal mt-0.5 line-clamp-1">
+          {{ row.deskripsi }}
+        </div>
+      </td>
+      <td class="py-3 px-4 hidden md:table-cell text-slate-700 dark:text-slate-300 text-xs">
+        {{ getPegawaiNama(row.pegawai_id) || namaPegawai(row.pegawai_id) }}
+      </td>
+      <td class="py-3 px-4 hidden lg:table-cell text-slate-500 dark:text-slate-400 text-xs">
+        {{ namaKategori_(row.kategori_id) }}
+      </td>
+      <td class="py-3 px-4 hidden md:table-cell text-xs text-slate-500">
+        {{ formatDateDisplay(row.tanggal) }}
+      </td>
+      <td class="py-3 px-4 text-center">
+        <app-badge size="sm"
+                   :status="badgeStatusUtama(row.status)"
+                   :label="row.status || 'draft'"></app-badge>
+      </td>
+      <td class="py-3 pl-4 pr-6 text-right whitespace-nowrap">
+        <button @click="openUtamaForm(row)" class="btn-icon mr-1.5" title="Edit">
+          <i class="fa-solid fa-pen"></i>
+        </button>
+        <button v-if="isAdmin || isVerifikator" @click="deleteUtama(row)" class="btn-icon btn-icon-danger" title="Hapus">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      </td>
+    </template>
+  </app-crud-table>
 
   <app-empty-state v-else
                    icon="fa-solid fa-inbox"
                    title="Belum Ada Data"
-                   subtitle="Klik tombol Tambah Contoh untuk membuat data pertama."
-                   action-label="Tambah Contoh"
-                   @action="openContohForm()"></app-empty-state>
+                   subtitle="Klik tombol Tambah Data untuk membuat entri pertama."
+                   action-label="Tambah Data"
+                   @action="openUtamaForm()"></app-empty-state>
+
+  <!-- ============================================================
+       ROW 4b — KOMENTAR: siap naik ke "Executive" (tabel tambahan).
+       Buka komentar bila Anda butuh panel ringkasan tambahan.
+       ============================================================ -->
+  <!--
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+    <div class="card p-5">
+      <h3 class="text-sm font-bold mb-3 text-slate-700 dark:text-slate-200">Data Terbaru (5)</h3>
+      <div v-for="r in recentTop5" :key="r.id" class="py-2 border-b last:border-0 border-slate-100 dark:border-slate-800 text-xs">
+        <span class="font-mono text-emerald-600 mr-2">{{ r.kode }}</span>
+        <span class="font-bold">{{ r.judul }}</span>
+      </div>
+    </div>
+
+    <div class="card p-5">
+      <h3 class="text-sm font-bold mb-3 text-slate-700 dark:text-slate-200">Menunggu Tindakan</h3>
+      <div v-for="r in pendingTop5" :key="r.id" class="py-2 border-b last:border-0 border-slate-100 dark:border-slate-800 text-xs">
+        <span class="font-mono text-amber-600 mr-2">{{ r.kode }}</span>
+        <span class="font-bold">{{ r.judul }}</span>
+      </div>
+    </div>
+  </div>
+  -->
 
 </section>
