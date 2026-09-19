@@ -1,15 +1,13 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_State.html (v2.0.0)
+// STARTER-KIT - J_State.html (v2.1.0)
 // ============================================================
 // State reaktif + computed untuk seluruh app.
 //
-// [SESUAIKAN] Ganti state contoh (dashboardData, contohList, contohForm)
-// dengan state bisnis Anda.
+// v2.1.0 — Tambah computed chart (tren 12 bulan + distribusi status
+//          + placeholder kategori/unit) untuk V_Dashboard.
 //
-// Pola: state di `data()`, computed (turunan) di `computed: { ... }`.
-// Computed dipakai untuk filter, paginasi, dan turunan lain —
-// jangan bikin duplikat data mentah di data().
+// [SESUAIKAN] Ganti state contoh dengan bisnis Anda.
 // ============================================================
 
 window.StarterKitState = {
@@ -21,42 +19,49 @@ window.StarterKitState = {
       // ---------- Health flag (dipakai oleh lifecycle di J_App) ----------
       dataLoaded: false,
 
-      // ---------- Dashboard KPI ----------
-      // [SESUAIKAN] Field sesuai handler get_dashboard di 02_AppLogic.gs
+      // ---------- Dashboard KPI (dari handler get_dashboard) ----------
       dashboardData: {
         totalPegawai: 0,
-        totalContoh:  0,
+        totalUtama:   0,
+        totalAktif:   0,
+        totalSelesai: 0,
+        totalRekap:   0,
         role:         'viewer',
         nama:         ''
       },
 
-      // ---------- Contoh (T_CONTOH) ----------
-      // [SESUAIKAN] Ganti nama state & field dengan bisnis Anda.
-      contohList:    [],
-      contohLoading: false,
+      // ---------- Domain: T_UTAMA ----------
+      utamaList:    [],
+      utamaLoading: false,
 
-      // Filter aktif (dipakai <app-filter-bar> v-model)
-      contohFilters: {
-        search: '',
-        status: ''
+      utamaFilters: { search: '', status: '' },
+      utamaPagination: { page: 1, limit: 10 },
+
+      showUtamaForm: false,
+      utamaSaving:   false,
+
+      utamaForm: {
+        id:          '',
+        kode:        '',
+        judul:       '',
+        deskripsi:   '',
+        pegawai_id:  '',
+        kategori_id: '',
+        satuan_id:   '',
+        tanggal:     '',
+        jumlah:      0,
+        nilai:       0,
+        status:      'draft',
+        catatan:     ''
       },
 
-      // Paginasi client-side
-      contohPagination: { page: 1, limit: 10 },
+      // ---------- Domain: M_REFERENSI (master) ----------
+      referensiList: [],
+      referensiLoading: false,
 
-      // Modal state
-      showContohForm: false,
-      contohSaving:   false,
-
-      // Form data (di-copy sebelum save)
-      contohForm: {
-        id:         '',
-        judul:      '',
-        pegawai_id: '',
-        tanggal:    '',
-        status:     'draft',
-        keterangan: ''
-      }
+      // ---------- Master pendukung (dari get_master_satelit) ----------
+      kategoriList: [],
+      satuanList:   []
 
     };
   },
@@ -64,42 +69,40 @@ window.StarterKitState = {
   // ==================== COMPUTED ====================
   computed: {
 
-    // ---------- KPI turunan ----------
-    // [SESUAIKAN] Sesuaikan dengan bisnis Anda.
+    // ==================== KPI TURUNAN ====================
     kpiStatusAktif() {
-      return (this.contohList || []).filter(function (r) {
+      return (this.utamaList || []).filter(function (r) {
         var st = String(r.status || '').toLowerCase();
-        return st === 'draft' || st === 'diajukan';
+        return st === 'draft' || st === 'diajukan' || st === 'proses';
       }).length;
     },
 
-    // ---------- Filter defs untuk <app-filter-bar> ----------
-    // Format: { key, label, type: 'text'|'select'|'date', options?, placeholder?, span? }
-    contohFilterDefs() {
+    // ==================== FILTER & PAGINASI T_UTAMA ====================
+    utamaFilterDefs() {
       return [
-        { key: 'search', label: 'Pencarian', type: 'text', placeholder: 'Cari kode, judul, keterangan…' },
+        { key: 'search', label: 'Pencarian', type: 'text', placeholder: 'Cari kode, judul, deskripsi…' },
         { key: 'status', label: 'Status', type: 'select', options: [
           { value: 'draft',    label: 'Draft' },
           { value: 'diajukan', label: 'Diajukan' },
-          { value: 'selesai',  label: 'Selesai' }
+          { value: 'proses',   label: 'Proses' },
+          { value: 'selesai',  label: 'Selesai' },
+          { value: 'ditolak',  label: 'Ditolak' }
         ] }
       ];
     },
 
-    // ---------- Filter list (client-side) ----------
-    // [SESUAIKAN] Field yang dipakai untuk search: contoh pakai kode, judul, keterangan.
-    filteredContoh() {
-      var f = this.contohFilters || {};
+    filteredUtama() {
+      var f = this.utamaFilters || {};
       var q = String(f.search || '').toLowerCase().trim();
       var st = String(f.status || '').toLowerCase().trim();
       var self = this;
 
-      return (this.contohList || []).filter(function (r) {
+      return (this.utamaList || []).filter(function (r) {
         if (st && String(r.status || '').toLowerCase().trim() !== st) return false;
         if (q) {
           var hay = [
-            r.kode, r.judul, r.keterangan,
-            self.namaPegawai(r.pegawai_id)
+            r.kode, r.judul, r.deskripsi, r.catatan,
+            self.getPegawaiNama(r.pegawai_id)
           ].map(function (x) { return String(x || '').toLowerCase().trim(); }).join(' ');
           if (hay.indexOf(q) === -1) return false;
         }
@@ -107,14 +110,151 @@ window.StarterKitState = {
       });
     },
 
-    // ---------- Paginasi (via helper kit AppCore) ----------
-    paginatedContoh() {
-      return AppCore.paginate(this.filteredContoh, this.contohPagination.page, this.contohPagination.limit);
+    paginatedUtama() {
+      return AppCore.paginate(this.filteredUtama, this.utamaPagination.page, this.utamaPagination.limit);
     },
 
-    contohTotalPages() {
-      return AppCore.pageCount(this.filteredContoh, this.contohPagination.limit);
-    }
+    utamaTotalPages() {
+      return AppCore.pageCount(this.filteredUtama, this.utamaPagination.limit);
+    },
+
+    // ==================== CHART: TREN 12 BULAN ====================
+    /**
+     * Label bulan 12 terakhir (bulan ini + 11 bulan ke belakang).
+     * Contoh: ['Okt 25','Nov 25',...,'Sep 26']
+     */
+    chartTrenLabels() {
+      var labels = [];
+      var names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+      var now = new Date();
+      for (var i = 11; i >= 0; i--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labels.push(names[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
+      }
+      return labels;
+    },
+
+    /**
+     * Jumlah data per bulan (dari utamaList, pakai field `tanggal`
+     * fallback ke `created_at`).
+     */
+    chartTrenDatasets() {
+      var counts = {};
+      var keys = [];
+      var now = new Date();
+      // Init 12 bulan terakhir dengan 0
+      for (var i = 11; i >= 0; i--) {
+        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+        keys.push(k);
+        counts[k] = 0;
+      }
+      // Hitung dari list
+      (this.utamaList || []).forEach(function (r) {
+        var tgl = r.tanggal || r.created_at || '';
+        var k = String(tgl).slice(0, 7);   // ambil 'YYYY-MM'
+        if (counts[k] !== undefined) counts[k]++;
+      });
+      return [{ label: 'Jumlah Data', data: keys.map(function (k) { return counts[k]; }) }];
+    },
+
+    chartTrenColors() {
+      return ['#059669'];   // emerald
+    },
+
+    // ==================== CHART: DISTRIBUSI STATUS ====================
+    chartStatusLabels() {
+      return ['Draft', 'Diajukan', 'Proses', 'Selesai', 'Ditolak'];
+    },
+
+    chartStatusDatasets() {
+      var counts = { draft: 0, diajukan: 0, proses: 0, selesai: 0, ditolak: 0 };
+      (this.utamaList || []).forEach(function (r) {
+        var s = String(r.status || 'draft').toLowerCase();
+        if (counts[s] !== undefined) counts[s]++;
+      });
+      return [{
+        label: 'Status',
+        data: [counts.draft, counts.diajukan, counts.proses, counts.selesai, counts.ditolak]
+      }];
+    },
+
+    chartStatusColors() {
+      return ['#94a3b8', '#0ea5e9', '#f59e0b', '#10b981', '#f43f5e'];
+      // abu-slate, sky, amber, emerald, rose
+    },
+
+    // ==================== CHART PLACEHOLDER (Executive) ====================
+    // Buka komentar bila Anda ingin naik ke dashboard 4-chart.
+    // Cukup buka blok <div> terkait di V_Dashboard.html (Row 2b).
+    //
+    // chartKategoriLabels() {
+    //   var counts = {};
+    //   (this.utamaList || []).forEach(function (r) {
+    //     var k = String(r.kategori_id || '').trim() || '(tanpa)';
+    //     counts[k] = (counts[k] || 0) + 1;
+    //   });
+    //   // Ambil top 5
+    //   var top = Object.keys(counts)
+    //     .sort(function (a, b) { return counts[b] - counts[a]; })
+    //     .slice(0, 5);
+    //   // Resolve nama kategori
+    //   var self = this;
+    //   return top.map(function (id) { return self.namaKategori_(id); });
+    // },
+    //
+    // chartKategoriDatasets() {
+    //   var counts = {};
+    //   (this.utamaList || []).forEach(function (r) {
+    //     var k = String(r.kategori_id || '').trim() || '(tanpa)';
+    //     counts[k] = (counts[k] || 0) + 1;
+    //   });
+    //   var top = Object.keys(counts)
+    //     .sort(function (a, b) { return counts[b] - counts[a]; })
+    //     .slice(0, 5);
+    //   return [{ label: 'Jumlah', data: top.map(function (id) { return counts[id]; }) }];
+    // },
+    //
+    // chartUnitLabels() {
+    //   var counts = {};
+    //   var self = this;
+    //   (this.utamaList || []).forEach(function (r) {
+    //     var p = self.lookupPegawai(r.pegawai_id);
+    //     var u = p && p.unit_id ? String(p.unit_id) : '(tanpa)';
+    //     counts[u] = (counts[u] || 0) + 1;
+    //   });
+    //   return Object.keys(counts).slice(0, 8);
+    // },
+    //
+    // chartUnitDatasets() {
+    //   var counts = {};
+    //   var self = this;
+    //   (this.utamaList || []).forEach(function (r) {
+    //     var p = self.lookupPegawai(r.pegawai_id);
+    //     var u = p && p.unit_id ? String(p.unit_id) : '(tanpa)';
+    //     counts[u] = (counts[u] || 0) + 1;
+    //   });
+    //   var keys = Object.keys(counts).slice(0, 8);
+    //   return [{ label: 'Jumlah', data: keys.map(function (k) { return counts[k]; }) }];
+    // },
+
+    // ==================== PLACEHOLDER EXECUTIVE (tabel tambahan) ====================
+    // Buka bila Anda ingin naik ke dashboard dengan tabel ekstra (Row 4b).
+    //
+    // recentTop5() {
+    //   return (this.utamaList || []).slice().sort(function (a, b) {
+    //     var ta = String(a.tanggal || a.created_at || '');
+    //     var tb = String(b.tanggal || b.created_at || '');
+    //     return tb < ta ? -1 : (tb > ta ? 1 : 0);
+    //   }).slice(0, 5);
+    // },
+    //
+    // pendingTop5() {
+    //   return (this.utamaList || []).filter(function (r) {
+    //     var s = String(r.status || '').toLowerCase();
+    //     return s === 'diajukan' || s === 'proses';
+    //   }).slice(0, 5);
+    // }
 
   }
 
