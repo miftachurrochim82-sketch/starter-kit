@@ -1,25 +1,24 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_Helpers.html (v2.0.0)
+// STARTER-KIT - J_Helpers.html (v2.0.1)
 // ============================================================
 // Helper MURNI domain app (bukan UI state, bukan API loader).
+//
+// v2.0.1 — Sederhanakan `getPegawaiNama` + `nipPegawai`:
+//          akses `this.masterPegawaiList` langsung (mixin AppCore
+//          sudah menyediakan state ini di setiap komponen).
 //
 // PRINSIP CDN-FIRST:
 //   AppCore (kit) sudah punya helper umum — JANGAN tulis ulang:
 //     this.namaPegawai(id)         — dari masterPegawaiList
-//     this.namaUnit(id)            — dari masterUnitList
-//     this.namaJabatan(id)         — dari masterJabatanList
-//     this.formatDateDisplay(val)  — dd/MM/yyyy
+//     this.namaUnit(id)
+//     this.namaJabatan(id)
+//     this.formatDateDisplay(val)
 //     this.formatDateTimeDisplay(v)
 //     this.formatRupiah(n)
 //     this.showToast(msg, type)
-//     this.loadLib(name, opts)     — chart/xlsx/jspdf/pdflib
+//     this.loadLib(name, opts)
 //     this.callServer(action, data)
-//
-//   Yang ditulis di sini HANYA yang khas app Anda
-//   (status mapping, lookup domain, kalkulasi unik).
-//
-// [SESUAIKAN] Ganti helper contoh sesuai bisnis Anda.
 // ============================================================
 
 window.StarterKitHelpers = {
@@ -80,12 +79,13 @@ window.StarterKitHelpers = {
     /**
      * Nama pegawai — prioritas field `nama_lengkap` (konvensi SIMPEG),
      * melengkapi AppCore.namaPegawai() yang hanya cek `nama`.
+     *
+     * v2.0.1: akses `this.masterPegawaiList` langsung (mixin AppCore
+     *         menyediakan state ini di setiap komponen Vue).
      */
     getPegawaiNama(id) {
       if (!id) return '';
-      var list = (this.$root && this.$root.masterPegawaiList && this.$root.masterPegawaiList.length)
-        ? this.$root.masterPegawaiList
-        : (this.masterPegawaiList || []);
+      var list = this.masterPegawaiList || [];
       var target = String(id).trim();
       for (var i = 0; i < list.length; i++) {
         var p = list[i] || {};
@@ -100,12 +100,11 @@ window.StarterKitHelpers = {
 
     /**
      * NIP pegawai dari id-nya.
+     * v2.0.1: akses `this.masterPegawaiList` langsung.
      */
     nipPegawai(id) {
       if (!id) return '-';
-      var list = (this.$root && this.$root.masterPegawaiList && this.$root.masterPegawaiList.length)
-        ? this.$root.masterPegawaiList
-        : (this.masterPegawaiList || []);
+      var list = this.masterPegawaiList || [];
       var target = String(id).trim();
       for (var i = 0; i < list.length; i++) {
         var p = list[i] || {};
