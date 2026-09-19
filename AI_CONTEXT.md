@@ -1,7 +1,7 @@
 # 🤖 AI_CONTEXT.md — Surat Pengantar Ekosistem (untuk AI coder / developer baru)
 
 > Baca file ini **DULU** sebelum menyentuh apa pun di folder ini.
-> Versi konteks: 2026-09-19 (starter-kit v2.0) • Pemelihara: Tim TI Diskominfo Kab. Trenggalek
+> Versi konteks: 2026-09-19 (starter-kit v2.0.1) • Pemelihara: Tim TI Diskominfo Kab. Trenggalek
 
 ---
 
@@ -10,19 +10,20 @@
 `starter-kit/` = template resmi untuk membuat **aplikasi web bisnis baru** Pemkab Trenggalek
 di atas Google Apps Script (GAS) + Vue 3 (in-DOM template) + ekosistem bersama.
 
-**Versi v2.0** (2026-09-19): cetakan ulang dari pola **si-kompetensi v6.0.1** dan
+**Versi v2.0.1** (2026-09-19): cetakan ulang dari pola **si-kompetensi v6.0.1** dan
 **si-lahar v2.1.0** — keduanya sudah produksi + lolos CoreLib-First audit.
 
-**Perubahan besar v1.0 → v2.0**:
-- Backend: **4 file → 3 file** (gabung `01_Config` + `02_SetupAndSeed` → `01_ConfigAndBridge`; `03_AppLogic` + `04_Router` → `02_AppLogic`).
-- Dispatcher: `handleApi` switch-case manual → **`CoreLib.dispatchAction`** + `actionLevels` fail-closed.
-- Pre-save hook **P1/P2**: gen-id + kunci field verifikasi (anti self-approve).
+**Perubahan besar v1.0 → v2.0.1**:
+- Backend: `handleApi` switch-case → **`CoreLib.dispatchAction`** + `actionLevels` fail-closed.
+- Pre-save hook **P1/P2**: gen-id + kunci field verifikasi (anti self-approve di `T_APPROVAL`).
 - Filter soft-delete **otomatis** di `getSheetData_` (opsi `{includeDeleted:true}` untuk audit).
+- Tambah `00_Utils.gs` — audit HTTP ke SI-PLATFORM (double-write by design).
 - Skema standar: **3 master + 7 tabel = 10 sheet** (minimal standar ekosistem adalah 3+3).
-- CDN `@v2.7.5` → **`@v2.8.1`** (internal "2.8.0"); CoreLib pin 14 → **pin 15** (v2.3.0).
+- CDN `@v2.7.5` → **`@v2.8.1`** (internal `"2.8.0"`); CoreLib pin 14 → **pin 15** (v2.3.0).
 - Test suite pola si-lahar: `runLibraryTests` + adopsi + routing + domain.
 - Vue `3.4.21` → **`3.5.42`** (pinned, sinkron ekosistem).
 - Frontend: struktur modular `V_*` / `J_*`, tanpa `A0_Head.html` (inline ke `Index.html`).
+- **File total: 14** (4 backend + 8 frontend + 1 manifest).
 
 ---
 
@@ -64,7 +65,8 @@ di atas Google Apps Script (GAS) + Vue 3 (in-DOM template) + ekosistem bersama.
 11. **Soft-delete filter otomatis** di `getSheetData_` — untuk audit/histori pakai
     `getSheetData_(sheetName, { includeDeleted: true })`.
 12. **Kunci field verifikasi via `localPreSaveHook_` (P2)** — hanya role verifikator+
-    yang boleh mengubah `status_verifikasi` / `status` di sheet dengan workflow approval.
+    yang boleh mengubah `status_verifikasi` / `status` di sheet dengan workflow approval
+    (starter-kit: `T_APPROVAL`; app lain: sesuaikan).
 
 ---
 
@@ -82,12 +84,14 @@ di atas Google Apps Script (GAS) + Vue 3 (in-DOM template) + ekosistem bersama.
   sebelum 07:00. Pakai `CoreLib.todayIsoLocal()` atau `CoreLib.dateKey10(val)`. Jangan pernah
   `todayIso()` (UTC) untuk form/validasi user.
 - **Soft-delete tampil di list**: pada versi lama, `getSheetData_` tidak filter
-  `deleted_at`. Di v2.0 sudah otomatis — jangan matikan filter tanpa alasan.
+  `deleted_at`. Di v2.0.1 sudah otomatis — jangan matikan filter tanpa alasan.
 - **Self-approve verifikasi**: pada versi lama, user bisa kirim `status_verifikasi='disetujui'`
-  untuk riwayat miliknya sendiri yang masih `menunggu`. Di v2.0 ditutup oleh hook P2.
+  untuk riwayat miliknya sendiri yang masih `menunggu`. Di v2.0.1 ditutup oleh hook P2.
 - **In-flight request dedup**: `callServer` otomatis dedup request baca (`get_*`,
   `dashboard`, `analytics`). Untuk aksi tulis (`save_*`, `delete_*`) tidak — jangan
   asumsikan idempoten.
+- **`audit_ is not defined`**: 02_AppLogic.gs memanggil `audit_()`. Wajib ada
+  `00_Utils.gs`. Jangan hapus/tunda paste file ini.
 
 ---
 
@@ -98,7 +102,8 @@ di atas Google Apps Script (GAS) + Vue 3 (in-DOM template) + ekosistem bersama.
   - `runLibraryTests()` → **PASS 42 / FAIL 0 / SKIP 1** (CoreLib v2.3.0, pin 15).
   - `testAdopsiG18d()` → **13 / 0** (verifikasi util baru CoreLib).
   - `testDispatcherRouting()` → **~35 / 0** (registry + fail-closed).
-  - `runDomainTestsStarterKit()` → **~18 / 0** (domain M_REFERENSI + T_UTAMA + hook + skema).
+  - `runDomainTestsStarterKit()` → **~20 / 0** (domain `M_REFERENSI` + `T_UTAMA` + hook
+    + skema 10 sheet; termasuk verifikasi `T_APPROVAL` diaktifkan).
 - **Diagnostik manual**: `runAllDiagnostics()` + `testKoneksiKePortalSso()`.
 - **Kontrak**: `contract_check.py` (aturan 7). Setelah ronde salin besar: `auditSalinan()`.
 
@@ -113,7 +118,7 @@ di atas Google Apps Script (GAS) + Vue 3 (in-DOM template) + ekosistem bersama.
   - `backend/00_MIGRATION_v2.md` (changelog lengkap CoreLib v2.x).
 - Repo `starter-kit`:
   - `README.md` (checklist 13 langkah app baru).
-  - `src/` (template — 3 file backend + 8 file frontend + manifest).
+  - `src/` (template — 14 file).
   - `AI_CONTEXT.md` (file ini).
 - Workspace Arena:
   - `DAFTAR_SALIN.md` (jurnal salin manual).
@@ -121,22 +126,25 @@ di atas Google Apps Script (GAS) + Vue 3 (in-DOM template) + ekosistem bersama.
 
 ---
 
-## 7. Struktur `src/` (12 file)
+## 7. Struktur `src/` (14 file)
 
 ```
 src/
 ├── appsscript.json             # Manifest V8 + CoreLib pin 15
 │
+│  Backend (4):
+├── 00_Utils.gs                 # Audit HTTP ke SI-PLATFORM (audit_, sendAuditLog_)
 ├── 01_ConfigAndBridge.gs       # Konstanta + 10 sheet skema + bridge CoreLib
 │                               # + localPreSaveHook_ (P1/P2) + getAppConfig_()
 ├── 02_AppLogic.gs              # doGet/doPost/include + handleAction → dispatchAction
-│                               # + buildLocalHandlers_ + domain contoh (M_REFERENSI + T_UTAMA)
+│                               # + buildLocalHandlers_ + domain contoh
 │                               # + setupApp / initDatabase (delegasi CoreLib)
 ├── 99_TestSuite.gs             # Test suite pola si-lahar (library + adopsi + routing + domain)
 │
+│  Frontend (8):
 ├── Index.html                  # Shell tipis: CDN @v2.8.1 + Vue 3.5.42 + include 1 tingkat
-├── V_Dashboard.html            # Contoh dashboard (4 KPI + 2 chart + tabel + filter)
-├── V_Modals.html               # Contoh modal form (Utama)
+├── V_Dashboard.html            # Dashboard (4 KPI + 2 chart + tabel + filter)
+├── V_Modals.html               # Modal form (Utama)
 ├── J_State.html                # State + computed (chart included)
 ├── J_Helpers.html              # Helper domain murni (badgeStatusUtama, namaKategori_)
 ├── J_Api.html                  # Loader (callServer + silent handling)
@@ -147,6 +155,10 @@ src/
 **Sheet bisnis**: 10 (3 M + 7 T). **Sheet uji**: `ZZ_TEST_CRUD`. **Sheet sistem CoreLib
 auto**: `AUDIT_LOGS` + `MAIN_DATA` (jangan dihapus). **SIMPEG auto**: PEGAWAI/JABATAN/UNIT_KERJA
 (baca dari master, tidak ada lokal).
+
+**Domain contoh lengkap**: `M_REFERENSI` + `T_UTAMA` + `T_APPROVAL` (workflow verifikasi).
+**7 sheet lain**: skema ada, handler placeholder (komentar di `02` + `actionLevels` di `01`).
+Tinggal buka komentar saat mulai dipakai.
 
 ---
 
