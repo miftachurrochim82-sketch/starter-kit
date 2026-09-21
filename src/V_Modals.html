@@ -1,111 +1,71 @@
 <!-- ============================================================
-     STARTER-KIT - V_Modals.html (v2.0.0)
-     ============================================================
-     Seluruh modal form terpusat di sini (pola si-kompetensi & si-lahar).
-     Semua modal = komponen kit <app-modal>.
-     State form hidup di root vm (J_State + J_Actions).
-
-     [SESUAIKAN] Ganti modal dengan bisnis Anda.
+     STARTER-KIT - V_Modals.html (v2.10.0 — modal v-if + @close + size + UIUX v1.10)
+     Semua modal pakai v-if, bukan :show (pattern si-arsip v1.10e)
      ============================================================ -->
 
-  <!-- ================= MODAL FORM UTAMA (T_UTAMA) ================= -->
-  <app-modal :show="showUtamaForm"
-             :title="utamaForm.id ? 'Edit Data Utama' : 'Data Utama Baru'"
-             subtitle="Form transaksi utama"
-             icon="fa-solid fa-file-pen"
-             size="2xl"
-             :loading="utamaSaving"
-             confirm-text="Simpan"
-             cancel-text="Batal"
-             @close="showUtamaForm = false"
-             @confirm="saveUtama()">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-
-      <!-- Judul -->
-      <div class="md:col-span-2">
-        <label class="form-label">Judul *</label>
-        <input type="text"
-               v-model="utamaForm.judul"
-               placeholder="Judul singkat entri"
-               class="input w-full">
-      </div>
-
-      <!-- Deskripsi -->
-      <div class="md:col-span-2">
-        <label class="form-label">Deskripsi</label>
-        <textarea v-model="utamaForm.deskripsi"
-                  rows="2"
-                  placeholder="Keterangan lengkap (opsional)"
-                  class="input w-full resize-none"></textarea>
-      </div>
-
-      <!-- Pegawai (picker SIMPEG) -->
-      <div class="md:col-span-2">
-        <app-pegawai-picker v-model="utamaForm.pegawai_id"
-                            label="Pegawai Penanggung Jawab"
-                            placeholder="Ketik nama / NIP…"></app-pegawai-picker>
-      </div>
-
-      <!-- Kategori -->
-      <div>
-        <label class="form-label">Kategori</label>
-        <select v-model="utamaForm.kategori_id" class="input w-full">
-          <option value="">— Pilih Kategori —</option>
-          <option v-for="k in kategoriList" :key="k.id" :value="k.id">
-            {{ k.nama || k.kode }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Satuan -->
-      <div>
-        <label class="form-label">Satuan</label>
-        <select v-model="utamaForm.satuan_id" class="input w-full">
-          <option value="">— Pilih Satuan —</option>
-          <option v-for="s in satuanList" :key="s.id" :value="s.id">
-            {{ s.nama }}{{ s.simbol ? ' (' + s.simbol + ')' : '' }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Tanggal -->
-      <div>
-        <label class="form-label">Tanggal</label>
-        <input type="date" v-model="utamaForm.tanggal" class="input w-full">
-      </div>
-
-      <!-- Status -->
-      <div>
-        <label class="form-label">Status</label>
-        <select v-model="utamaForm.status" class="input w-full">
-          <option value="draft">Draft</option>
-          <option value="diajukan">Diajukan</option>
-          <option value="proses">Proses</option>
-          <option value="selesai">Selesai</option>
-          <option value="ditolak">Ditolak</option>
-        </select>
-      </div>
-
-      <!-- Jumlah -->
-      <div>
-        <label class="form-label">Jumlah</label>
-        <input type="number" min="0" v-model.number="utamaForm.jumlah" class="input w-full" placeholder="0">
-      </div>
-
-      <!-- Nilai -->
-      <div>
-        <label class="form-label">Nilai (Rp)</label>
-        <input type="number" min="0" v-model.number="utamaForm.nilai" class="input w-full" placeholder="0">
-      </div>
-
-      <!-- Catatan -->
-      <div class="md:col-span-2">
-        <label class="form-label">Catatan</label>
-        <textarea v-model="utamaForm.catatan"
-                  rows="2"
-                  placeholder="Catatan tambahan (opsional)"
-                  class="input w-full resize-none"></textarea>
-      </div>
-
+<!-- Modal Form T_UTAMA — size 2xl -->
+<app-modal v-if="showUtamaForm" @close="showUtamaForm=false" :title="utamaForm.id ? 'Ubah T_UTAMA' : 'T_UTAMA Baru'" subtitle="Contoh transaksi utama — kode auto, status draft→selesai" icon="fa-solid fa-database" size="2xl" :loading="utamaSaving" confirm-text="Simpan" cancel-text="Batal" @confirm="simpanUtama()">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="form-label">Judul *</label>
+      <input class="input w-full" v-model.trim="utamaForm.judul" placeholder="Judul transaksi">
     </div>
-  </app-modal>
+    <div>
+      <label class="form-label">Tanggal</label>
+      <input type="date" class="input w-full" v-model="utamaForm.tanggal">
+    </div>
+    <div class="md:col-span-2">
+      <label class="form-label">Deskripsi</label>
+      <textarea class="input w-full" rows="3" v-model.trim="utamaForm.deskripsi"></textarea>
+    </div>
+    <div>
+      <label class="form-label">Kategori</label>
+      <select class="input w-full" v-model="utamaForm.kategori_id">
+        <option value="">— pilih —</option>
+        <option v-for="k in kategoriList" :key="k.id" :value="k.id">{{ k.nama || k.kode }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Status</label>
+      <select class="input w-full" v-model="utamaForm.status">
+        <option value="draft">Draft</option>
+        <option value="baru">Baru</option>
+        <option value="diproses">Diproses</option>
+        <option value="selesai">Selesai</option>
+        <option value="batal">Batal</option>
+      </select>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Modal Form M_REFERENSI — size lg -->
+<app-modal v-if="showRefForm" @close="showRefForm=false" :title="refForm.id ? 'Ubah Referensi' : 'Tambah Referensi'" subtitle="Master referensi umum" icon="fa-solid fa-tags" size="lg" :loading="refSaving" confirm-text="Simpan" cancel-text="Batal" @confirm="simpanReferensi()">
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div>
+      <label class="form-label">Kategori *</label>
+      <input class="input w-full" v-model.trim="refForm.kategori" placeholder="mis. STATUS">
+    </div>
+    <div>
+      <label class="form-label">Kode</label>
+      <input class="input w-full" v-model.trim="refForm.kode" placeholder="mis. BARU">
+    </div>
+    <div class="md:col-span-2">
+      <label class="form-label">Nama Nilai *</label>
+      <input class="input w-full" v-model.trim="refForm.nama_nilai" placeholder="mis. Baru">
+    </div>
+    <div>
+      <label class="form-label">Urutan</label>
+      <input type="number" class="input w-full" v-model.number="refForm.urutan">
+    </div>
+    <div>
+      <label class="form-label">Status</label>
+      <select class="input w-full" v-model="refForm.status_aktif">
+        <option value="true">Aktif</option>
+        <option value="false">Nonaktif</option>
+      </select>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Overlay penutup row menu -->
+<div v-if="rowMenuId" class="fixed inset-0 z-20" @click="closeMenu()"></div>
