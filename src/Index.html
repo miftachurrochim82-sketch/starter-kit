@@ -4,67 +4,64 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>SI-CONTOH &bull; Pemkab Trenggalek</title>
+  <title>SI-CONTOH • Pemkab Trenggalek v2.10.0</title>
 
-  <!-- [SESUAIKAN] warna tema browser (hex --primary Anda) -->
-  <meta name="theme-color" content="#059669">
+  <!-- Tema browser — v2.10.0 locked #0369a1 (sky-700) dari si-arsip polish -->
+  <meta name="theme-color" content="#0369a1">
 
   <link rel="preconnect" href="https://cdn.jsdelivr.net">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 
-  <!-- Vendor CDN (sesuai standar CDN_SNIPPET v2.8.1) -->
+  <!-- Vendor CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { darkMode: 'class' };</script>
+  <script>tailwind.config = { darkMode: 'class', extend: { colors: { primary: { 50: '#f0f9ff', 100: '#e0f2fe', 500: '#0ea5e9', 600: '#0284c7', 700: '#0369a1', 800: '#075985', 900: '#0c4a6e' } } } };</script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.2/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/vue@3.5.42/dist/vue.global.prod.js"></script>
 
   <!--
-    ============================================================
-    Shared CDN Pemkab Trenggalek v2.8.1
-    ------------------------------------------------------------
-    ATURAN (sesuai CDN_SNIPPET.md v2.8.1):
-    1. Selalu pakai TAG VERSI (@v2.8.1), JANGAN @main.
-    2. Pakai berkas .min (hasil build, di-commit di repo CDN).
-    3. JANGAN muat chart.js / xlsx / jspdf / pdf-lib di sini.
-       Semua itu dimuat on-demand lewat AppCore.loadLib().
+    Shared CDN Pemkab Trenggalek v2.8.1 (tetap — v2.9.0 kandidat C1-C3 masih backlog, skip dulu)
+    ATURAN:
+    1. Tag versi eksplisit @v2.8.1, jangan @main
+    2. Pakai .min (hasil build)
+    3. Chart/xlsx/jspdf dimuat on-demand via AppCore.loadLib()
 
-    Ringkasan starter-kit v2.0.0 (2026-09-19):
-    - Pola identik si-kompetensi v6.0.1 & si-lahar v2.1.0.
-    - CDN @v2.8.1 (internal "2.8.0") + Vue 3.5.42 + FA 6.5.2.
-    - Shell tipis, tanpa A0_Head.html (head inline).
-    - Include satu tingkat: V_* + J_* (urutan wajib).
-    ============================================================
+    Starter-kit v2.10.0 (2026-09-21 malam):
+    - 11 sheet (3 master + 8 tabel incl T_TINDAK_LANJUT/RTL)
+    - 72 handler (config 6 + self 2 + dash 2 + simpeg 4 + master 9 + utama 4 + item 4 + logbook 2 + lampiran 3 + approval 4 + jadwal 4 + rekap 4 + laporan 2 + analisa 3 + evaluasi 3 + RTL 12 + generic 2 + publik 3 + sistem 1 = 72)
+    - UIUX v1.10 polish: min-w + table-scroll + badge valid + app-stat-card 56 + btn-icon + filter label text-[11px] + modal v-if + tema #0369a1
+    - Contoh RTL R1-R5 dari si-arsip (E3/A9/E5/E6/E7/E8 → R1-R5)
   -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-common.min.css">
 
-  <!-- ============================================================
-       THEME OVERRIDE — [SESUAIKAN] warna brand app Anda.
-       Preset lain (biru/kuning/ungu) ada di frontend/README.md CDN.
-       ============================================================ -->
   <style>
     :root {
-      --primary:         #059669;   /* emerald-600 */
-      --primary-dark:    #047857;   /* emerald-700 */
-      --primary-light:   #ecfdf5;   /* emerald-50  */
-      --primary-lighter: #d1fae5;   /* emerald-100 */
-      --primary-text:    #064e3b;   /* emerald-900 */
-      --primary-accent:  #34d399;   /* emerald-400 */
-      --primary-rgb:     5, 150, 105;
+      --primary:         #0369a1;   /* sky-700 — v2.10.0 dari si-arsip */
+      --primary-dark:    #075985;   /* sky-800 */
+      --primary-light:   #f0f9ff;   /* sky-50  */
+      --primary-lighter: #e0f2fe;   /* sky-100 */
+      --primary-text:    #0c4a6e;   /* sky-900 */
+      --primary-accent:  #38bdf8;   /* sky-400 */
+      --primary-rgb:     3, 105, 161;
     }
+    /* v1.10 kandidat CDN C1-C3 — lokal dulu, nanti naik v2.9.0 bareng (plain CSS, bukan @apply) */
+    .filter-bar-analytics { display:flex; flex-direction:column; gap:0.5rem; align-items:flex-end; }
+    @media(min-width:640px){ .filter-bar-analytics{ flex-direction:row; } }
+    .filter-label { font-size:11px; color: #64748b; font-weight:500; display:block; margin-bottom:2px; }
+    .dark .filter-label{ color:#94a3b8; }
+    .table-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+    .progress-track { width:4rem; height:0.5rem; background:#e2e8f0; border-radius:9999px; overflow:hidden; display:inline-block; vertical-align:middle; }
+    .dark .progress-track{ background:#334155; }
+    .progress-fill { height:100%; background:#10b981; transition:all 0.3s; }
   </style>
 
-  <!-- Boot dark-mode sebelum render: kunci {storagePrefix}_dark -->
-  <!-- [SESUAIKAN] ganti 'sicontoh_dark' bila prefix app Anda berbeda.
-       HARUS sama dengan storagePrefix di J_App.html (AppCore.create). -->
   <script>
     try {
       if (localStorage.getItem('sicontoh_dark') === 'true') document.documentElement.classList.add('dark');
-    } catch (e) { /* diabaikan sengaja */ }
+    } catch (e) {}
   </script>
 
-  <!-- SSO: tiket & flag entry dari template doGet -->
   <script>
     window.__SSO_TICKET__ = <?!= JSON.stringify(String(ticket || '')) ?>;
     window.__IS_SSO_ENTRY__ = <?= isSsoEntry === 'true' ? 'true' : 'false' ?>;
@@ -75,24 +72,21 @@
 
   <div id="app" v-cloak>
 
-    <!-- Toast Notification Container -->
     <div class="toast-container" aria-live="polite">
       <div v-for="toast in toasts" :key="toast.id" class="toast-item" :class="'toast-' + toast.type">
         <span class="flex-1 leading-snug">{{ toast.message }}</span>
       </div>
     </div>
 
-    <!-- Login SSO Gateway (komponen kit <app-login>) -->
     <app-login v-if="!token"
                :is-processing="isProcessing"
                :error-message="errorMessage"
                :app-title="appTitle"
-               app-subtitle="Aplikasi Web Bisnis"
+               app-subtitle="Starter Kit v2.10.0 — 11 sheet + 72 handler + RTL"
                instansi="Pemkab Trenggalek"
                @login="goToPlatform">
     </app-login>
 
-    <!-- Shell Utama -->
     <div v-else class="flex h-screen overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-800 dark:text-slate-100 font-sans">
 
       <app-sidebar :collapsed="sidebarCollapsed"
@@ -122,27 +116,23 @@
           </app-header>
         </div>
 
-        <!-- Konten halaman dinamis (include satu tingkat) -->
         <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <?!= include('V_Modals'); ?>
           <?!= include('V_Dashboard'); ?>
+          <?!= include('V_Rtl'); ?>
+          <?!= include('V_Utama'); ?>
+          <?!= include('V_Master'); ?>
+          <?!= include('V_Laporan'); ?>
         </main>
       </div>
     </div>
 
   </div>
 
-  <!--
-    Shared CDN: JS v2.8.1
-    URUTAN SAMA dengan si-lahar & si-kompetensi: components → core → modules.
-    Fungsional bebas — AppCore.create() membaca window.AppComponents
-    & window.AppModules saat dipanggil dari J_App.html (paling bawah).
-  -->
   <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-components.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-core.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.8.1/frontend/app-modules.min.js"></script>
 
-  <!-- Logika aplikasi: modul J_* (urutan WAJIB) -->
   <?!= include('J_State'); ?>
   <?!= include('J_Helpers'); ?>
   <?!= include('J_Api'); ?>
