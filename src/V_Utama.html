@@ -1,0 +1,60 @@
+<!-- ============================================================
+     STARTER-KIT - V_Utama.html (v2.10.0 — contoh T_UTAMA + UIUX v1.10)
+     List + filter-bar + table-scroll min-w + badge valid + btn-icon + pagination + modal v-if
+     ============================================================ -->
+<section v-if="currentPage === 'utama'" class="space-y-4 animate-fade-in">
+
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-white">
+        <i class="fa-solid fa-database text-sky-600 dark:text-sky-400"></i> T_UTAMA
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+        Contoh transaksi utama — CRUD + status + filter + UIUX v1.10 polish
+      </p>
+    </div>
+    <button class="btn btn-primary" @click="showUtamaForm=true; utamaForm={id:'',kode:'',judul:'',deskripsi:'',pegawai_id:'',kategori_id:'',satuan_id:'',tanggal:'',jumlah:0,nilai:0,status:'draft',catatan:''}">
+      <i class="fa-solid fa-plus"></i> Baru
+    </button>
+  </div>
+
+  <app-filter-bar :filters="utamaFilterDefs" v-model="utamaFilters" @change="loadUtama(1)" @reset="loadUtama(1)"></app-filter-bar>
+
+  <div class="card overflow-hidden !p-0">
+    <app-skeleton v-if="utamaLoading && !utamaList.length" type="table"></app-skeleton>
+    <app-empty-state v-else-if="!filteredUtama.length" icon="fa-solid fa-database" title="Belum ada data" subtitle="Buat data pertama lewat tombol Baru."></app-empty-state>
+    <div v-else class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="border-b bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="text-left py-2 px-3 min-w-[160px]">Kode / Tanggal</th>
+            <th class="text-left py-2 px-3 min-w-[260px]">Judul</th>
+            <th class="text-left py-2 px-3 min-w-[100px]">Status</th>
+            <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr v-for="r in paginatedUtama" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+            <td class="py-2 px-3"><div class="font-black">{{ r.kode }}</div><div class="text-[11px] text-slate-400">{{ fmtTgl(r.tanggal) }}</div></td>
+            <td class="py-2 px-3"><div class="font-semibold truncate max-w-[260px]">{{ r.judul }}</div><div class="text-[11px] text-slate-400 truncate max-w-[260px]">{{ r.deskripsi || '—' }}</div></td>
+            <td class="py-2 px-3"><app-badge size="sm" :status="badgeStatusUtama(r.status)" :label="r.status"></app-badge></td>
+            <td class="py-2 px-3 text-right">
+              <div class="flex gap-1 justify-end">
+                <button class="btn-icon" @click="utamaForm=Object.assign({}, r); showUtamaForm=true" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-icon-danger" @click="hapusUtama(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div v-if="utamaTotalPages>1" class="flex items-center justify-between p-3 border-t text-xs">
+      <span class="text-slate-500">{{ filteredUtama.length }} data · hal {{ utamaPagination.page }}/{{ utamaTotalPages }}</span>
+      <div class="flex gap-1">
+        <button class="btn-icon" :disabled="utamaPagination.page<=1" @click="utamaPagination.page--; loadUtama(utamaPagination.page)"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="btn-icon" :disabled="utamaPagination.page>=utamaTotalPages" @click="utamaPagination.page++; loadUtama(utamaPagination.page)"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+</section>

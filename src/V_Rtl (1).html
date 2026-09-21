@@ -1,0 +1,269 @@
+<!-- ============================================================
+     STARTER-KIT - V_Rtl.html (v2.10.0 — RTL generik, contoh si-arsip R1-R5)
+     Rencana Tindak Lanjut — generik:
+       Sumber bisa: E3 kelengkapan, A9 SLA, E5 JRA, E6 musnah, E7 fisik, E8 alih media, manual
+       5 jenis contoh si-arsip:
+         R1 Pemusnahan, R2 Penyerahan Permanen, R3 Alih Media, R4 Restorasi, R5 Pelatihan
+     UIUX v1.10 polish: min-w + table-scroll + app-stat-card + badge valid + btn-icon + filter label + modal v-if + progress bar
+     ============================================================ -->
+<section v-if="currentPage === 'rtl'" class="space-y-6 animate-fade-in">
+
+  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+    <div>
+      <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-white">
+        <i class="fa-solid fa-list-check text-amber-600 dark:text-amber-400"></i> RTL — Rencana Tindak Lanjut
+      </h2>
+      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+        Puncak piramida (contoh si-arsip): R1 Pemusnahan · R2 Penyerahan Permanen · R3 Alih Media · R4 Restorasi · R5 Pelatihan.
+        Auto-generate dari hasil Evaluasi / Analisa.
+      </p>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="btn btn-primary" @click="showRtlForm=true; rtlForm={id:'',sumber_evaluasi:'manual',judul_rtl:'',deskripsi:'',assigned_to:'',due_date:'',status_rtl:'baru',progress_pct:0,dokumen_terkait:'',catatan:''}">
+        <i class="fa-solid fa-plus"></i> RTL Baru
+      </button>
+      <button class="btn btn-ghost" @click="loadRtl(1)" :disabled="rtlLoading">
+        <i class="fa-solid fa-rotate"></i> Segarkan
+      </button>
+    </div>
+  </div>
+
+  <!-- Generate panel — v1.10 filter-bar-analytics -->
+  <div class="card space-y-3">
+    <h3 class="font-bold text-sm text-slate-700 dark:text-slate-200"><i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i> Auto-Generate RTL</h3>
+    <div class="filter-bar-analytics">
+      <div class="flex-1">
+        <label class="filter-label">Sumber Evaluasi</label>
+        <select class="input w-full" v-model="rtlGenerateSumber">
+          <option value="semua">Semua (E3/A9/E5/E6/E7/E8)</option>
+          <option value="E6">E6 → R1 Pemusnahan</option>
+          <option value="E5">E5 → R2 Penyerahan Permanen</option>
+          <option value="E8">E8 → R3 Alih Media</option>
+          <option value="E7">E7 → R4 Restorasi</option>
+          <option value="E3">E3 → R5 Pelatihan (kelengkapan)</option>
+          <option value="A9">A9 → R5 Pembinaan (SLA)</option>
+          <option value="manual">Manual</option>
+        </select>
+      </div>
+      <div class="w-28">
+        <label class="filter-label">Tahun</label>
+        <input type="text" class="input w-full" v-model="rtlGenerateTahun" placeholder="2026">
+      </div>
+      <button class="btn btn-primary" @click="generateRtl()" :disabled="rtlGenerating">
+        <i class="fa-solid fa-bolt" v-if="!rtlGenerating"></i>
+        <i class="fa-solid fa-spinner fa-spin" v-else></i>
+        {{ rtlGenerating ? 'Generating...' : 'Generate' }}
+      </button>
+    </div>
+    <p class="text-[11px] text-slate-400">Duplikat (tahun+judul) otomatis dicegah. Contoh si-arsip: R1=retensi habis belum musnah, R2=permanen, R3=belum digital, R4=tanpa lokasi, R5=tidak lengkap/SLA.</p>
+  </div>
+
+  <!-- Filter bar — v1.10 -->
+  <div class="flex flex-col sm:flex-row gap-2 items-end">
+    <div class="flex-1 w-full">
+      <label class="filter-label">Cari</label>
+      <input type="text" class="input w-full" placeholder="Cari judul / deskripsi / assignee..." v-model="rtlSearch" @input="loadRtl(1)">
+    </div>
+    <div class="w-36">
+      <label class="filter-label">Status</label>
+      <select class="input w-full" v-model="rtlFilters.status_rtl" @change="loadRtl(1)">
+        <option value="">Semua Status</option>
+        <option value="baru">Baru</option>
+        <option value="diproses">Diproses</option>
+        <option value="selesai">Selesai</option>
+        <option value="batal">Batal</option>
+      </select>
+    </div>
+    <div class="w-40">
+      <label class="filter-label">Sumber</label>
+      <select class="input w-full" v-model="rtlFilters.sumber_evaluasi" @change="loadRtl(1)">
+        <option value="">Semua Sumber</option>
+        <option value="E5">E5 JRA</option>
+        <option value="E6">E6 Musnah</option>
+        <option value="E7">E7 Fisik</option>
+        <option value="E8">E8 Alih Media</option>
+        <option value="E3">E3 Kelengkapan</option>
+        <option value="A9">A9 SLA</option>
+        <option value="manual">Manual</option>
+      </select>
+    </div>
+    <div class="w-24">
+      <label class="filter-label">Tahun</label>
+      <input type="text" class="input w-full" placeholder="2026" v-model="rtlFilters.tahun" @change="loadRtl(1)">
+    </div>
+  </div>
+
+  <!-- Stats — v1.10 app-stat-card -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+    <app-stat-card title="Total RTL" :value="rtlTotalData" icon="fa-solid fa-list-check" color="sky" subtext="semua"></app-stat-card>
+    <app-stat-card title="Baru" :value="rtlList.filter(function(r){return (r.status_rtl||r.status)==='baru'}).length" icon="fa-solid fa-clock" color="sky" subtext="perlu diproses"></app-stat-card>
+    <app-stat-card title="Diproses" :value="rtlList.filter(function(r){return (r.status_rtl||r.status)==='diproses'}).length" icon="fa-solid fa-spinner" color="amber" subtext="sedang jalan"></app-stat-card>
+    <app-stat-card title="Selesai" :value="rtlList.filter(function(r){return (r.status_rtl||r.status)==='selesai'}).length" icon="fa-solid fa-check" color="emerald" subtext="sudah tuntas"></app-stat-card>
+  </div>
+
+  <app-skeleton v-if="rtlLoading" type="table"></app-skeleton>
+
+  <!-- List table — v1.10 min-w + table-scroll + progress bar -->
+  <div v-else class="card overflow-hidden">
+    <div v-if="!rtlList.length" class="text-center py-10 text-sm text-slate-400">
+      <i class="fa-solid fa-inbox text-3xl mb-2 block"></i>
+      Belum ada RTL. Klik Generate atau Buat Manual.
+    </div>
+    <div v-else class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="border-b bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="text-left py-2 px-3 min-w-[260px]">Judul RTL</th>
+            <th class="text-left py-2 px-3 min-w-[100px]">Sumber</th>
+            <th class="text-left py-2 px-3 min-w-[100px]">Status</th>
+            <th class="text-right py-2 px-3 min-w-[120px]">Progress</th>
+            <th class="text-left py-2 px-3 min-w-[140px]">Assignee</th>
+            <th class="text-left py-2 px-3 min-w-[110px]">Due</th>
+            <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr v-for="r in rtlList" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+            <td class="py-2 px-3">
+              <div class="font-semibold truncate max-w-[260px]" :title="r.judul_rtl || r.judul">{{ r.judul_rtl || r.judul }}</div>
+              <div class="text-[11px] text-slate-400 truncate max-w-[260px]">{{ r.deskripsi || '—' }}</div>
+            </td>
+            <td class="py-2 px-3">
+              <app-badge size="sm"
+                         :status="r.sumber_evaluasi==='E6' ? 'ditolak' : (r.sumber_evaluasi==='E7' ? 'menunggu' : (r.sumber_evaluasi==='E8' ? 'proses' : (r.sumber_evaluasi==='E5' ? 'proses' : 'disetujui')))"
+                         :label="r.sumber_evaluasi"></app-badge>
+            </td>
+            <td class="py-2 px-3">
+              <app-badge size="sm"
+                         :status="(r.status_rtl||r.status)==='selesai' ? 'disetujui' : ((r.status_rtl||r.status)==='batal' ? 'ditolak' : ((r.status_rtl||r.status)==='diproses' ? 'menunggu' : 'proses'))"
+                         :label="r.status_rtl||r.status"></app-badge>
+            </td>
+            <td class="py-2 px-3 text-right">
+              <div class="progress-track mr-1">
+                <div class="progress-fill" :style="{ width: (r.progress_pct||0) + '%' }"></div>
+              </div>
+              <span class="text-[11px]">{{ r.progress_pct || 0 }}%</span>
+            </td>
+            <td class="py-2 px-3 truncate max-w-[100px]">{{ r.assigned_to || '—' }}</td>
+            <td class="py-2 px-3">{{ r.due_date ? fmtTgl(r.due_date) : '—' }}</td>
+            <td class="py-2 px-3 text-right">
+              <div class="flex gap-1 justify-end">
+                <button class="btn-icon" @click="openRtlEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button class="btn-icon" @click="openRtlStatus(r)" title="Ubah Status"><i class="fa-solid fa-arrows-rotate"></i></button>
+                <button class="btn-icon-danger" @click="hapusRtl(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div v-if="rtlTotalPages>1" class="flex items-center justify-between p-3 border-t text-xs">
+      <span class="text-slate-500">{{ rtlTotalData }} data · hal {{ rtlPage }}/{{ rtlTotalPages }}</span>
+      <div class="flex gap-1">
+        <button class="btn-icon" :disabled="rtlPage<=1" @click="loadRtl(rtlPage-1)"><i class="fa-solid fa-chevron-left"></i></button>
+        <button class="btn-icon" :disabled="rtlPage>=rtlTotalPages" @click="loadRtl(rtlPage+1)"><i class="fa-solid fa-chevron-right"></i></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Form Modal — v1.10 v-if + @close + size lg -->
+  <app-modal v-if="showRtlForm" @close="showRtlForm=false" :title="rtlForm.id ? 'Edit RTL' : 'RTL Baru'" size="lg">
+    <div class="space-y-3">
+      <div>
+        <label class="text-xs font-semibold">Judul RTL *</label>
+        <input type="text" class="input w-full" v-model="rtlForm.judul_rtl" placeholder="Contoh: R1 Pemusnahan 2026 — 12 arsip retensi habis">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold">Sumber Evaluasi</label>
+          <select class="input w-full" v-model="rtlForm.sumber_evaluasi">
+            <option value="manual">Manual</option>
+            <option value="E5">E5 JRA</option>
+            <option value="E6">E6 Musnah</option>
+            <option value="E7">E7 Fisik</option>
+            <option value="E8">E8 Alih Media</option>
+            <option value="E3">E3 Kelengkapan</option>
+            <option value="A9">A9 SLA</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs font-semibold">Status</label>
+          <select class="input w-full" v-model="rtlForm.status_rtl">
+            <option value="baru">Baru</option>
+            <option value="diproses">Diproses</option>
+            <option value="selesai">Selesai</option>
+            <option value="batal">Batal</option>
+          </select>
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold">Deskripsi</label>
+        <textarea class="input w-full" rows="3" v-model="rtlForm.deskripsi" placeholder="Detail rencana tindak lanjut..."></textarea>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold">Assigned To</label>
+          <input type="text" class="input w-full" v-model="rtlForm.assigned_to" placeholder="Nama pegawai / unit">
+        </div>
+        <div>
+          <label class="text-xs font-semibold">Due Date</label>
+          <input type="date" class="input w-full" v-model="rtlForm.due_date">
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div>
+          <label class="text-xs font-semibold">Progress %</label>
+          <input type="number" min="0" max="100" class="input w-full" v-model.number="rtlForm.progress_pct">
+        </div>
+        <div>
+          <label class="text-xs font-semibold">Dokumen Terkait</label>
+          <input type="text" class="input w-full" v-model="rtlForm.dokumen_terkait" placeholder="ID / link drive">
+        </div>
+      </div>
+      <div>
+        <label class="text-xs font-semibold">Catatan</label>
+        <textarea class="input w-full" rows="2" v-model="rtlForm.catatan"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button class="btn btn-ghost" @click="showRtlForm=false">Batal</button>
+        <button class="btn btn-primary" @click="simpanRtl()" :disabled="rtlSaving">
+          <i v-if="rtlSaving" class="fa-solid fa-spinner fa-spin"></i>
+          <i v-else class="fa-solid fa-floppy-disk"></i>
+          {{ rtlSaving ? 'Menyimpan...' : 'Simpan' }}
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+  <!-- Status Modal — size md -->
+  <app-modal v-if="showRtlStatusForm" @close="showRtlStatusForm=false" title="Ubah Status RTL" size="md">
+    <div class="space-y-3">
+      <p class="text-xs text-slate-500">RTL: <b>{{ rtlStatusTarget.judul_rtl || rtlStatusTarget.judul }}</b></p>
+      <div>
+        <label class="text-xs font-semibold">Status Baru</label>
+        <select class="input w-full" v-model="rtlStatusBaru">
+          <option value="baru">Baru</option>
+          <option value="diproses">Diproses</option>
+          <option value="selesai">Selesai</option>
+          <option value="batal">Batal</option>
+        </select>
+      </div>
+      <div>
+        <label class="text-xs font-semibold">Progress %</label>
+        <input type="number" min="0" max="100" class="input w-full" v-model.number="rtlStatusProgress">
+      </div>
+      <div>
+        <label class="text-xs font-semibold">Catatan</label>
+        <textarea class="input w-full" rows="2" v-model="rtlStatusCatatan"></textarea>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button class="btn btn-ghost" @click="showRtlStatusForm=false">Batal</button>
+        <button class="btn btn-primary" @click="ubahStatusRtl()" :disabled="rtlSaving">
+          <i v-if="rtlSaving" class="fa-solid fa-spinner fa-spin"></i>
+          <i v-else class="fa-solid fa-check"></i> Simpan Status
+        </button>
+      </div>
+    </div>
+  </app-modal>
+
+</section>
