@@ -1,14 +1,13 @@
-# 🧰 STARTER-KIT WEB APP BISNIS (v2.0.1)
+# 🧰 STARTER-KIT WEB APP BISNIS (v2.10.0 — 11 sheet + 72 handler + RTL + UIUX v1.10)
 
-Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem
-Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN). Dicetak dari prototipe
-**si-kompetensi v6.0.1** dan **si-lahar v2.1.0** (keduanya produksi, CoreLib-First).
+Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN). Dicetak dari prototipe **si-arsip v1.10** (11 sheet + 72 handler + RTL R1-R5 + UIUX polish 59/28/0/0/56) + **si-kompetensi v6.0.1** & **si-lahar v2.1.0**.
 
-> **Versi template**: 2.0.1 (2026-09-19).
+> **Versi template**: 2.10.0 (2026-09-21 malam) — setelah si-arsip v1.10 SELESAI.
 > **CoreLib**: pin **15** (v2.3.0) — util sadar-WIB + paginasi + pencarian + whitelist.
-> **CDN**: **`@v2.8.1`** (internal `"2.8.0"`). **Vue**: `3.5.42`.
-> **Skema**: 3 master + 7 tabel = **10 sheet** (minimal standar ekosistem: 3 + 3).
-> **Total file**: 14 (4 backend + 8 frontend + 1 manifest).
+> **CDN**: **`@v2.8.1`** (internal `"2.8.0"`) — v2.9.0 kandidat C1-C3 masih backlog (skip dulu, nanti batch dengan app lain). **Vue**: `3.5.42`.
+> **Skema**: 3 master + 8 tabel incl RTL = **11 sheet** (standar: 3 + 3 minimal, sekarang 11).
+> **Handler**: **72** (config 6 + self 2 + dash 2 + simpeg 4 + master 9 + utama 4 + item 4 + logbook 2 + lampiran 3 + approval 4 + jadwal 4 + rekap 4 + laporan 2 + analisa 3 + evaluasi 3 + RTL 12 + generic 2 + publik 3 + sistem 1 = 72)
+> **Total file**: 16 (4 backend + 10 frontend + 1 manifest + 1 AI_CONTEXT)
 
 ---
 
@@ -18,199 +17,181 @@ Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN). Dicetak dari prototipe
 |---|---|---|
 | Login / SSO / sesi | **si-platform** + `CoreLib.exchangePlatformTicket` | terima `?ticket=` → tukar → token sesi |
 | Master pegawai/jabatan/unit | **SIMPEG** (3 sheet referensi) | `getSheetData_('PEGAWAI')` — CoreLib otomatis route ke DB master |
-| Mesin sheet/CRUD/cache/audit | **CoreLib** (Library GAS pin 15) | `apiSave`, `apiDelete`, `ensureSheet`, `checkAuth` |
+| Mesin sheet/CRUD/cache/audit | **CoreLib** (pin 15) | `apiSave`, `apiDelete`, `ensureSheet`, `checkAuth` |
 | Dispatcher + fail-closed | **CoreLib.dispatchAction** | `handleAction(payload)` di `02_AppLogic.gs` |
 | Util tanggal sadar-WIB | **CoreLib** (v2.3.0) | `todayIsoLocal()`, `dateKey10()` — JANGAN `todayIso()` (UTC) |
-| Audit HTTP ke SI-PLATFORM | `00_Utils.gs` → `audit_()` | sudah wrapper — panggil `audit_(actor, action, type, id, ok, msg)` |
-| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.8.1** | 13+2 komponen `app-*` — auto registrasi |
+| Audit HTTP ke SI-PLATFORM | `00_Utils.gs` → `audit_()` | wrapper — panggil `audit_(actor, action, type, id, ok, msg)` |
+| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.8.1** | 15+ komponen `app-*` — auto registrasi |
+| RTL / Tindak Lanjut (puncak piramida) | **Contoh si-arsip R1-R5** | T_TINDAK_LANJUT + 12 handler + V_Rtl + generate + status + progress bar |
 | User/role/permission/notifikasi/file | **si-platform** | tidak perlu sheet lokal |
 
 ---
 
-## 📦 Isi template (`src/` — 14 file)
+## 📦 Isi template (`src/` — 16 file) — v2.10.0
 
 ```
 src/
 ├── appsscript.json             # Manifest V8 + CoreLib pin 15
 │
 │  Backend (4):
-├── 00_Utils.gs                 # Audit HTTP ke SI-PLATFORM (audit_, sendAuditLog_)
-├── 01_ConfigAndBridge.gs       # Konstanta + 10 sheet skema + bridge CoreLib + hook P1/P2 + getAppConfig_()
-├── 02_AppLogic.gs              # doGet/doPost/include + handleAction → dispatchAction + registry + domain contoh
-├── 99_TestSuite.gs             # Test suite (runLibraryTests + adopsi + routing + domain)
+├── 00_Utils.gs                 # Audit HTTP ke SI-PLATFORM
+├── 01_ConfigAndBridge.gs       # Konstanta + 11 sheet skema + bridge + hook P1/P2 + 72 actionLevels
+├── 02_AppLogic.gs              # doGet/doPost/include + handleAction + 72 handler (master + utama + item + logbook + lampiran + approval + jadwal + rekap + laporan + analisa + evaluasi + RTL)
+├── 99_TestSuite.gs             # Test suite (runLibraryTests + adopsi + routing + domain + RTL)
 │
-│  Frontend (8):
-├── Index.html                  # Shell tipis CDN @v2.8.1 + Vue 3.5.42 + include 1 tingkat
-├── V_Dashboard.html            # Dashboard (4 KPI + 2 chart + tabel)
-├── V_Modals.html               # Contoh modal form (Utama)
-├── J_State.html                # State + computed (chart included)
-├── J_Helpers.html              # Helper domain murni
-├── J_Api.html                  # Loader data (callServer + silent)
-├── J_Actions.html              # Handler aksi user
-└── J_App.html                  # Bootstrap AppCore.create + mixin + mount
+│  Frontend (10):
+├── Index.html                  # Shell tipis CDN @v2.8.1 + Vue 3.5.42 + tema #0369a1 + include 1 tingkat (V_Modals, V_Dashboard, V_Rtl, V_Utama, V_Master, V_Laporan)
+├── V_Dashboard.html            # Dashboard 4 KPI app-stat-card + 2 chart + tabel terbaru + RTL ringkas (UIUX v1.10)
+├── V_Rtl.html                  # RTL R1-R5 generik — generate panel + filter label + stat 4 card + tabel min-w + table-scroll + progress bar + modal v-if (contoh si-arsip)
+├── V_Utama.html                # T_UTAMA — filter-bar + table-scroll min-w + badge valid + btn-icon + pagination (UIUX v1.10)
+├── V_Master.html               # Master 3 tab — table-scroll min-w + badge aktif/nonaktif + btn-icon (UIUX v1.10)
+├── V_Laporan.html              # Laporan L4/L5 contoh — filter-analytics + app-stat-card + table-scroll (UIUX v1.10)
+├── V_Modals.html               # Modal form Utama + Referensi — v-if + @close + size lg/2xl (UIUX v1.10)
+├── J_State.html                # State + computed + RTL state (11 sheet)
+├── J_Helpers.html              # Helper fmtTgl + badge mapping valid + toggleRowMenu
+├── J_Api.html                  # Loader dashboard + master + utama + laporan + analisa + RTL (v2.10.0)
+├── J_Actions.html              # Handler simpan/hapus RTL + utama + referensi (v2.10.0)
+└── J_App.html                  # Bootstrap AppCore.create + menu 5 item (dashboard, rtl, laporan, utama, master) + tema #0369a1
 ```
 
-**Skema 10 sheet:**
+**Skema 11 sheet (v2.10.0):**
 - **Master (3)**: `M_REFERENSI`, `M_KATEGORI`, `M_SATUAN`
-- **Tabel (7)**: `T_UTAMA`, `T_ITEM`, `T_LOGBOOK`, `T_LAMPIRAN`, `T_APPROVAL`, `T_JADWAL`, `T_REKAP`
-- **Sheet uji**: `ZZ_TEST_CRUD` (auto-dibersihkan)
-- **Sheet sistem CoreLib**: `AUDIT_LOGS`, `MAIN_DATA` (auto-create)
-- **SIMPEG (read-only, dari master)**: `PEGAWAI`, `JABATAN`, `UNIT_KERJA`
+- **Tabel (8)**: `T_UTAMA`, `T_ITEM`, `T_LOGBOOK`, `T_LAMPIRAN`, `T_APPROVAL`, `T_JADWAL`, `T_REKAP`, `T_TINDAK_LANJUT` (alias `T_RTL` — RTL R1-R5 contoh si-arsip)
+- **Sheet uji**: `ZZ_TEST_CRUD`
+- **Sheet sistem CoreLib**: `AUDIT_LOGS`, `MAIN_DATA`
+- **SIMPEG (read-only)**: `PEGAWAI`, `JABATAN`, `UNIT_KERJA`
 
-**Domain contoh lengkap**: `M_REFERENSI` + `T_UTAMA` + `T_APPROVAL` (workflow verifikasi).
-**7 sheet lain**: skema ada, handler placeholder (komentar di `02_AppLogic.gs` + `actionLevels`).
-Tinggal buka komentar saat Anda mulai memakainya.
+**Domain contoh lengkap**: `M_REFERENSI` + `T_UTAMA` + `T_APPROVAL` + `T_TINDAK_LANJUT` (RTL).
+**7 sheet lain**: handler aktif (get_list/save/delete) — siap pakai.
 
 ---
 
 ## 🚀 Alur membangun aplikasi baru (13 langkah, 4 fase)
 
-### Fase 1 — Persiapan (±10 menit, di browser)
+### Fase 1 — Persiapan (±10 menit)
 
-1. Tentukan **kode aplikasi** (mis. `SI-ASET`) — harus unik, akan didaftarkan di si-platform.
+1. Tentukan **kode aplikasi** (mis. `SI-ASET`) — harus unik, daftarkan di si-platform.
 2. Buat **Spreadsheet baru** = database app (biarkan kosong).
-3. Buat proyek **GAS baru** → buat **14 file**, salin isi `src/` whole-file.
+3. Buat proyek **GAS baru** → buat **16 file**, salin isi `src/` whole-file.
 
-### Fase 2 — Penyesuaian (±10 menit, di editor GAS)
+### Fase 2 — Penyesuaian (±10 menit)
 
-4. `01_ConfigAndBridge.gs`:
-   - Ganti `APP_CODE` + `APP_TITLE`.
-   - Isi `DEFAULT_SPREADSHEET_ID` **atau** set Script Properties `SPREADSHEET_ID`.
-   - Sesuaikan `ALL_SHEET_HEADERS` (nama field per sheet).
-   - Buka `actionLevels` sesuai kebutuhan (domain contoh sudah aktif).
-5. `appsscript.json`: pastikan Library CoreLib **pin 15** (naikkan bila CoreLib rilis baru).
-6. Jalankan **`initDatabase()`** sekali → cek 10 sheet + ZZ_TEST_CRUD terbuat.
+4. `01_ConfigAndBridge.gs`: Ganti `APP_CODE` + `APP_TITLE`, isi `DEFAULT_SPREADSHEET_ID` atau set Script Properties `SPREADSHEET_ID`, sesuaikan `ALL_SHEET_HEADERS`, `actionLevels` 72 sudah aktif.
+5. `appsscript.json`: pastikan CoreLib pin 15.
+6. Jalankan **`initDatabase()`** sekali → cek 11 sheet + ZZ_TEST_CRUD terbuat.
 
 ### Fase 3 — Terhubung ke ekosistem (±10 menit)
 
-7. **Deploy ▸ Web app** (executeAs: `USER_DEPLOYING`, access: `ANYONE_ANONYMOUS`) → catat URL `/exec`.
-8. Daftarkan app di **si-platform** (sheet `applications`): code + nama + URL.
-9. Uji **SSO**: buka katalog di platform → klik app → harus masuk otomatis (tiket sekali pakai).
+7. Deploy Web app (USER_DEPLOYING, ANYONE_ANONYMOUS) → catat URL /exec.
+8. Daftarkan app di si-platform (sheet applications).
+9. Uji SSO: buka katalog platform → klik app → masuk otomatis.
 
-### Fase 4 — Mengembangkan (berulang, santai)
+### Fase 4 — Mengembangkan (berulang)
 
-10. **Logika bisnis** di `02_AppLogic.gs`:
-    - Pola `buildLocalHandlers_()` — daftar handler per aksi.
-    - CRUD via `saveRecord_` / `softDeleteRecord_` / `getSheetData_` (dari `01`).
-    - Baca pegawai via `getPegawaiList_()` (tolerant reader).
-    - Audit: panggil `audit_(actor, action, type, id, ok, msg)` — kirim ke SI-PLATFORM.
-    - **Setiap handler baru → daftarkan juga di `actionLevels` (01)**. Kalau tidak, fail-closed.
-11. **Tampilan** pakai komponen kit; **tag selalu berpasangan** (jangan self-closing `/>`).
-12. Sebelum salin ke GAS: jalankan **contract-check**
-    (`python3 frontend-cdn/tools/contract_check.py` di workspace Arena; app baru
-    didaftarkan dulu ke daftar APPS checker). Exit 0 = aman; exit 1 = perbaiki dulu.
-13. Stabil & siap produksi serius → minta **Track D** (Tailwind compiled) + repo GitHub baru.
+10. Logika bisnis di `02_AppLogic.gs`: pola `buildLocalHandlers_()` — 72 handler sudah, tambah domain baru tinggal tambah di `actionLevels` (01) + handler di 02.
+11. Tampilan pakai komponen kit + UIUX v1.10 polish: `min-w-[...]` di th, wrapper `table-scroll`, badge via `app-badge :status` valid, KPI via `app-stat-card`, pagination `btn-icon`, filter label `text-[11px]` / `.filter-label`, modal `v-if` + `@close`.
+12. Contract-check: `python3 frontend-cdn/tools/contract_check.py` — exit 0 aman.
+13. Stabil → minta Track D + repo GitHub baru.
 
-> Untuk AI coder / developer baru: baca **`AI_CONTEXT.md`** dulu — itu surat
-> pengantar ekosistem (versi, aturan keras, katalog jebakan, cara tes).
+> Untuk AI coder: baca `AI_CONTEXT.md` dulu.
 
 ---
 
 ## 🔧 Cara mengetes
 
-Setelah paste semua file + `initDatabase()`:
+Setelah paste + `initDatabase()`:
 
-| Fungsi | Target |
+| Fungsi | Target v2.10.0 |
 |---|---|
-| `testUtilsSelfCheck()` | Semua ✅ (`audit_` + `sendAuditLog_` tersedia) |
-| `testAppLogicSelfCheck()` | Semua ✅ (registry lengkap + `actionLevels` sinkron) |
-| `runLibraryTests()` | **PASS 42 / FAIL 0 / SKIP 1** (CoreLib v2.3.0, pin 15) |
-| `testAdopsiG18d()` | **13 / 0** (verifikasi util baru CoreLib) |
-| `testDispatcherRouting()` | **~35 / 0** (registry + fail-closed) |
-| `runDomainTestsStarterKit()` | **~20 / 0** (domain + SIMPEG RO + hook + skema) |
-| `runAllDiagnostics()` | Semua ✅ (CoreLib + DB + 10 sheet + SIMPEG) |
+| `testUtilsSelfCheck()` | Semua ✅ |
+| `testAppLogicSelfCheck()` | 72 handler ✅ |
+| `runLibraryTests()` | PASS 42 / FAIL 0 / SKIP 1 (CoreLib v2.3.0) |
+| `testAdopsiG18d()` | 13 / 0 |
+| `testDispatcherRouting()` | ~72 / 0 (registry + fail-closed) |
+| `runDomainTestsStarterKit()` | ~30 / 0 (11 sheet + SIMPEG RO + RTL) |
+| `runAllDiagnostics()` | Semua ✅ (11 sheet + SIMPEG) |
 
-Satu pintu: **`runAllTestsStarterKit()`** — rekap semua di atas.
-
-Diagnostik SSO manual:
-- `testKoneksiKePortalSso()` — cek HTTP ke SI-PLATFORM tanpa tiket.
-- `testFullSsoIntegrationFlow()` — butuh tiket valid (generate dari Global App).
+Satu pintu: `runAllTestsStarterKit()`.
 
 ---
 
-## 📏 Aturan wajib (kontrak ekosistem)
+## 📏 Aturan wajib (kontrak ekosistem) — v2.10.0 tambah UIUX
 
-1. **CoreLib first** — cek katalog sebelum menulis fungsi util; duplikasi hanya
-   untuk logika bisnis. Wrapper lokal boleh, isi wajib `return CoreLib.x(...)`.
-2. **Tolerant reader** untuk data SIMPEG — baca kolom *by header name*, ambil
-   hanya yang dibutuhkan (otomatis bila lewat `getSheetData_`).
-3. **Tag kit selalu berpasangan** — `<app-x ...></app-x>`, JANGAN self-closing
-   (`/>` di in-DOM template = bug menelan elemen berikutnya).
-4. **Pin versi CDN** eksplisit (`frontend-cdn@v2.8.1`), jangan `@latest`.
-5. Jalankan `python3 frontend-cdn/tools/contract_check.py` sebelum salin ke GAS.
-6. **Tanggal hari ini** untuk form/validasi: pakai **`CoreLib.todayIsoLocal()`**
-   atau **`CoreLib.dateKey10(val)`** (sadar-WIB). JANGAN `todayIso()` (UTC).
-7. **Setiap handler baru** di `buildLocalHandlers_()` → daftarkan di `actionLevels`
-   (`01_ConfigAndBridge.gs`). Fail-closed oleh CoreLib.
-8. **Soft-delete filter** otomatis di `getSheetData_`. Untuk audit pakai
-   `getSheetData_(sheetName, {includeDeleted:true})`.
-9. **Verifikasi field** (untuk sheet dengan workflow): kunci lewat
-   `localPreSaveHook_` (P2) — cek role sebelum tulis. Starter-kit sudah punya
-   contoh aktif untuk `T_APPROVAL`.
-10. **Urutan include** di `Index.html`: `V_Modals` → `V_*` → `J_State` → `J_Helpers`
-    → `J_Api` → `J_Actions` → `J_App`. Jangan diubah.
-11. **`00_Utils.gs` wajib ada** — `02_AppLogic.gs` memanggil `audit_()`. Tanpa file
-    ini → `ReferenceError: audit_ is not defined` saat `initDatabase()` / `setupApp()`.
+1. CoreLib first — cek katalog sebelum util baru.
+2. Tolerant reader SIMPEG.
+3. Tag kit berpasangan `<app-x></app-x>`, jangan `/>`.
+4. Pin CDN eksplisit `@v2.8.1` (v2.9.0 skip dulu, batch nanti).
+5. Contract-check sebelum salin.
+6. Tanggal: `CoreLib.todayIsoLocal()` / `dateKey10()` (WIB), jangan `todayIso()`.
+7. Setiap handler baru → daftarkan di `actionLevels` (01) — fail-closed.
+8. Soft-delete filter otomatis.
+9. Verifikasi field via `localPreSaveHook_` P2.
+10. Urutan include di Index: `V_Modals` → `V_*` → `J_State` → `J_Helpers` → `J_Api` → `J_Actions` → `J_App`.
+11. `00_Utils.gs` wajib ada.
+12. **UIUX v1.10 (baru):**
+    - th wajib `min-w-[...]` (Judul 260px, Kode 100-160px, Status 100px, Aksi 120px), wrapper `table-scroll`, bukan `overflow-x-auto`. Grep min-w ≥30.
+    - Badge wajib `<app-badge :status="valid">` — valid: aktif/disetujui/ditolak/menunggu/proses/draft/nonaktif/batal/revisi/verifikasi/belum. Mapping: selesai=disetujui, baru/draft=draft, diproses=menunggu, batal=ditolak. Dilarang raw `badge-sky/rose/amber/gray` + empty `''`.
+    - KPI wajib `<app-stat-card>` — tidak ada custom `card !p-3 text-center` + `text-lg font-black`. Props: title, :value, icon, color, subtext.
+    - Pagination `btn-icon` chevron, filter label `text-[11px] text-slate-500` / `.filter-label`, wrapper `filter-bar-analytics` / `flex flex-col sm:flex-row gap-2 items-end`.
+    - Modal `v-if="showX" @close="showX=false"` + size md/lg/2xl/3xl, bukan `:show=`.
+    - Tema per app: `:root --primary #0369a1` (sky-700) + `theme-color` + tailwind config — CDN tetap netral.
 
 ---
 
-## 📁 Struktur repo (rekomendasi)
+## 📁 Struktur repo
 
 ```
 si-NAMA-APP/
-├── README.md                    # dokumen ini (atau disesuaikan)
-├── AI_CONTEXT.md                # surat pengantar ekosistem
-├── .clasp.json / .claspignore   # opsional (konfigurasi clasp)
-├── docs/                        # opsional — Gate 0 (BRD/PRD/FRD/DATABASE/UIUX/API/TESTCASE/GAP)
-└── src/                         # 14 file — yang di-paste ke GAS editor
-    ├── appsscript.json
-    ├── 00_Utils.gs
-    ├── 01_ConfigAndBridge.gs
-    ├── 02_AppLogic.gs
-    ├── 99_TestSuite.gs
-    ├── Index.html
-    ├── V_Dashboard.html
-    ├── V_Modals.html
-    ├── J_State.html
-    ├── J_Helpers.html
-    ├── J_Api.html
-    ├── J_Actions.html
-    └── J_App.html
+├── README.md
+├── AI_CONTEXT.md
+├── docs/ (opsional Gate 0)
+└── src/ (16 file)
 ```
 
 ---
 
 ## 🎯 Roadmap tumbuh kembang
 
-Setelah app baru berjalan, saat bisnis makin kaya:
-
 | Kebutuhan | Aksi |
 |---|---|
-| Tambah halaman (mis. Master, Laporan) | Buat `V_Master.html` → include di `Index.html` → menu + pageIcons di `J_App.html` |
-| Tambah domain handler (mis. `T_ITEM`) | Buka komentar blok placeholder di `02_AppLogic.gs` + `actionLevels` di `01` |
-| App makin besar (file .gs >300 baris) | Pecah jadi `03_DomainLogic.gs`, `04_...` (pola si-kompetensi) |
-| Butuh chart lanjutan | Buka komentar blok Executive di `V_Dashboard.html` + computed chart di `J_State.html` |
-| Butuh backend agregat untuk dashboard berat | Tambah handler `get_dashboard_stats` (kandidat v2.2) |
-| Data sudah produksi | Ajukan **Track D** (Tailwind compiled) + setup GitHub Actions (clasp push) |
-| Naik versi CoreLib / CDN | Update `appsscript.json` (library version) + 4 URL di `Index.html` + catat di commit |
+| Tambah halaman | Buat `V_Master.html` → include di Index → menu + pageIcons di J_App |
+| Tambah domain handler | Tambah di actionLevels (01) + handler di 02 |
+| App besar >300 baris .gs | Pecah jadi 03_DomainLogic.gs (pola si-kompetensi) |
+| Butuh chart lanjutan | Buka komentar Executive di V_Dashboard + computed chart di J_State |
+| Butuh RTL | Sudah ada T_TINDAK_LANJUT + V_Rtl + 12 handler — tinggal pakai |
+| Data produksi | Ajukan Track D + GitHub Actions |
+| Naik CoreLib/CDN | Update appsscript.json + Index.html + catat commit |
 
 ---
 
-## 🤝 Memakai kit ini bersama AI coder / developer lain
-
-AI atau orang baru TIDAK tahu riwayat proyek — berikan konteks secukupnya:
+## 🤝 Memakai kit ini bersama AI coder
 
 | Situasi | Lampirkan |
 |---|---|
-| Bikin app baru dari nol | `AI_CONTEXT.md` + `README.md` + seluruh `src/` (±40KB — aman semua) |
-| Mengedit app yang sudah jalan | `AI_CONTEXT.md` + file yang akan disentuh + `01_ConfigAndBridge.gs` |
-| Cuma tanya konsep | `AI_CONTEXT.md` saja cukup |
+| Bikin app baru dari nol | AI_CONTEXT.md + README.md + seluruh src/ (±50KB) |
+| Mengedit app jalan | AI_CONTEXT.md + file yang disentuh + 01_Config |
+| Cuma tanya konsep | AI_CONTEXT.md saja |
+
+---
+
+## 📜 Changelog v2.10.0
+
+- **11 sheet** (was 10) — tambah `T_TINDAK_LANJUT` (alias `T_RTL`) — RTL R1-R5 contoh si-arsip
+- **72 handler** (was ~30) — tambah M_KATEGORI, M_SATUAN, T_ITEM, T_LOGBOOK, T_LAMPIRAN, T_APPROVAL delete, T_JADWAL, T_REKAP, laporan L4/L5, analisa A3-A5, evaluasi E1/E3/E5, RTL 12 handler (6 generic + 6 alias)
+- **UIUX v1.10 polish**: min-w 59 + table-scroll 28 + overflow 0 + custom card 0 + app-stat-card 56 + modal :show→v-if + tema #0369a1 + filter label + btn-icon (dari si-arsip v1.10)
+- **Frontend**: tambah V_Rtl.html (generik RTL) + V_Utama.html + V_Laporan.html + V_Master.html — semua dengan polish v1.10
+- **J_State**: tambah RTL state + laporan/analisa state
+- **J_Helpers**: tambah fmtTgl + badge mapping valid + toggleRowMenu
+- **J_Api**: tambah loadRtl + generateRtl + loadLapKlasifikasi + loadAnalisaUnit
+- **J_Actions**: tambah simpanRtl/hapusRtl/openRtlEdit/openRtlStatus/ubahStatusRtl
+- **J_App**: menu 5 item (dashboard, rtl, laporan, utama, master) + brand v2.10.0
+- **Index.html**: tema #0369a1 locked + include V_Rtl + V_Utama + V_Master + V_Laporan + filter-bar-analytics + progress-track CSS (kandidat CDN C1-C3 lokal)
+- **CDN**: tetap @v2.8.1 — v2.9.0 skip dulu (kandidat C1-C3 backlog, batch dengan app lain nanti) — sesuai keputusan user 21 Sept malam
 
 ---
 
 ## 📜 Lisensi & Kontak
 
-- **Pengelola**: Tim Pengembang TI — Dinas Komunikasi dan Informatika Kabupaten Trenggalek
-- **Lisensi**: MIT License
-- **Dokumentasi ekosistem**: repo [`frontend-cdn`](https://github.com/miftachurrochim82-sketch/frontend-cdn)
-  (`ECOSYSTEM_GUIDE.md`, `ROADMAP_CDN.md`, `frontend/CDN_SNIPPET.md`, `backend/00_MIGRATION_v2.md`)
+- Pengelola: Tim TI — Diskominfo Trenggalek
+- Lisensi: MIT
+- Docs ekosistem: repo frontend-cdn (ECOSYSTEM_GUIDE, ROADMAP_CDN, CDN_SNIPPET, backend/00_MIGRATION_v2.md)
