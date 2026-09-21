@@ -1,164 +1,142 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_Helpers.html (v2.0.1)
+// STARTER-KIT - J_Helpers.html (v2.10.0 — UIUX v1.10 + RTL + fmtTgl)
 // ============================================================
-// Helper MURNI domain app (bukan UI state, bukan API loader).
-//
-// v2.0.1 — Sederhanakan `getPegawaiNama` + `nipPegawai`:
-//          akses `this.masterPegawaiList` langsung (mixin AppCore
-//          sudah menyediakan state ini di setiap komponen).
-//
-// PRINSIP CDN-FIRST:
-//   AppCore (kit) sudah punya helper umum — JANGAN tulis ulang:
-//     this.namaPegawai(id)         — dari masterPegawaiList
-//     this.namaUnit(id)
-//     this.namaJabatan(id)
-//     this.formatDateDisplay(val)
-//     this.formatDateTimeDisplay(v)
-//     this.formatRupiah(n)
-//     this.showToast(msg, type)
-//     this.loadLib(name, opts)
-//     this.callServer(action, data)
-// ============================================================
+// Helper MURNI domain app + UIUX polish dari si-arsip v1.10
+// - fmtTgl (ganti formatTanggal lama), badge mapping valid, progress bar, filter label
 
 window.StarterKitHelpers = {
   methods: {
 
-    // ==================== STATUS BADGE MAPPING ====================
-    /**
-     * Map status T_UTAMA → badge status kit (<app-badge status="...">).
-     *
-     * Kit mendukung status: disetujui/approved/aktif (hijau),
-     * menunggu/pending (kuning), proses (biru), revisi (sky),
-     * ditolak/rejected/inactive (merah), purple/pppk (ungu).
-     */
+    // ==================== TANGGAL (WIB) — v1.10 ====================
+    // fmtTgl = pengganti formatTanggal lama (konsisten dengan si-arsip)
+    fmtTgl(val) {
+      if (!val) return '—';
+      try {
+        var d = new Date(val);
+        if (isNaN(d.getTime())) return String(val);
+        // pakai CoreLib.dateKey10 kalau ada (sadar-WIB)
+        if (window.CoreLib && CoreLib.dateKey10) {
+          var k = CoreLib.dateKey10(val);
+          if (k) {
+            var parts = k.split('-');
+            return parts[2] + '/' + parts[1] + '/' + parts[0];
+          }
+        }
+        return d.toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+      } catch (e) { return String(val); }
+    },
+
+    // alias untuk kompatibilitas lama
+    formatTanggal(val) { return this.fmtTgl(val); },
+
+    // ==================== BADGE MAPPING — v1.10 valid list ====================
+    // Valid: aktif/selesai/disetujui/ditolak/batal/revisi/verifikasi/draft/belum/menunggu/proses/success/danger/warning/info/emerald/purple/nonaktif
     badgeStatusUtama(status) {
       var s = String(status || '').toLowerCase().trim();
-      if (s === 'draft')    return 'menunggu';
-      if (s === 'diajukan') return 'info';
-      if (s === 'proses')   return 'proses';
-      if (s === 'selesai')  return 'disetujui';
-      if (s === 'ditolak')  return 'ditolak';
-      return 'menunggu';
+      if (s === 'selesai' || s === 'disetujui') return 'disetujui';
+      if (s === 'baru' || s === 'draft') return 'draft';
+      if (s === 'diproses' || s === 'proses') return 'proses';
+      if (s === 'menunggu' || s === 'diajukan') return 'menunggu';
+      if (s === 'batal' || s === 'ditolak') return 'ditolak';
+      if (s === 'revisi') return 'revisi';
+      if (s === 'verifikasi') return 'verifikasi';
+      return 'proses';
+    },
+
+    badgeStatusRtl(status) {
+      var s = String(status || '').toLowerCase().trim();
+      if (s === 'selesai') return 'disetujui';
+      if (s === 'batal') return 'ditolak';
+      if (s === 'diproses') return 'menunggu';
+      if (s === 'baru') return 'proses';
+      return 'proses';
+    },
+
+    badgeSumberEvaluasi(sumber) {
+      var s = String(sumber || '').toUpperCase().trim();
+      if (s === 'E6') return 'ditolak';
+      if (s === 'E7') return 'menunggu';
+      if (s === 'E8' || s === 'E5') return 'proses';
+      return 'disetujui';
     },
 
     // ==================== LOOKUP DOMAIN ====================
-    /**
-     * Ambil nama kategori dari `kategoriList` (M_KATEGORI).
-     * Fallback ke kode, lalu ke '(tanpa)'.
-     */
     namaKategori_(id) {
       var key = String(id || '').trim();
       if (!key) return '—';
       var list = this.kategoriList || [];
       for (var i = 0; i < list.length; i++) {
         var k = list[i] || {};
-        if (String(k.id || '').trim() === key) {
-          return k.nama || k.kode || key;
-        }
+        if (String(k.id || '').trim() === key) return k.nama || k.kode || key;
       }
-      return key;   // fallback: tampilkan ID apa adanya
+      return key;
     },
 
-    /**
-     * Ambil nama satuan dari `satuanList` (M_SATUAN).
-     */
     namaSatuan_(id) {
       var key = String(id || '').trim();
       if (!key) return '—';
       var list = this.satuanList || [];
       for (var i = 0; i < list.length; i++) {
         var s = list[i] || {};
-        if (String(s.id || '').trim() === key) {
-          return s.nama || s.simbol || key;
-        }
+        if (String(s.id || '').trim() === key) return s.nama || s.simbol || key;
       }
       return key;
     },
 
-    /**
-     * Nama pegawai — prioritas field `nama_lengkap` (konvensi SIMPEG),
-     * melengkapi AppCore.namaPegawai() yang hanya cek `nama`.
-     *
-     * v2.0.1: akses `this.masterPegawaiList` langsung (mixin AppCore
-     *         menyediakan state ini di setiap komponen Vue).
-     */
     getPegawaiNama(id) {
       if (!id) return '';
       var list = this.masterPegawaiList || [];
       var target = String(id).trim();
       for (var i = 0; i < list.length; i++) {
         var p = list[i] || {};
-        if (String(p.id || '').trim() === target ||
-            String(p.pegawai_id || '').trim() === target ||
-            String(p.nip || '').trim() === target) {
+        if (String(p.id || '').trim() === target || String(p.pegawai_id || '').trim() === target || String(p.nip || '').trim() === target) {
           return p.nama_lengkap || p.nama || p.display_name || '';
         }
       }
       return '';
     },
 
-    /**
-     * NIP pegawai dari id-nya.
-     * v2.0.1: akses `this.masterPegawaiList` langsung.
-     */
     nipPegawai(id) {
       if (!id) return '-';
       var list = this.masterPegawaiList || [];
       var target = String(id).trim();
       for (var i = 0; i < list.length; i++) {
         var p = list[i] || {};
-        if (String(p.id || '').trim() === target ||
-            String(p.pegawai_id || '').trim() === target ||
-            String(p.nip || '').trim() === target) {
-          return p.nip || '-';
-        }
+        if (String(p.id || '').trim() === target || String(p.pegawai_id || '').trim() === target) return p.nip || '-';
       }
       return '-';
     },
 
     // ==================== UTIL KECIL ====================
-    /**
-     * Normalisasi string untuk perbandingan filter (lowercase + trim).
-     * Cermin CoreLib.normStr() versi frontend.
-     */
-    normStr(v) {
-      return String(v == null ? '' : v).trim().toLowerCase();
-    },
+    normStr(v) { return String(v == null ? '' : v).trim().toLowerCase(); },
 
-    /**
-     * Format nama dengan gelar: "BUDI SANTOSO, S.H." → "Budi Santoso, S.H."
-     */
     formatNamaPegawai(str) {
       if (!str || str === '-') return '-';
       var s = String(str).trim();
       if (s.indexOf(',') !== -1) {
         var parts = s.split(',');
-        var depan = parts[0].trim().toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); });
+        var depan = parts[0].trim().toLowerCase().replace(/(^\s|\s)\S/g, function (c) { return c.toUpperCase(); });
         var gelar = parts.slice(1).join(',').trim();
         return depan + ', ' + gelar;
       }
-      return s.toLowerCase().replace(/(^|\s)\S/g, function (c) { return c.toUpperCase(); });
+      return s.toLowerCase().replace(/(^\s|\s)\S/g, function (c) { return c.toUpperCase(); });
     },
 
-    /**
-     * Format nilai uang ringkas untuk dashboard.
-     * 1500000 → "1,5 Jt"; 1500000000 → "1,5 M"; < 1 juta → "Rp 250.000"
-     */
     formatRupiahRingkas_(n) {
       var num = Number(n) || 0;
       var abs = Math.abs(num);
       if (abs >= 1e9) return (num / 1e9).toFixed(1).replace('.', ',') + ' M';
       if (abs >= 1e6) return (num / 1e6).toFixed(1).replace('.', ',') + ' Jt';
       if (abs >= 1e3) return (num / 1e3).toFixed(0) + ' Rb';
-      return this.formatRupiah(num);
-    }
+      return this.formatRupiah ? this.formatRupiah(num) : 'Rp ' + num.toLocaleString('id-ID');
+    },
 
-    // ==================== [SESUAIKAN] Helper bisnis Anda ====================
-    // Kandidat:
-    //   hitungTotalNilai(list)          → sum kolom nilai
-    //   isExpiringSoon(tgl, hariAwal)   → boolean (H-90 alert)
-    //   warnaStatusKustom(status)       → class Tailwind
+    // Row menu toggle (G32 quick action)
+    toggleRowMenu(id) {
+      this.rowMenuId = this.rowMenuId === id ? null : id;
+    },
+    closeMenu() { this.rowMenuId = null; }
 
   }
 };
