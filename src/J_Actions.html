@@ -1,129 +1,107 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_Actions.html (v2.0.0)
+// STARTER-KIT - J_Actions.html (v2.10.0 — 11 sheet + 72 handler + RTL + UIUX v1.10)
 // ============================================================
-// Handler aksi user (klik tombol / submit form).
-//
-// PRINSIP:
-//   - Aksi UI yang memicu API → panggil loader dari J_Api.
-//   - Aksi UI murni (buka modal, reset filter) → cukup ubah state.
-//   - Klon record saat edit (Object.assign) — cegah perubahan
-//     tidak sengaja sebelum "Simpan" ditekan.
-//
-// [SESUAIKAN] Ganti handler contoh dengan bisnis Anda.
-// ============================================================
+// Handler aksi user — simpan/hapus/transisi/generate — pola si-arsip v1.10
 
 window.StarterKitActions = {
   methods: {
 
-    // ==================== T_UTAMA: FORM MODAL ====================
-    /**
-     * Buka modal form T_UTAMA.
-     * Kalau `row` diisi → mode edit (klon).
-     * Kalau kosong → mode tambah (form default).
-     */
-    openUtamaForm(row) {
-      if (row && row.id) {
-        // Mode edit — klon supaya tidak langsung mengubah list
-        this.utamaForm = Object.assign({}, row);
-      } else {
-        // Mode tambah — form default
-        this.utamaForm = {
-          id:          '',
-          kode:        '',
-          judul:       '',
-          deskripsi:   '',
-          pegawai_id:  '',
-          kategori_id: '',
-          satuan_id:   '',
-          tanggal:     '',
-          jumlah:      0,
-          nilai:       0,
-          status:      'draft',
-          catatan:     ''
-        };
-      }
-      this.showUtamaForm = true;
-    },
-
-    /**
-     * Simpan data T_UTAMA.
-     * Validasi minimal di frontend, lalu panggil loader di J_Api.
-     */
-    async saveUtama() {
-      // Validasi frontend (minimal — backend tetap validasi)
-      if (!String(this.utamaForm.judul || '').trim()) {
-        this.showToast('Judul wajib diisi.', 'error');
-        return;
-      }
-
+    // T_UTAMA
+    async simpanUtama() {
+      if (!String(this.utamaForm.judul || '').trim()) { this.showToast('Judul wajib.', 'warning'); return; }
       this.utamaSaving = true;
       try {
-        var ok = await this.saveUtamaData();
-        if (ok) {
-          this.showToast('Data berhasil disimpan.', 'success');
+        var res = await this.callServer('save_utama', { record: this.utamaForm });
+        if (res && res.success) {
+          this.showToast('T_UTAMA disimpan.', 'success');
           this.showUtamaForm = false;
-          await this.loadUtama();         // refresh tabel
-          await this.loadDashboard(true); // refresh KPI (silent)
-        }
-      } finally {
-        this.utamaSaving = false;
-      }
+          this.loadUtama(1);
+        } else this.showToast(res.error || 'Gagal simpan T_UTAMA', 'error');
+      } catch (e) { this.showToast('Error simpan T_UTAMA', 'error'); }
+      finally { this.utamaSaving = false; }
     },
 
-    /**
-     * Hapus data T_UTAMA — konfirmasi dulu.
-     */
-    async deleteUtama(row) {
-      if (!row || !row.id) return;
-      if (!confirm('Yakin ingin menghapus data ini?')) return;
-
-      var ok = await this.deleteUtamaData(row.id);
-      if (ok) {
-        this.showToast('Data berhasil dihapus.', 'success');
-        await this.loadUtama();
-        await this.loadDashboard(true);
-      }
-    },
-
-    // ==================== FILTER ====================
-    /**
-     * Dipanggil <app-filter-bar> @change.
-     * Reset paginasi ke halaman 1 saat filter berubah.
-     */
-    onFilterUtamaChange() {
-      this.utamaPagination.page = 1;
-    },
-
-    // ==================== UI UTIL ====================
-    /**
-     * Toggle sidebar collapse — dipanggil <app-sidebar> @toggle.
-     * (Bisa juga: `this.$root.toggleSidebar()` — dari AppCore.)
-     */
-    toggleSidebar() {
-      this.sidebarCollapsed = !this.sidebarCollapsed;
-    },
-
-    // ==================== LOGOUT ====================
-    /**
-     * Logout — AppCore.logout() sudah handle call backend + reset state.
-     */
-    async logout() {
+    async hapusUtama(r) {
+      if (!confirm('Hapus \"' + (r.judul || r.kode) + '\"?')) return;
       try {
-        await this.$root.logout();
-      } catch (e) {
-        console.error('Logout error:', e);
-      }
-    }
+        var res = await this.callServer('delete_utama', { id: r.id });
+        if (res && res.success) { this.showToast('Dihapus.', 'success'); this.loadUtama(1); }
+        else this.showToast(res.error || 'Gagal hapus', 'error');
+      } catch (e) { this.showToast('Error hapus', 'error'); }
+    },
 
-    // ==================== PLACEHOLDER 8 SHEET LAIN ====================
-    // Buka saat Anda menambah domain (mis. T_ITEM, T_JADWAL).
-    // Pola sama persis dengan openUtamaForm/saveUtama/deleteUtama:
-    //
-    // openItemForm(row) { ... }
-    // async saveItem()  { ... }
-    // async deleteItem(row) { ... }
-    // onFilterItemChange() { ... }
+    // M_REFERENSI
+    async simpanReferensi() {
+      if (!this.refForm.kategori || !this.refForm.nama_nilai) { this.showToast('Kategori & nama wajib.', 'warning'); return; }
+      this.refSaving = true;
+      try {
+        var res = await this.callServer('save_referensi', { record: this.refForm });
+        if (res && res.success) { this.showToast('Referensi disimpan.', 'success'); this.showRefForm = false; this.loadReferensi(); }
+        else this.showToast(res.error || 'Gagal simpan referensi', 'error');
+      } catch (e) { this.showToast('Error simpan referensi', 'error'); }
+      finally { this.refSaving = false; }
+    },
+
+    async hapusReferensi(r) {
+      if (!confirm('Hapus referensi \"' + (r.nama_nilai || r.kode) + '\"?')) return;
+      try {
+        var res = await this.callServer('delete_referensi', { id: r.id });
+        if (res && res.success) { this.showToast('Dihapus.', 'success'); this.loadReferensi(); }
+        else this.showToast(res.error || 'Gagal hapus', 'error');
+      } catch (e) { this.showToast('Error hapus', 'error'); }
+    },
+
+    // RTL — v2.10.0
+    async simpanRtl() {
+      if (!String(this.rtlForm.judul_rtl || '').trim()) { this.showToast('Judul RTL wajib.', 'warning'); return; }
+      this.rtlSaving = true;
+      try {
+        var res = await this.callServer('save_tindak_lanjut', { record: this.rtlForm });
+        if (res && res.success) {
+          this.showToast('RTL disimpan.', 'success');
+          this.showRtlForm = false;
+          this.loadRtl(this.rtlPage);
+        } else this.showToast(res.error || 'Gagal simpan RTL', 'error');
+      } catch (e) { this.showToast('Error simpan RTL', 'error'); }
+      finally { this.rtlSaving = false; }
+    },
+
+    async hapusRtl(r) {
+      if (!confirm('Hapus RTL \"' + (r.judul_rtl || r.judul) + '\"?')) return;
+      try {
+        var res = await this.callServer('delete_tindak_lanjut', { id: r.id });
+        if (res && res.success) { this.showToast('RTL dihapus.', 'success'); this.loadRtl(this.rtlPage); }
+        else this.showToast(res.error || 'Gagal hapus RTL', 'error');
+      } catch (e) { this.showToast('Error hapus RTL', 'error'); }
+    },
+
+    openRtlEdit(r) {
+      this.rtlForm = Object.assign({ id: '', sumber_evaluasi: 'manual', judul_rtl: '', deskripsi: '', assigned_to: '', due_date: '', status_rtl: 'baru', progress_pct: 0, dokumen_terkait: '', catatan: '' }, r);
+      if (r.judul && !this.rtlForm.judul_rtl) this.rtlForm.judul_rtl = r.judul;
+      this.showRtlForm = true;
+    },
+
+    openRtlStatus(r) {
+      this.rtlStatusTarget = r;
+      this.rtlStatusBaru = r.status_rtl || r.status || 'diproses';
+      this.rtlStatusProgress = r.progress_pct || 0;
+      this.rtlStatusCatatan = '';
+      this.showRtlStatusForm = true;
+    },
+
+    async ubahStatusRtl() {
+      this.rtlSaving = true;
+      try {
+        var res = await this.callServer('ubah_status_tindak_lanjut', { id: this.rtlStatusTarget.id, status_rtl: this.rtlStatusBaru, progress_pct: this.rtlStatusProgress, catatan: this.rtlStatusCatatan });
+        if (res && res.success) {
+          this.showToast('Status RTL diubah.', 'success');
+          this.showRtlStatusForm = false;
+          this.loadRtl(this.rtlPage);
+        } else this.showToast(res.error || 'Gagal ubah status', 'error');
+      } catch (e) { this.showToast('Error ubah status', 'error'); }
+      finally { this.rtlSaving = false; }
+    }
 
   }
 };
