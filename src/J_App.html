@@ -1,141 +1,73 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_App.html (v2.0.1) — File terakhir
+// STARTER-KIT - J_App.html (v2.10.0 — 11 sheet + 72 handler + RTL + UIUX v1.10)
 // ============================================================
-// Bootstrap Vue 3 via AppCore.create() (kit CDN @v2.8.1).
-//
-// Urutan include di Index.html (WAJIB):
-//   J_State → J_Helpers → J_Api → J_Actions → J_App
-//
-// v2.0.1 — `initApp` pakai `vm.loadAll(true)` (DRY):
-//          satu daftar loader, tidak duplikasi dengan tombol Refresh.
-//
-// Yang DIURUS AppCore (jangan bikin ulang):
-//   - Vue.createApp + registrasi komponen kit
-//   - Session/token + auto SSO exchange + handleSessionExpired
-//   - callServer + _cacheBust + dedup
-//   - SWR cache master SIMPEG + loadMasterSIMPEG()
-//   - Toggle dark mode + event 'appcore:dark'
-//   - Toast, formatDate/Rupiah, loadLib(chart/xlsx/jspdf/pdflib)
-//   - logout
-//
-// [SESUAIKAN]
-//   1. appCode       — sama dengan APP_CODE di 01_ConfigAndBridge.gs
-//   2. appTitle      — judul app (header & login)
-//   3. storagePrefix — HARUS sama dengan kunci dark-mode di Index.html
-//   4. platformUrl   — URL /exec SI-PLATFORM
-//   5. brand         — identitas sidebar
-//   6. menu          — daftar menu sidebar
-//   7. pageIcons     — ikon per halaman
-//   8. onNavigate    — loader saat ganti halaman
-//   9. initApp       — loader startup (silent) — sekarang 1 baris
-// ============================================================
+// Bootstrap Vue 3 via AppCore.create() — CDN @v2.8.1 tetap, tema #0369a1
+// UIUX v1.10: min-w + table-scroll + badge valid + app-stat-card + btn-icon + filter label + modal v-if
 
-// ==================== MIXIN ====================
-// Gabungkan seluruh modul ke satu mixin yang dioper ke AppCore.create().
 var StarterKitMixin = {
-  data: function () {
-    return Object.assign({}, window.StarterKitState.data());
-  },
+  data: function () { return Object.assign({}, window.StarterKitState.data()); },
   computed: Object.assign({}, window.StarterKitState.computed),
-  methods: Object.assign(
-    {},
-    window.StarterKitHelpers.methods,
-    window.StarterKitApi.methods,
-    window.StarterKitActions.methods
-  )
+  methods: Object.assign({}, window.StarterKitHelpers.methods, window.StarterKitApi.methods, window.StarterKitActions.methods)
 };
 
-// ==================== BOOTSTRAP ====================
 var app = AppCore.create({
 
-  // ---------- [SESUAIKAN] Identitas app ----------
-  appCode:       'SI-CONTOH',        // HARUS sama dengan APP_CODE di 01_ConfigAndBridge.gs
-  appTitle:      'SI-CONTOH',        // judul tampil di header & login
-  initialPage:   'dashboard',
-  storagePrefix: 'sicontoh',         // HARUS sama dengan kunci dark-mode di Index.html ('sicontoh_dark')
-  platformUrl:   'https://script.google.com/macros/s/AKfycbwh_OUVqmxLcuF81FHmPZtT33Wrm8Ce9Da1SQ3hfkSr7gM5P8ofyAlHSgW40mq3eo-PoQ/exec',
+  appCode: 'SI-CONTOH',
+  appTitle: 'SI-CONTOH v2.10.0',
+  initialPage: 'dashboard',
+  storagePrefix: 'sicontoh',
+  platformUrl: 'https://script.google.com/macros/s/AKfycbwh_OUVqmxLcuF81FHmPZtT33Wrm8Ce9Da1SQ3hfkSr7gM5P8ofyAlHSgW40mq3eo-PoQ/exec',
 
-  // ---------- [SESUAIKAN] Brand sidebar ----------
   brand: {
-    title:    'SI-CONTOH',
-    subtitle: 'Pemkab Trenggalek',
+    title: 'SI-CONTOH v2.10.0',
+    subtitle: '11 sheet + 72 handler + RTL',
     logoIcon: 'fa-solid fa-cube',
     logoChar: 'SC',
-    logoSvg:  ''
+    logoSvg: ''
   },
 
-  // ---------- [SESUAIKAN] Menu sidebar ----------
-  // Format grup: { name, items: [{ id, label, icon, adminOnly? }] }
-  //   id        — sama dengan currentPage di V_* (mis. 'dashboard')
-  //   adminOnly — boolean (opsional) → hanya tampil untuk isAdmin
+  // Menu sidebar — v2.10.0: tambah RTL + Laporan (contoh si-arsip)
   menu: [
     { name: 'Utama', items: [
-      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high' }
+      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high' },
+      { id: 'rtl', label: 'RTL', icon: 'fa-solid fa-list-check' },
+      { id: 'laporan', label: 'Laporan', icon: 'fa-solid fa-file-lines' }
+    ]},
+    { name: 'Data', items: [
+      { id: 'utama', label: 'T_UTAMA', icon: 'fa-solid fa-database' },
+      { id: 'master', label: 'Master', icon: 'fa-solid fa-book' }
+    ]},
+    { name: 'Sistem', items: [
+      { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-solid fa-gear', adminOnly: true }
     ]}
-
-    // [SESUAIKAN] Contoh penambahan halaman (buka komentar):
-    // , { name: 'Data', items: [
-    //     { id: 'referensi', label: 'Referensi', icon: 'fa-solid fa-book' },
-    //     { id: 'kategori',  label: 'Kategori',  icon: 'fa-solid fa-tags' }
-    //   ]}
-    // , { name: 'Sistem', items: [
-    //     { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-solid fa-gear', adminOnly: true }
-    //   ]}
   ],
 
-  // ---------- [SESUAIKAN] Ikon per halaman (header) ----------
   pageIcons: {
-    dashboard: 'fa-solid fa-gauge-high'
-    // [SESUAIKAN] Tambah ikon halaman baru:
-    // , referensi:  'fa-solid fa-book'
-    // , kategori:   'fa-solid fa-tags'
-    // , pengaturan: 'fa-solid fa-gear'
+    dashboard: 'fa-solid fa-gauge-high',
+    rtl: 'fa-solid fa-list-check',
+    laporan: 'fa-solid fa-file-lines',
+    utama: 'fa-solid fa-database',
+    master: 'fa-solid fa-book',
+    pengaturan: 'fa-solid fa-gear'
   },
 
-  // ---------- [SESUAIKAN] Loader saat user ganti halaman ----------
-  // `vm` = instance Vue (dari AppCore.create).
-  // Pakai guard anti-double-load: skip kalau sedang loading.
   onNavigate: function (vm, page) {
-
-    if (page === 'dashboard') {
-      // Refresh tiap buka dashboard — loadAll paralel, cepat.
-      vm.loadAll();
-    }
-
-    // [SESUAIKAN] Handler halaman lain:
-    // if (page === 'referensi') {
-    //   if (!vm.referensiLoading) vm.loadReferensi();
-    // }
-    // if (page === 'pengaturan') {
-    //   /* <app-settings> auto-load — tidak perlu loader manual */
-    // }
-
+    if (page === 'dashboard') vm.loadAll();
+    if (page === 'rtl') { if (!vm.rtlLoading) vm.loadRtl(1); }
+    if (page === 'laporan') { if (!vm.lapKlasLoading) vm.loadLapKlasifikasi(); }
+    if (page === 'utama') { if (!vm.utamaLoading) vm.loadUtama(1); }
+    if (page === 'master') { if (!vm.referensiLoading) vm.loadReferensi(); }
   },
 
-  // ---------- [SESUAIKAN] Loader saat startup (semua silent) ----------
-  // Dipanggil sekali saat app pertama kali siap (setelah token valid).
-  // v2.0.1: DRY — pakai `vm.loadAll(true)` dari J_Api.html.
-  //   Kalau Anda menambah loader baru, cukup tambah di `loadAll()` —
-  //   initApp otomatis ikut (tidak perlu edit 2 tempat).
   initApp: async function (vm) {
     if (vm.dataLoaded) return;
-
-    // Semua loader paralel, silent = true (cegah spam toast saat startup).
     await vm.loadAll(true);
-
-    // Fase 2 (opsional): loader yang butuh hasil fase 1
-    // Contoh: setelah master satelit ada, baru load list yang butuh dropdown.
-    // await vm.loadItem(true);
-
     vm.dataLoaded = true;
   },
 
-  // ---------- Mixin (WAJIB — jangan diubah) ----------
   mixins: [StarterKitMixin]
 });
 
-// ==================== MOUNT ====================
-// Wajib: mount ke #app, agar v-cloak terlepas dan Vue render.
 app.mount('#app');
 </script>
