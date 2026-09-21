@@ -1,188 +1,135 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_Api.html (v2.0.0)
+// STARTER-KIT - J_Api.html (v2.10.0 — 11 sheet + 72 handler + RTL + UIUX v1.10)
 // ============================================================
-// Loader data dari backend (CoreLib.dispatchAction).
-//
-// PRINSIP:
-//   - Semua panggilan lewat `this.callServer(action, data)` — dari AppCore.
-//   - Respons: { success: true, data } | { success:false, code, error }
-//   - Parameter `silent = true` → tidak munculkan toast (untuk init phase).
-//   - Loader hanya mengubah state; tidak menghitung turunan
-//     (itu tugas computed di J_State).
-//
-// [SESUAIKAN] Ganti loader domain sesuai bisnis Anda.
-// ============================================================
+// Loader data dari backend (CoreLib.dispatchAction) — pola si-arsip v1.10
+// - min-w + table-scroll di view, badge valid, app-stat-card, btn-icon, filter label, modal v-if
 
 window.StarterKitApi = {
   methods: {
 
-    // ==================== DASHBOARD ====================
-    /**
-     * Load dashboard ringkas (KPI dari handler get_dashboard).
-     */
+    // Loader gabungan — DRY untuk initApp + Refresh dashboard
+    async loadAll(silent) {
+      var s = silent === true;
+      await Promise.all([
+        this.loadDashboard(s),
+        this.loadMasterSatelit(s),
+        this.loadUtama(1),
+        this.loadReferensi(),
+        this.loadRtl(1)
+      ]);
+    },
+
+    // Dashboard
     async loadDashboard(silent) {
       var isSilent = silent === true;
       try {
         var res = await this.callServer('get_dashboard');
         if (res && res.success && res.data) {
           this.dashboardData = Object.assign({
-            totalPegawai: 0,
-            totalUtama:   0,
-            totalAktif:   0,
-            totalSelesai: 0,
-            totalRekap:   0,
-            role:         'viewer',
-            nama:         ''
+            totalUtama: 0, totalBaru: 0, totalSelesai: 0, totalRekap: 0, totalRtl: 0, rtlBaru: 0, rtlSelesai: 0, role: 'viewer', nama: ''
           }, res.data);
-        } else if (!isSilent) {
-          this.showToast('Gagal memuat dashboard.', 'error');
-        }
+        } else if (!isSilent) this.showToast('Gagal memuat dashboard.', 'error');
       } catch (e) {
-        console.error('Gagal load dashboard:', e);
-        if (!isSilent) this.showToast('Error koneksi saat memuat dashboard.', 'error');
+        console.error('loadDashboard', e);
+        if (!isSilent) this.showToast('Error koneksi dashboard.', 'error');
       }
     },
 
-    // ==================== MASTER SATELIT ====================
-    /**
-     * Load master pendukung — dipakai dropdown di modal (kategori, satuan).
-     * [SESUAIKAN] tambah master lain sesuai kebutuhan.
-     */
+    // Master satelit
     async loadMasterSatelit(silent) {
       var isSilent = silent === true;
       try {
         var res = await this.callServer('get_master_satelit');
         if (res && res.success && res.data) {
+          this.referensiList = res.data.referensi || [];
           this.kategoriList = res.data.kategori || [];
-          this.satuanList   = res.data.satuan   || [];
-          // referensiList juga ada di payload — simpan kalau perlu
-          // this.referensiList = res.data.referensi || [];
-        } else if (!isSilent) {
-          this.showToast('Gagal memuat master data.', 'error');
+          this.satuanList = res.data.satuan || [];
         }
       } catch (e) {
-        console.error('Gagal load master satelit:', e);
-        if (!isSilent) this.showToast('Error koneksi saat memuat master.', 'error');
+        if (!isSilent) console.error('loadMasterSatelit', e);
       }
     },
 
-    // ==================== T_UTAMA ====================
-    /**
-     * Load list transaksi utama. Filter & paginasi dilakukan di frontend
-     * (computed `filteredUtama` + `paginatedUtama`).
-     */
-    async loadUtama(silent) {
-      var isSilent = silent === true;
+    // T_UTAMA
+    async loadUtama(page) {
       this.utamaLoading = true;
       try {
-        var res = await this.callServer('get_utama_list');
+        var res = await this.callServer('get_utama_list', { page: page || 1, search: this.utamaFilters.search, status: this.utamaFilters.status });
+        if (res && res.success) this.utamaList = res.data || [];
+        else this.showToast(res.error || 'Gagal memuat T_UTAMA', 'error');
+      } catch (e) { this.showToast('Error koneksi T_UTAMA', 'error'); }
+      finally { this.utamaLoading = false; }
+    },
+
+    // Generic master list (M_*)
+    async loadReferensi() {
+      this.referensiLoading = true;
+      try {
+        var res = await this.callServer('get_referensi_list', {});
+        if (res && res.success) this.referensiList = res.data || [];
+      } catch (e) {} finally { this.referensiLoading = false; }
+    },
+
+    // Laporan contoh L4/L5
+    async loadLapKlasifikasi() {
+      this.lapKlasLoading = true;
+      try {
+        var res = await this.callServer('lap_rekap_klasifikasi', { tahun: this.lapKlasTahun });
+        if (res && res.success) this.lapKlasData = res.data;
+        else this.showToast(res.error || 'Gagal rekap klasifikasi', 'error');
+      } catch (e) { this.showToast('Error koneksi rekap', 'error'); }
+      finally { this.lapKlasLoading = false; }
+    },
+
+    // Analisa contoh A3
+    async loadAnalisaUnit() {
+      this.analisaLoading = true;
+      try {
+        var res = await this.callServer('analisa_distribusi_unit', { tahun: this.analisaTahun });
+        if (res && res.success) this.analisaUnitData = res.data;
+        else this.showToast(res.error || 'Gagal analisa unit', 'error');
+      } catch (e) { this.showToast('Error koneksi analisa', 'error'); }
+      finally { this.analisaLoading = false; }
+    },
+
+    // RTL — v2.10.0 (contoh si-arsip R1-R5)
+    async loadRtl(page) {
+      this.rtlLoading = true;
+      try {
+        var p = page || this.rtlPage || 1;
+        var res = await this.callServer('get_tindak_lanjut_list', {
+          page: p,
+          search: this.rtlSearch,
+          status_rtl: this.rtlFilters.status_rtl,
+          sumber_evaluasi: this.rtlFilters.sumber_evaluasi,
+          tahun: this.rtlFilters.tahun,
+          per_page: 10
+        });
         if (res && res.success) {
-          this.utamaList = res.data || [];
-        } else if (!isSilent) {
-          this.showToast((res && res.error) || 'Gagal memuat data.', 'error');
+          this.rtlList = res.data || [];
+          this.rtlTotalData = res.total || this.rtlList.length;
+          this.rtlTotalPages = res.total_pages || 1;
+          this.rtlPage = res.page || p;
+        } else {
+          this.showToast(res.error || 'Gagal memuat RTL', 'error');
         }
       } catch (e) {
-        console.error('Gagal load utama:', e);
-        if (!isSilent) this.showToast('Error koneksi saat memuat data.', 'error');
-      } finally {
-        this.utamaLoading = false;
-      }
+        this.showToast('Error koneksi RTL', 'error');
+      } finally { this.rtlLoading = false; }
     },
 
-    /**
-     * Simpan (insert / update) — record lengkap dari this.utamaForm.
-     * Return true bila sukses.
-     */
-    async saveUtamaData() {
+    async generateRtl() {
+      this.rtlGenerating = true;
       try {
-        var res = await this.callServer('save_utama', { record: this.utamaForm });
-        if (res && res.success) return true;
-        this.showToast((res && res.error) || 'Gagal menyimpan.', 'error');
-        return false;
-      } catch (e) {
-        console.error('Gagal save utama:', e);
-        this.showToast('Error koneksi saat menyimpan.', 'error');
-        return false;
-      }
-    },
-
-    /**
-     * Hapus record berdasarkan id.
-     */
-    async deleteUtamaData(id) {
-      try {
-        var res = await this.callServer('delete_utama', { id: id });
-        if (res && res.success) return true;
-        this.showToast((res && res.error) || 'Gagal menghapus.', 'error');
-        return false;
-      } catch (e) {
-        console.error('Gagal delete utama:', e);
-        this.showToast('Error koneksi saat menghapus.', 'error');
-        return false;
-      }
-    },
-
-    // ==================== M_REFERENSI (opsional) ====================
-    // Buka bila Anda butuh halaman master referensi.
-    // async loadReferensi(silent) {
-    //   var isSilent = silent === true;
-    //   this.referensiLoading = true;
-    //   try {
-    //     var res = await this.callServer('get_referensi_list');
-    //     if (res && res.success) this.referensiList = res.data || [];
-    //     else if (!isSilent) this.showToast((res && res.error) || 'Gagal memuat referensi.', 'error');
-    //   } catch (e) {
-    //     console.error('Gagal load referensi:', e);
-    //     if (!isSilent) this.showToast('Error koneksi.', 'error');
-    //   } finally {
-    //     this.referensiLoading = false;
-    //   }
-    // },
-
-    // ==================== ORKESTRASI ====================
-    /**
-     * Load semua modul utama — dipakai tombol Refresh & init phase.
-     */
-    async loadAll(silent) {
-      var isSilent = silent === true;
-      await Promise.all([
-        this.loadMasterSatelit(isSilent),
-        this.loadDashboard(isSilent),
-        this.loadUtama(isSilent)
-      ]);
-    },
-
-    // ==================== KONFIGURASI (Script Properties) ====================
-    /**
-     * Load konfigurasi app (dipakai <app-settings> bila halaman pengaturan ditambahkan).
-     */
-    async loadConfig(silent) {
-      var isSilent = silent === true;
-      try {
-        var res = await this.callServer('get_config');
-        if (res && res.success) return res.data || [];
-        if (!isSilent) this.showToast((res && res.error) || 'Gagal memuat konfigurasi.', 'error');
-        return [];
-      } catch (e) {
-        console.error('Gagal load config:', e);
-        if (!isSilent) this.showToast('Error koneksi saat memuat konfigurasi.', 'error');
-        return [];
-      }
+        var res = await this.callServer('generate_tindak_lanjut', { sumber_evaluasi: this.rtlGenerateSumber, tahun: this.rtlGenerateTahun });
+        if (res && res.success) {
+          this.showToast('Generate RTL: ' + (res.data.generated || 0) + ' baru', 'success');
+          this.loadRtl(1);
+        } else this.showToast(res.error || 'Gagal generate RTL', 'error');
+      } catch (e) { this.showToast('Error generate RTL', 'error'); }
+      finally { this.rtlGenerating = false; }
     }
-
-    // ==================== PLACEHOLDER 8 SHEET LAIN ====================
-    // Buka komentar saat Anda mulai memakai sheet tambahan.
-    // Pola sama persis dengan loadUtama/saveUtamaData/deleteUtamaData.
-    //
-    // async loadKategori(silent)    { ... 'get_kategori_list' ... }
-    // async loadSatuan(silent)      { ... 'get_satuan_list' ... }
-    // async loadItem(silent)        { ... 'get_item_list' ... }
-    // async loadLogbook(silent)     { ... 'get_logbook_list' ... }
-    // async loadLampiran(silent)    { ... 'get_lampiran_list' ... }
-    // async loadApproval(silent)    { ... 'get_approval_list' ... }
-    // async loadJadwal(silent)      { ... 'get_jadwal_list' ... }
-    // async loadRekap(silent)       { ... 'get_rekap_list' ... }
 
   }
 };
