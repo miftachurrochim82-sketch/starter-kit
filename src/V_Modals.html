@@ -1,29 +1,18 @@
 <!-- ============================================================
-     STARTER-KIT - V_Modals.html (v2.10.0 — modal v-if + @close + size + UIUX v1.10)
-     Semua modal pakai v-if, bukan :show (pattern si-arsip v1.10e)
+     STARTER-KIT - V_Modals.html (v2.11.0 — modal v-if + @close + size)
+     Semua modal pakai v-if (pattern UIUX v2).
      ============================================================ -->
 
 <!-- Modal Form T_UTAMA — size 2xl -->
-<app-modal v-if="showUtamaForm" @close="showUtamaForm=false" :title="utamaForm.id ? 'Ubah T_UTAMA' : 'T_UTAMA Baru'" subtitle="Contoh transaksi utama — kode auto, status draft→selesai" icon="fa-solid fa-database" size="2xl" :loading="utamaSaving" confirm-text="Simpan" cancel-text="Batal" @confirm="simpanUtama()">
+<app-modal v-if="showUtamaForm" @close="showUtamaForm=false" :title="utamaForm.id ? 'Ubah Transaksi' : 'Transaksi Baru'" subtitle="Kode auto · 5 FK ke master" icon="fa-solid fa-database" size="2xl" :loading="utamaSaving" confirm-text="Simpan" cancel-text="Batal" @confirm="simpanUtama()">
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-    <div>
+    <div class="md:col-span-2">
       <label class="form-label">Judul *</label>
       <input class="input w-full" v-model.trim="utamaForm.judul" placeholder="Judul transaksi">
     </div>
     <div>
       <label class="form-label">Tanggal</label>
       <input type="date" class="input w-full" v-model="utamaForm.tanggal">
-    </div>
-    <div class="md:col-span-2">
-      <label class="form-label">Deskripsi</label>
-      <textarea class="input w-full" rows="3" v-model.trim="utamaForm.deskripsi"></textarea>
-    </div>
-    <div>
-      <label class="form-label">Kategori</label>
-      <select class="input w-full" v-model="utamaForm.kategori_id">
-        <option value="">— pilih —</option>
-        <option v-for="k in kategoriList" :key="k.id" :value="k.id">{{ k.nama || k.kode }}</option>
-      </select>
     </div>
     <div>
       <label class="form-label">Status</label>
@@ -35,36 +24,167 @@
         <option value="batal">Batal</option>
       </select>
     </div>
+    <div>
+      <label class="form-label">Jenis</label>
+      <select class="input w-full" v-model="utamaForm.jenis_id">
+        <option value="">— pilih —</option>
+        <option v-for="j in jenisList" :key="j.id" :value="j.id">{{ j.nama || j.kode }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Kategori</label>
+      <select class="input w-full" v-model="utamaForm.kategori_id">
+        <option value="">— pilih —</option>
+        <option v-for="k in kategoriList" :key="k.id" :value="k.id">{{ k.nama || k.kode }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Lokasi</label>
+      <select class="input w-full" v-model="utamaForm.lokasi_id">
+        <option value="">— pilih —</option>
+        <option v-for="l in lokasiList" :key="l.id" :value="l.id">{{ l.nama || l.kode }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Periode</label>
+      <select class="input w-full" v-model="utamaForm.periode_id">
+        <option value="">— pilih —</option>
+        <option v-for="p in periodeList" :key="p.id" :value="p.id">{{ p.label || p.kode }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Penanggung Jawab</label>
+      <select class="input w-full" v-model="utamaForm.pegawai_id">
+        <option value="">— pilih —</option>
+        <option v-for="p in pegawaiList" :key="p.pegawai_id" :value="p.pegawai_id">{{ p.nama }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Satuan</label>
+      <select class="input w-full" v-model="utamaForm.satuan_id">
+        <option value="">— pilih —</option>
+        <option v-for="s in satuanList" :key="s.id" :value="s.id">{{ s.nama || s.kode }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Jumlah</label>
+      <input type="number" step="any" class="input w-full" v-model.number="utamaForm.jumlah">
+    </div>
+    <div>
+      <label class="form-label">Nilai</label>
+      <input type="number" step="any" class="input w-full" v-model.number="utamaForm.nilai">
+    </div>
+    <div class="md:col-span-2">
+      <label class="form-label">Deskripsi</label>
+      <textarea class="input w-full" rows="3" v-model.trim="utamaForm.deskripsi"></textarea>
+    </div>
+    <div class="md:col-span-2">
+      <label class="form-label">Catatan</label>
+      <textarea class="input w-full" rows="2" v-model.trim="utamaForm.catatan"></textarea>
+    </div>
   </div>
 </app-modal>
 
-<!-- Modal Form M_REFERENSI — size lg -->
-<app-modal v-if="showRefForm" @close="showRefForm=false" :title="refForm.id ? 'Ubah Referensi' : 'Tambah Referensi'" subtitle="Master referensi umum" icon="fa-solid fa-tags" size="lg" :loading="refSaving" confirm-text="Simpan" cancel-text="Batal" @confirm="simpanReferensi()">
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<!-- Modal Form Master (5 tab — field dinamis per tab) — size lg -->
+<app-modal v-if="showMasterForm" @close="showMasterForm=false" :title="(masterForm.id ? 'Ubah ' : 'Tambah ') + masterTab" :subtitle="'Master ' + masterTab" icon="fa-solid fa-book" size="lg" :loading="masterSaving" confirm-text="Simpan" cancel-text="Batal" @confirm="simpanMaster()">
+
+  <!-- M_KATEGORI -->
+  <div v-if="masterTab==='kategori'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div><label class="form-label">Kode *</label><input class="input w-full" v-model.trim="masterForm.kode" placeholder="KAT-05"></div>
+    <div><label class="form-label">Nama *</label><input class="input w-full" v-model.trim="masterForm.nama" placeholder="Nama kategori"></div>
     <div>
-      <label class="form-label">Kategori *</label>
-      <input class="input w-full" v-model.trim="refForm.kategori" placeholder="mis. STATUS">
+      <label class="form-label">Parent</label>
+      <select class="input w-full" v-model="masterForm.parent_id">
+        <option value="">— (root) —</option>
+        <option v-for="k in kategoriList.filter(function(x){ return x.id !== masterForm.id; })" :key="k.id" :value="k.id">{{ k.nama || k.kode }}</option>
+      </select>
     </div>
-    <div>
-      <label class="form-label">Kode</label>
-      <input class="input w-full" v-model.trim="refForm.kode" placeholder="mis. BARU">
-    </div>
-    <div class="md:col-span-2">
-      <label class="form-label">Nama Nilai *</label>
-      <input class="input w-full" v-model.trim="refForm.nama_nilai" placeholder="mis. Baru">
-    </div>
-    <div>
-      <label class="form-label">Urutan</label>
-      <input type="number" class="input w-full" v-model.number="refForm.urutan">
-    </div>
+    <div><label class="form-label">Urutan</label><input type="number" class="input w-full" v-model.number="masterForm.urutan"></div>
+    <div class="md:col-span-2"><label class="form-label">Deskripsi</label><input class="input w-full" v-model.trim="masterForm.deskripsi"></div>
     <div>
       <label class="form-label">Status</label>
-      <select class="input w-full" v-model="refForm.status_aktif">
+      <select class="input w-full" v-model="masterForm.status_aktif">
         <option value="true">Aktif</option>
         <option value="false">Nonaktif</option>
       </select>
     </div>
   </div>
+
+  <!-- M_JENIS -->
+  <div v-if="masterTab==='jenis'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div><label class="form-label">Kode *</label><input class="input w-full" v-model.trim="masterForm.kode" placeholder="JEN-06"></div>
+    <div><label class="form-label">Nama *</label><input class="input w-full" v-model.trim="masterForm.nama" placeholder="Nama jenis"></div>
+    <div>
+      <label class="form-label">Kategori</label>
+      <select class="input w-full" v-model="masterForm.kategori_id">
+        <option value="">— (tanpa) —</option>
+        <option v-for="k in kategoriList" :key="k.id" :value="k.id">{{ k.nama || k.kode }}</option>
+      </select>
+    </div>
+    <div>
+      <label class="form-label">Sifat Periode</label>
+      <select class="input w-full" v-model="masterForm.periode">
+        <option value="Tahunan">Tahunan</option>
+        <option value="Bulanan">Bulanan</option>
+        <option value="Periodik">Periodik</option>
+        <option value="Fleksibel">Fleksibel</option>
+      </select>
+    </div>
+    <div><label class="form-label">Urutan</label><input type="number" class="input w-full" v-model.number="masterForm.urutan"></div>
+    <div>
+      <label class="form-label">Status</label>
+      <select class="input w-full" v-model="masterForm.status_aktif">
+        <option value="true">Aktif</option>
+        <option value="false">Nonaktif</option>
+      </select>
+    </div>
+    <div class="md:col-span-2"><label class="form-label">Deskripsi</label><input class="input w-full" v-model.trim="masterForm.deskripsi"></div>
+  </div>
+
+  <!-- M_PERIODE -->
+  <div v-if="masterTab==='periode'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div><label class="form-label">Tahun * (4 digit)</label><input type="number" min="1900" max="2100" class="input w-full" v-model.trim="masterForm.tahun" placeholder="2026"></div>
+    <div><label class="form-label">Bulan (1–12, kosong = level tahun)</label><input type="number" min="1" max="12" class="input w-full" v-model.trim="masterForm.bulan" placeholder="kosong"></div>
+    <div class="md:col-span-2 text-[11px] text-slate-400">Kode & label otomatis: <b>2026</b> (tahun) atau <b>2026-05</b> (bulan). Label: "Tahun 2026" / "Bulan 5/2026".</div>
+    <div>
+      <label class="form-label">Status</label>
+      <select class="input w-full" v-model="masterForm.status_aktif">
+        <option value="true">Aktif</option>
+        <option value="false">Nonaktif</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- M_SATUAN -->
+  <div v-if="masterTab==='satuan'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div><label class="form-label">Kode *</label><input class="input w-full" v-model.trim="masterForm.kode" placeholder="SAT-04"></div>
+    <div><label class="form-label">Nama *</label><input class="input w-full" v-model.trim="masterForm.nama" placeholder="Lembar"></div>
+    <div><label class="form-label">Simbol</label><input class="input w-full" v-model.trim="masterForm.simbol" placeholder="lem"></div>
+    <div>
+      <label class="form-label">Status</label>
+      <select class="input w-full" v-model="masterForm.status_aktif">
+        <option value="true">Aktif</option>
+        <option value="false">Nonaktif</option>
+      </select>
+    </div>
+    <div class="md:col-span-2"><label class="form-label">Keterangan</label><input class="input w-full" v-model.trim="masterForm.keterangan"></div>
+  </div>
+
+  <!-- M_LOKASI -->
+  <div v-if="masterTab==='lokasi'" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div><label class="form-label">Kode *</label><input class="input w-full" v-model.trim="masterForm.kode" placeholder="LOK-04"></div>
+    <div><label class="form-label">Nama *</label><input class="input w-full" v-model.trim="masterForm.nama" placeholder="Cabang 3"></div>
+    <div class="md:col-span-2"><label class="form-label">Alamat</label><input class="input w-full" v-model.trim="masterForm.alamat"></div>
+    <div class="md:col-span-2"><label class="form-label">Keterangan</label><input class="input w-full" v-model.trim="masterForm.keterangan"></div>
+    <div>
+      <label class="form-label">Status</label>
+      <select class="input w-full" v-model="masterForm.status_aktif">
+        <option value="true">Aktif</option>
+        <option value="false">Nonaktif</option>
+      </select>
+    </div>
+  </div>
+
 </app-modal>
 
 <!-- Overlay penutup row menu -->
