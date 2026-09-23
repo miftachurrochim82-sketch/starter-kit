@@ -4,7 +4,7 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 
 > **Versi template**: **2.11.0** (2026-09-22) — redesign skema (keputusan user) + UIUX v2 (standar hasil audit si-dokumen).
 > **CoreLib**: pin **15** (v2.3.0) — util sadar-WIB + paginasi + pencarian + whitelist.
-> **CDN**: **`@v2.9.0`** — 8 FILE & 31 OPSI (2026-09-22) — internal `"2.9.0"` — CoreLib v2.4.0 A+B (pin 16). C1-C3 masih backlog. **Vue**: `3.5.42`.
+> **CDN**: **`@v2.9.0`** — 10 FILE (1 CSS + 9 JS) & 31 OPSI (2026-09-22) — internal `"2.9.0"` — CoreLib v2.4.0 LIVE **pin 17** PASS 47. **Vue**: `3.5.42`.
 > **Skema (BASELINE — FLEKSIBEL, tidak wajib)**: **5 master = 5 dimensi laporan** + **5 tabel inti = 10 sheet**. App bisnis bebas menambah/mengurangi sheet & handler sesuai keunikan domainnya.
 > **Handler**: **86** (config 6 + self 2 + dash 2 + simpeg 4 + master 15 + utama 4 + item 4 + lampiran 3 + approval 4 + RTL 12 + **laporan 12 + analisa 8 + evaluasi 6** + generic 2 + publik 2 + sistem 1 = 86; +2 native CoreLib = 88 aksi)
 > **Piramida output (REFERENSI — tidak kaku)**: **Laporan 12 · Analisa 8 · Evaluasi 6 · RTL 4 sumber = 30**.
@@ -19,11 +19,11 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 |---|---|---|
 | Login / SSO / sesi | **si-platform** + `CoreLib.exchangePlatformTicket` | terima `?ticket=` → tukar → token sesi |
 | Master pegawai/jabatan/unit | **SIMPEG** (3 sheet referensi) | `getSheetData_('PEGAWAI')` — CoreLib otomatis route ke DB master |
-| Mesin sheet/CRUD/cache/audit | **CoreLib** (pin 15) | `apiSave`, `apiDelete`, `ensureSheet`, `checkAuth` |
+| Mesin sheet/CRUD/cache/audit | **CoreLib** (pin **17**) | `apiSave`, `apiDelete`, `ensureSheet`, `checkAuth` |
 | Dispatcher + fail-closed | **CoreLib.dispatchAction** | `handleAction(payload)` di `02_AppLogic.gs` |
 | Util tanggal sadar-WIB | **CoreLib** (v2.3.0) | `todayIsoLocal()`, `dateKey10()` — JANGAN `todayIso()` (UTC) |
 | Audit HTTP ke SI-PLATFORM | `00_Utils.gs` → `audit_()` | wrapper — panggil `audit_(actor, action, type, id, ok, msg)` |
-| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.9.0 (8 file & 31 opsi)** | 15+ komponen `app-*` — auto registrasi |
+| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.9.0 (10 file (1 CSS + 9 JS) & 31 opsi)** | 15+ komponen `app-*` — auto registrasi |
 | RTL / Tindak Lanjut (puncak piramida) | **Generik R1-R4** | T_TINDAK_LANJUT + 12 handler + FSM + generate dari E1/E2/E3 + manual |
 | User/role/permission/notifikasi/file | **si-platform** | tidak perlu sheet lokal |
 
@@ -33,7 +33,7 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 
 ```
 src/
-├── appsscript.json             # Manifest V8 + CoreLib pin 15
+├── appsscript.json             # Manifest V8 + CoreLib pin **17**
 │
 │  Backend (4):
 ├── 00_Utils.gs                 # Audit HTTP ke SI-PLATFORM
@@ -42,7 +42,7 @@ src/
 ├── 99_TestSuite.gs             # Test suite (library + adopsi + routing 86 + domain + smoke piramida + dashboard 4+4+4)
 │
 │  Frontend (10):
-├── Index.html                  # Shell tipis CDN @v2.9.0 (8 file & 31 opsi) + CSS Tailwind TER-COMPILE (bukan Play CDN) + tema dinamis <?!= getThemeCss() ?> (6 preset) + <app-theme-picker> + scope Saya/Semua (9 view incl. Pengaturan)
+├── Index.html                  # Shell tipis CDN @v2.9.0 (10 file — 1 CSS + 9 JS & 31 opsi) + CSS Tailwind TER-COMPILE (bukan Play CDN) + tema dinamis <?!= getThemeCss() ?> (6 preset) + <app-theme-picker> + scope Saya/Semua (9 view incl. Pengaturan)
 ├── V_Dashboard.html            # Dashboard ukuran sedang: 4 kartu + 4 chart + 4 panel (server-side)
 ├── V_Utama.html                # Transaksi CRUD — 5 filter + tahun select + paginasi server-side + nama bukan ID
 ├── V_Laporan.html              # 12 tab laporan (L1-L12) — nama, bukan ID
@@ -84,7 +84,7 @@ src/
 ### Fase 2 — Penyesuaian (±10 menit)
 
 4. `01_ConfigAndBridge.gs`: Ganti `APP_CODE` + `APP_TITLE`, isi `DEFAULT_SPREADSHEET_ID` atau set Script Properties `SPREADSHEET_ID`, sesuaikan `ALL_SHEET_HEADERS` (tambah/kurangi sheet & kolom sesuai domain — **fleksibel**), `actionLevels` 88 sudah aktif.
-5. `appsscript.json`: pastikan CoreLib pin 15.
+5. `appsscript.json`: pastikan CoreLib pin **17**.
 6. Jalankan **`initDatabase()`** sekali → cek 10 sheet + ZZ_TEST_CRUD terbuat + seed master awal masuk.
 
 ### Fase 3 — Terhubung ke ekosistem (±10 menit)
@@ -127,7 +127,7 @@ Satu pintu: `runAllTestsStarterKit()`.
 1. CoreLib first — cek katalog sebelum util baru.
 2. Tolerant reader SIMPEG.
 3. Tag kit berpasangan `<app-x></app-x>`, jangan `/>`.
-4. Pin CDN eksplisit `@v2.9.0` (8 file: layout/ui/forms/data/charts/workflow) + CoreLib pin 16.
+4. Pin CDN eksplisit `@v2.9.0` (10 file: 1 CSS + 9 JS) + CoreLib pin **17**.
 5. Contract-check sebelum salin.
 6. Tanggal: `CoreLib.todayIsoLocal()` / `dateKey10()` (WIB), jangan `todayIso()`.
 7. Setiap handler baru → daftarkan di `actionLevels` (01) — fail-closed.
@@ -221,7 +221,7 @@ si-NAMA-APP/
 - **J_Actions**: tambah simpanRtl/hapusRtl/openRtlEdit/openRtlStatus/ubahStatusRtl
 - **J_App**: menu 5 item (dashboard, rtl, laporan, utama, master) + brand v2.10.0
 - **Index.html**: tema #0369a1 locked + include V_Rtl + V_Utama + V_Master + V_Laporan + filter-bar-analytics + progress-track CSS (kandidat CDN C1-C3 lokal)
-- **CDN**: @v2.9.0 (8 file & 31 opsi, 10 .min sinkron) + 6 preset tema dinamis + AppCore.getMyScope() — sesuai persetujuan user 2026-09-23
+- **CDN**: @v2.9.0 (10 file — 1 CSS + 9 JS & 31 opsi, 20 .min sinkron) + 6 preset tema dinamis + AppCore.getMyScope() — sesuai persetujuan user 2026-09-23
 
 ---
 

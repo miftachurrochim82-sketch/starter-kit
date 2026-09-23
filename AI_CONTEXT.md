@@ -37,8 +37,8 @@
 
 | Pilar | Bentuk | Versi pin | Peran |
 |---|---|---|---|
-| **CoreLib** | GAS Library ID `1GmeYflfMpRa1iTVgFHRD6K1DMoxc9OoKqpuucPJXgNZ9XBK06O7wgDkO` | **15** (v2.3.0) | Mesin sheet/CRUD/cache/sesi/SSO + dispatcher + WIB utils |
-| **frontend-cdn** | jsDelivr `@v2.8.1` (internal `2.8.0`) | **v2.8.1** eksplisit | 15+ komponen app-* + desain; `frontend/app-tailwind.min.css` = contoh CSS ter-compile |
+| **CoreLib** | GAS Library ID `1GmeYflfMpRa1iTVgFHRD6K1DMoxc9OoKqpuucPJXgNZ9XBK06O7wgDkO` | **17** (v2.4.0 LIVE PASS 47) | Mesin sheet/CRUD/cache/sesi/SSO + dispatcher + WIB utils |
+| **frontend-cdn** | jsDelivr `@v2.9.0` (internal `2.9.0`) | **v2.9.0** eksplisit | 10 file (1 CSS + 9 JS) & 31 opsi + desain; `frontend/app-tailwind.min.css` = contoh CSS ter-compile |
 | **si-platform** | GAS web app SSO IdP | URL di 01_Config | Login/user/role/permission/audit/notifikasi/file |
 | **SIMPEG** | Spreadsheet master RO | — | 3 sheet PEGAWAI/JABATAN/UNIT_KERJA — CoreLib auto route |
 
