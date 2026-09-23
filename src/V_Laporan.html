@@ -1,51 +1,310 @@
 <!-- ============================================================
-     STARTER-KIT - V_Laporan.html (v2.10.0 — contoh L4/L5 + UIUX v1.10)
-     Laporan rekap — filter label + app-stat-card + table-scroll + min-w
+     STARTER-KIT - V_Laporan.html (v2.11.0 — 12 tab laporan)
+     Grup 1 "Per Dimensi" (7): kategori, jenis, lokasi, periode,
+             pegawai, status, satuan
+     Grup 2 "Matriks & Detail" (5): jenis×periode, jenis×lokasi,
+             detail, lampiran, approval
+     Nama bukan ID · tahun = select · UIUX v2
      ============================================================ -->
 <section v-if="currentPage === 'laporan'" class="space-y-6 animate-fade-in">
 
-  <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
-    <div>
-      <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-white">
-        <i class="fa-solid fa-file-lines text-sky-600 dark:text-sky-400"></i> Laporan
-      </h2>
-      <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-        Contoh L4 Rekap Klasifikasi (dari si-arsip) — filter analytics + stat-card + table-scroll
-      </p>
-    </div>
+  <div>
+    <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-white">
+      <i class="fa-solid fa-table-list text-sky-600 dark:text-sky-400"></i> Laporan
+    </h2>
+    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">12 laporan standar (L1–L12) — referensi, boleh ditambah sesuai kebutuhan app</p>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-    <button class="btn" :class="laporanTab==='klasifikasi' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='klasifikasi'"><i class="fa-solid fa-layer-group"></i> Klasifikasi</button>
-    <button class="btn" :class="laporanTab==='unit' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='unit'"><i class="fa-solid fa-building"></i> Per Unit</button>
+  <!-- Tab: per dimensi -->
+  <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+    <button class="btn" :class="laporanTab==='kategori' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='kategori'; loadLaporan('kategori')">L1 Kategori</button>
+    <button class="btn" :class="laporanTab==='jenis' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='jenis'; loadLaporan('jenis')">L2 Jenis</button>
+    <button class="btn" :class="laporanTab==='lokasi' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='lokasi'; loadLaporan('lokasi')">L3 Lokasi</button>
+    <button class="btn" :class="laporanTab==='periode' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='periode'; loadLaporan('periode')">L4 Periode</button>
+    <button class="btn" :class="laporanTab==='pegawai' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='pegawai'; loadLaporan('pegawai')">L5 Pegawai</button>
+    <button class="btn" :class="laporanTab==='status' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='status'; loadLaporan('status')">L6 Status</button>
+    <button class="btn" :class="laporanTab==='satuan' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='satuan'; loadLaporan('satuan')">L7 Satuan</button>
+  </div>
+  <!-- Tab: matriks & detail -->
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+    <button class="btn" :class="laporanTab==='jenis_periode' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='jenis_periode'; loadLaporan('jenis_periode')">L8 Jenis×Thn</button>
+    <button class="btn" :class="laporanTab==='jenis_lokasi' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='jenis_lokasi'; loadLaporan('jenis_lokasi')">L9 Jenis×Lok</button>
+    <button class="btn" :class="laporanTab==='detail' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='detail'; loadLaporan('detail')">L10 Detail</button>
+    <button class="btn" :class="laporanTab==='lampiran' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='lampiran'; loadLaporan('lampiran')">L11 Lampiran</button>
+    <button class="btn" :class="laporanTab==='approval' ? 'btn-primary' : 'btn-ghost'" @click="laporanTab='approval'; loadLaporan('approval')">L12 Approval</button>
   </div>
 
-  <div v-if="laporanTab==='klasifikasi'" class="card space-y-4">
+  <div v-if="lapLoading && !lapDataAktif" class="card"><app-skeleton type="table"></app-skeleton></div>
+
+  <!-- L1 Kategori (rollup hierarki) -->
+  <div v-if="!lapLoading && laporanTab==='kategori' && lapDataAktif" class="card space-y-4">
     <div class="filter-bar-analytics">
-      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-layer-group text-sky-500"></i> Rekap per Klasifikasi (L4)</h3>
-      <div class="w-28"><label class="filter-label">Tahun</label><input type="text" class="input w-full" placeholder="2026" v-model="lapKlasTahun"></div>
-      <button class="btn btn-primary" @click="loadLapKlasifikasi()" :disabled="lapKlasLoading"><i class="fa-solid fa-rotate"></i> {{ lapKlasLoading ? 'Memuat...' : 'Tampilkan' }}</button>
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-sitemap text-sky-500"></i> L1 — Rekap per Kategori</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('kategori')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
     </div>
-
-    <app-skeleton v-if="lapKlasLoading && !lapKlasData" type="table"></app-skeleton>
-    <div v-else-if="lapKlasData">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs mb-3">
-        <app-stat-card title="Total" :value="lapKlasData.total" icon="fa-solid fa-layer-group" color="sky" :subtext="lapKlasData.tahun"></app-stat-card>
-        <app-stat-card title="Rekap" :value="(lapKlasData.rekap||[]).length" icon="fa-solid fa-list" color="emerald" subtext="kategori"></app-stat-card>
-        <app-stat-card title="Tahun" :value="lapKlasData.tahun" icon="fa-solid fa-calendar" color="amber" subtext="periode"></app-stat-card>
-      </div>
-      <div class="table-scroll">
-        <table class="w-full text-xs">
-          <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[100px]">Kategori</th><th class="text-right py-2 px-2 min-w-[70px]">Jumlah</th></tr></thead>
-          <tbody class="divide-y"><tr v-for="r in lapKlasData.rekap" :key="r.kategori_id"><td class="py-2 px-2">{{ r.kategori_id }}</td><td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td></tr></tbody>
-        </table>
-      </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-sitemap" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+      <app-stat-card title="Kategori" :value="(lapDataAktif.rekap||[]).length" icon="fa-solid fa-list" color="emerald" subtext="termasuk anak"></app-stat-card>
     </div>
-    <app-empty-state v-else icon="fa-solid fa-layer-group" title="Belum dimuat" subtitle="Klik Tampilkan untuk rekap."></app-empty-state>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[220px]">Kategori</th><th class="text-left py-2 px-2 min-w-[100px]">Parent</th><th class="text-right py-2 px-2 min-w-[80px]">Langsung</th><th class="text-right py-2 px-2 min-w-[90px]">Total</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.rekap" :key="r.kategori_id">
+            <td class="py-2 px-2">{{ r.kategori_nama }}</td>
+            <td class="py-2 px-2 text-slate-400">{{ r.parent_id ? namaKategori_(r.parent_id) : '—' }}</td>
+            <td class="py-2 px-2 text-right">{{ r.jml }}</td>
+            <td class="py-2 px-2 text-right font-bold">{{ r.jml_total }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
-  <div v-if="laporanTab==='unit'" class="card p-6 text-center text-xs text-slate-400">
-    Per Unit — via lap_rekap_unit (sudah di 01 + 02, tinggal UI seperti Klasifikasi)
+  <!-- L2 Jenis -->
+  <div v-if="!lapLoading && laporanTab==='jenis' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-tag text-sky-500"></i> L2 — Rekap per Jenis</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('jenis')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-tag" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[220px]">Jenis</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th><th class="text-right py-2 px-2 min-w-[120px]">Total Nilai</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.rekap" :key="r.jenis_id">
+            <td class="py-2 px-2">{{ r.jenis_nama }}</td>
+            <td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td>
+            <td class="py-2 px-2 text-right">{{ r.total_nilai ? formatRupiahRingkas_(r.total_nilai) : '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
+
+  <!-- L3 Lokasi -->
+  <div v-if="!lapLoading && laporanTab==='lokasi' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-location-dot text-sky-500"></i> L3 — Rekap per Lokasi</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('lokasi')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-location-dot" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[220px]">Lokasi</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.rekap" :key="r.lokasi_id"><td class="py-2 px-2">{{ r.lokasi_nama }}</td><td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L4 Periode -->
+  <div v-if="!lapLoading && laporanTab==='periode' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-calendar-days text-sky-500"></i> L4 — Rekap per Periode</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('periode')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-calendar-days" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[140px]">Periode</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.rekap" :key="r.periode"><td class="py-2 px-2 font-mono text-[11px]">{{ r.periode }}</td><td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L5 Pegawai -->
+  <div v-if="!lapLoading && laporanTab==='pegawai' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-user text-sky-500"></i> L5 — Rekap per Pegawai</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('pegawai')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-user" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[220px]">Pegawai</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.rekap" :key="r.pegawai_id">
+            <td class="py-2 px-2"><div>{{ r.pegawai_nama }}</div><div class="font-mono text-[10px] text-slate-400">{{ r.pegawai_id }}</div></td>
+            <td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L6 Status -->
+  <div v-if="!lapLoading && laporanTab==='status' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-circle-check text-sky-500"></i> L6 — Rekap per Status</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('status')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-circle-check" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[140px]">Status</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.rekap" :key="r.status">
+            <td class="py-2 px-2"><app-badge size="sm" :status="badgeStatusUtama(r.status)" :label="r.status"></app-badge></td>
+            <td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L7 Satuan -->
+  <div v-if="!lapLoading && laporanTab==='satuan' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-ruler text-sky-500"></i> L7 — Rekap per Satuan</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('satuan')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-ruler" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[200px]">Satuan</th><th class="text-right py-2 px-2 min-w-[80px]">Data</th><th class="text-right py-2 px-2 min-w-[110px]">Total Jumlah</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.rekap" :key="r.satuan_id">
+            <td class="py-2 px-2">{{ r.satuan_nama }}</td>
+            <td class="py-2 px-2 text-right">{{ r.jml_data }}</td>
+            <td class="py-2 px-2 text-right font-bold">{{ r.total_jumlah }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L8 Jenis × Tahun -->
+  <div v-if="!lapLoading && laporanTab==='jenis_periode' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-table-cells text-sky-500"></i> L8 — Matriks Jenis × Tahun</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('jenis_periode')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[200px]">Jenis</th><th class="text-left py-2 px-2 min-w-[100px]">Tahun</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
+        <tbody class="divide-y">
+          <template v-for="j in lapDataAktif.rekap" :key="j.jenis_id">
+            <tr v-for="r in j.rekap" :key="j.jenis_id + r.tahun">
+              <td class="py-2 px-2" v-if="r === j.rekap[0]">{{ j.jenis_nama }}</td>
+              <td class="py-2 px-2" v-else></td>
+              <td class="py-2 px-2">{{ r.tahun }}</td>
+              <td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L9 Jenis × Lokasi -->
+  <div v-if="!lapLoading && laporanTab==='jenis_lokasi' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-table-cells-large text-sky-500"></i> L9 — Matriks Jenis × Lokasi</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('jenis_lokasi')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[180px]">Jenis</th><th class="text-left py-2 px-2 min-w-[160px]">Lokasi</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
+        <tbody class="divide-y">
+          <template v-for="j in lapDataAktif.rekap" :key="j.jenis_id">
+            <tr v-for="r in j.rekap" :key="j.jenis_id + r.lokasi_id">
+              <td class="py-2 px-2" v-if="r === j.rekap[0]">{{ j.jenis_nama }}</td>
+              <td class="py-2 px-2" v-else></td>
+              <td class="py-2 px-2">{{ r.lokasi_nama }}</td>
+              <td class="py-2 px-2 text-right font-bold">{{ r.jml }}</td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L10 Detail -->
+  <div v-if="!lapLoading && laporanTab==='detail' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-list text-sky-500"></i> L10 — Detail Transaksi</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('detail')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <app-stat-card title="Total Data" :value="lapDataAktif.total" icon="fa-solid fa-list" color="sky" :subtext="lapDataAktif.tahun"></app-stat-card>
+    <p class="text-[11px] text-slate-400">Halaman pertama ({{ (lapDataAktif.data||[]).length }} dari {{ lapDataAktif.total }}). Filter lengkap: menu Transaksi.</p>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[130px]">Kode/Tgl</th><th class="text-left py-2 px-2 min-w-[220px]">Judul</th><th class="text-left py-2 px-2 min-w-[120px]">Jenis</th><th class="text-left py-2 px-2 min-w-[120px]">Lokasi</th><th class="text-left py-2 px-2 min-w-[90px]">Status</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.data" :key="r.id">
+            <td class="py-2 px-2"><div class="font-mono text-[11px]">{{ r.kode }}</div><div class="text-[11px] text-slate-400">{{ fmtTgl(r.tanggal) }}</div></td>
+            <td class="py-2 px-2 truncate max-w-[220px]">{{ r.judul }}</td>
+            <td class="py-2 px-2">{{ namaJenis_(r.jenis_id) }}</td>
+            <td class="py-2 px-2">{{ namaLokasi_(r.lokasi_id) }}</td>
+            <td class="py-2 px-2"><app-badge size="sm" :status="badgeStatusUtama(r.status)" :label="r.status"></app-badge></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L11 Lampiran -->
+  <div v-if="!lapLoading && laporanTab==='lampiran' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-paperclip text-sky-500"></i> L11 — Rekap Lampiran</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('lampiran')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[240px]">Transaksi</th><th class="text-right py-2 px-2 min-w-[90px]">Lampiran</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in (lapDataAktif.rekap||[]).slice(0, 50)" :key="r.utama_id">
+            <td class="py-2 px-2"><div class="font-mono text-[11px]">{{ r.kode }}</div><div class="truncate max-w-[240px]">{{ r.judul }}</div></td>
+            <td class="py-2 px-2 text-right">
+              <span class="font-bold" :class="r.jml_lampiran ? 'text-emerald-600' : 'text-slate-400'">{{ r.jml_lampiran }}</span>
+              <div v-if="r.jml_lampiran" class="text-[10px] text-slate-400 text-right truncate max-w-[240px]">{{ r.lampiran.map(function(x){return x.nama_file}).join(', ') }}</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- L12 Approval -->
+  <div v-if="!lapLoading && laporanTab==='approval' && lapDataAktif" class="card space-y-4">
+    <div class="filter-bar-analytics">
+      <h3 class="font-bold text-slate-700 dark:text-slate-200 mr-auto"><i class="fa-solid fa-stamp text-sky-500"></i> L12 — Rekap Approval</h3>
+      <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="lapTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
+      <button class="btn btn-primary" @click="loadLaporan('approval')" :disabled="lapLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <app-stat-card title="Total" :value="lapDataAktif.total" icon="fa-solid fa-stamp" color="sky" subtext="approval"></app-stat-card>
+      <app-stat-card v-for="r in lapDataAktif.rekap_status" :key="r.status" :title="r.status" :value="r.jml" icon="fa-solid fa-list" color="emerald"></app-stat-card>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[90px]">Langkah</th><th class="text-left py-2 px-2 min-w-[260px]">Transaksi</th><th class="text-left py-2 px-2 min-w-[110px]">Sejak</th></tr></thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lapDataAktif.menanti" :key="r.id">
+            <td class="py-2 px-2 font-bold">Langkah {{ r.urutan || 1 }}</td>
+            <td class="py-2 px-2">{{ r.kode }} — {{ r.judul || '—' }}</td>
+            <td class="py-2 px-2 text-slate-400">{{ fmtTgl(r.dibuat) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <app-empty-state v-if="!lapLoading && laporanTab!=='' && !lapDataAktif" icon="fa-solid fa-table-list" title="Belum dimuat" subtitle="Klik Tampilkan untuk mengambil data."></app-empty-state>
 
 </section>
