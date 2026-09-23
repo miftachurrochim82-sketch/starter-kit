@@ -1,8 +1,8 @@
 // ============================================================
-// STARTER-KIT - 01_ConfigAndBridge.gs (v2.12.0 — CDN v2.9.0 8 file + CoreLib v2.4.0 A+B)
+// STARTER-KIT - 01_ConfigAndBridge.gs (v2.12.0 — CDN v2.9.0 10 file (1 CSS+9 JS) + CoreLib v2.4.0 pin17)
 // ============================================================
 // Changelog:
-//   v2.12.0 — CDN v2.9.0 (8 file & 31 opsi) + CoreLib v2.4.0 A+B (2026-09-23):
+//   v2.12.0 — CDN v2.9.0 (10 file — 1 CSS + 9 JS & 31 opsi) + CoreLib v2.4.0 pin17 (2026-09-23):
 //             • Tema Opsi B: getThemeCss() → CoreLib.getThemeCss() + <app-theme-picker>
 //               + THEME_JSON di ScriptProperties (6 preset: emerald/sky/amber/violet/rose/teal)
 //             • Menu "Saya": ownerField helper + AppCore.getMyScope() + scope toggle Saya/Semua
@@ -10,7 +10,7 @@
 //             • Workflow: STATUS_MAP + CoreLib.validateTransition / assertOwnership
 //             • Periode: CoreLib.periodeBulan / dalamPeriode / hitungHariKerja (for piramida)
 //             • Unique: CoreLib.findUnique / upsertUnique (anti-duplikat kode)
-//             • Bump pin CoreLib 15→16, CDN @v2.8.1→@v2.9.0 (8 file: layout/ui/forms/data/charts/workflow)
+//             • Bump pin CoreLib 16→17, CDN @v2.9.0 10 file (1 CSS + 9 JS: layout/ui/forms/data/charts/workflow + bundle compat)
 //   v2.11.0 — REDESIGN SKEMA (keputusan user 2026-09-22):
 //             5 master = 5 dimensi laporan: M_KATEGORI (hierarki), M_JENIS,
 //             M_PERIODE, M_SATUAN, M_LOKASI.
@@ -26,7 +26,7 @@
 //             app bisnis bebas menambah/mengurangi sheet & handler.
 //   v2.10.1 — FIX K1: isRefSheet_ hanya untuk master SIMPEG (PEGAWAI/
 //             UNIT_KERJA/JABATAN). Pola tetap dipertahankan di v2.11.0.
-// Bridge tipis ke CoreLib v2.4.0 (pin 16) + kontrak dispatcher v2 + CDN v2.9.0.
+// Bridge tipis ke CoreLib v2.4.0 (pin 17 LIVE) + kontrak dispatcher v2 + CDN v2.9.0 10 file (1 CSS+9 JS).
 //
 // Bagian yang perlu Anda sesuaikan ditandai [SESUAIKAN].
 //
