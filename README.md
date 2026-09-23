@@ -1,12 +1,14 @@
-# 🧰 STARTER-KIT WEB APP BISNIS (v2.10.0 — 11 sheet + 72 handler + RTL + UIUX v1.10)
+# 🧰 STARTER-KIT WEB APP BISNIS (v2.12.0 — 5 master + 5 tabel + piramida 12/8/6/4 + dashboard 4+4+4)
 
-Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN). Dicetak dari prototipe **si-arsip v1.10** (11 sheet + 72 handler + RTL R1-R5 + UIUX polish 59/28/0/0/56) + **si-kompetensi v6.0.1** & **si-lahar v2.1.0**.
+Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN).
 
-> **Versi template**: 2.10.0 (2026-09-21 malam) — setelah si-arsip v1.10 SELESAI.
+> **Versi template**: **2.11.0** (2026-09-22) — redesign skema (keputusan user) + UIUX v2 (standar hasil audit si-dokumen).
 > **CoreLib**: pin **15** (v2.3.0) — util sadar-WIB + paginasi + pencarian + whitelist.
-> **CDN**: **`@v2.8.1`** (internal `"2.8.0"`) — v2.9.0 kandidat C1-C3 masih backlog (skip dulu, nanti batch dengan app lain). **Vue**: `3.5.42`.
-> **Skema**: 3 master + 8 tabel incl RTL = **11 sheet** (standar: 3 + 3 minimal, sekarang 11).
-> **Handler**: **72** (config 6 + self 2 + dash 2 + simpeg 4 + master 9 + utama 4 + item 4 + logbook 2 + lampiran 3 + approval 4 + jadwal 4 + rekap 4 + laporan 2 + analisa 3 + evaluasi 3 + RTL 12 + generic 2 + publik 3 + sistem 1 = 72)
+> **CDN**: **`@v2.9.0`** — 8 FILE & 31 OPSI (2026-09-22) — internal `"2.9.0"` — CoreLib v2.4.0 A+B (pin 16). C1-C3 masih backlog. **Vue**: `3.5.42`.
+> **Skema (BASELINE — FLEKSIBEL, tidak wajib)**: **5 master = 5 dimensi laporan** + **5 tabel inti = 10 sheet**. App bisnis bebas menambah/mengurangi sheet & handler sesuai keunikan domainnya.
+> **Handler**: **86** (config 6 + self 2 + dash 2 + simpeg 4 + master 15 + utama 4 + item 4 + lampiran 3 + approval 4 + RTL 12 + **laporan 12 + analisa 8 + evaluasi 6** + generic 2 + publik 2 + sistem 1 = 86; +2 native CoreLib = 88 aksi)
+> **Piramida output (REFERENSI — tidak kaku)**: **Laporan 12 · Analisa 8 · Evaluasi 6 · RTL 4 sumber = 30**.
+> **Dashboard "ukuran sedang"**: **4 kartu summary + 4 chart + 4 panel** — semua dihitung server-side.
 > **Total file**: 16 (4 backend + 10 frontend + 1 manifest + 1 AI_CONTEXT)
 
 ---
@@ -21,13 +23,13 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 | Dispatcher + fail-closed | **CoreLib.dispatchAction** | `handleAction(payload)` di `02_AppLogic.gs` |
 | Util tanggal sadar-WIB | **CoreLib** (v2.3.0) | `todayIsoLocal()`, `dateKey10()` — JANGAN `todayIso()` (UTC) |
 | Audit HTTP ke SI-PLATFORM | `00_Utils.gs` → `audit_()` | wrapper — panggil `audit_(actor, action, type, id, ok, msg)` |
-| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.8.1** | 15+ komponen `app-*` — auto registrasi |
-| RTL / Tindak Lanjut (puncak piramida) | **Contoh si-arsip R1-R5** | T_TINDAK_LANJUT + 12 handler + V_Rtl + generate + status + progress bar |
+| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.9.0 (8 file & 31 opsi)** | 15+ komponen `app-*` — auto registrasi |
+| RTL / Tindak Lanjut (puncak piramida) | **Generik R1-R4** | T_TINDAK_LANJUT + 12 handler + FSM + generate dari E1/E2/E3 + manual |
 | User/role/permission/notifikasi/file | **si-platform** | tidak perlu sheet lokal |
 
 ---
 
-## 📦 Isi template (`src/` — 16 file) — v2.10.0
+## 📦 Isi template (`src/` — 17 file) — v2.12.0
 
 ```
 src/
@@ -35,34 +37,39 @@ src/
 │
 │  Backend (4):
 ├── 00_Utils.gs                 # Audit HTTP ke SI-PLATFORM
-├── 01_ConfigAndBridge.gs       # Konstanta + 11 sheet skema + bridge + hook P1/P2 + 72 actionLevels
-├── 02_AppLogic.gs              # doGet/doPost/include + handleAction + 72 handler (master + utama + item + logbook + lampiran + approval + jadwal + rekap + laporan + analisa + evaluasi + RTL)
-├── 99_TestSuite.gs             # Test suite (runLibraryTests + adopsi + routing + domain + RTL)
+├── 01_ConfigAndBridge.gs       # Konstanta + 10 sheet skema (5M+5T) + bridge + hook P1/P2 + 88 actionLevels
+├── 02_AppLogic.gs              # doGet/doPost/include + handleAction + 86 handler (5 master + utama + item + lampiran + approval + 12L + 8A + 6E + RTL FSM + seed)
+├── 99_TestSuite.gs             # Test suite (library + adopsi + routing 86 + domain + smoke piramida + dashboard 4+4+4)
 │
 │  Frontend (10):
-├── Index.html                  # Shell tipis CDN @v2.8.1 + Vue 3.5.42 + tema #0369a1 + include 1 tingkat (V_Modals, V_Dashboard, V_Rtl, V_Utama, V_Master, V_Laporan)
-├── V_Dashboard.html            # Dashboard 4 KPI app-stat-card + 2 chart + tabel terbaru + RTL ringkas (UIUX v1.10)
-├── V_Rtl.html                  # RTL R1-R5 generik — generate panel + filter label + stat 4 card + tabel min-w + table-scroll + progress bar + modal v-if (contoh si-arsip)
-├── V_Utama.html                # T_UTAMA — filter-bar + table-scroll min-w + badge valid + btn-icon + pagination (UIUX v1.10)
-├── V_Master.html               # Master 3 tab — table-scroll min-w + badge aktif/nonaktif + btn-icon (UIUX v1.10)
-├── V_Laporan.html              # Laporan L4/L5 contoh — filter-analytics + app-stat-card + table-scroll (UIUX v1.10)
-├── V_Modals.html               # Modal form Utama + Referensi — v-if + @close + size lg/2xl (UIUX v1.10)
-├── J_State.html                # State + computed + RTL state (11 sheet)
-├── J_Helpers.html              # Helper fmtTgl + badge mapping valid + toggleRowMenu
-├── J_Api.html                  # Loader dashboard + master + utama + laporan + analisa + RTL (v2.10.0)
-├── J_Actions.html              # Handler simpan/hapus RTL + utama + referensi (v2.10.0)
-└── J_App.html                  # Bootstrap AppCore.create + menu 5 item (dashboard, rtl, laporan, utama, master) + tema #0369a1
+├── Index.html                  # Shell tipis CDN @v2.9.0 (8 file & 31 opsi) + CSS Tailwind TER-COMPILE (bukan Play CDN) + tema dinamis <?!= getThemeCss() ?> (6 preset) + <app-theme-picker> + scope Saya/Semua (9 view incl. Pengaturan)
+├── V_Dashboard.html            # Dashboard ukuran sedang: 4 kartu + 4 chart + 4 panel (server-side)
+├── V_Utama.html                # Transaksi CRUD — 5 filter + tahun select + paginasi server-side + nama bukan ID
+├── V_Laporan.html              # 12 tab laporan (L1-L12) — nama, bukan ID
+├── V_Analisa.html              # 8 tab analisa (A1-A8) — matrix korelasi, tren, SLA
+├── V_Evaluasi.html             # 6 tab evaluasi (E1-E6)
+├── V_Rtl.html                  # RTL R1-R4 — generate dari E1/E2/E3 + manual + FSM + TANPA field status di form
+├── V_Master.html               # 5 master (Kategori hierarki/Jenis/Periode/Satuan/Lokasi)
+├── V_Modals.html               # Modal form Transaksi + Master (field dinamis per tab) — v-if + @close
+├── J_State.html                # State + computed (tahunOptions, akses chart dashboard)
+├── J_Helpers.html              # fmtTgl + badge valid + lookup NAMA per master + formatBytes_ + korelasiCell_
+├── J_Api.html                  # Loader dashboard + 5 master + utama + 12L + 8A + 6E + RTL (+ SK_MAPS global)
+├── J_Actions.html              # simpan/hapus 5 master (generik) + utama + RTL (FSM via modal status)
+└── J_App.html                  # Bootstrap AppCore.create + menu 7 halaman + icon unik per halaman
 ```
 
-**Skema 11 sheet (v2.10.0):**
-- **Master (3)**: `M_REFERENSI`, `M_KATEGORI`, `M_SATUAN`
-- **Tabel (8)**: `T_UTAMA`, `T_ITEM`, `T_LOGBOOK`, `T_LAMPIRAN`, `T_APPROVAL`, `T_JADWAL`, `T_REKAP`, `T_TINDAK_LANJUT` (alias `T_RTL` — RTL R1-R5 contoh si-arsip)
-- **Sheet uji**: `ZZ_TEST_CRUD`
-- **Sheet sistem CoreLib**: `AUDIT_LOGS`, `MAIN_DATA`
+**Skema 10 sheet (baseline v2.12.0 — FLEKSIBEL, bukan kewajiban):**
+- **Master (5)** — tiap sheet = 1 dimensi laporan ("per apa?"):
+  `M_KATEGORI` (hierarki) · `M_JENIS` (+sifat periode) · `M_PERIODE` (tahun/bulan) · `M_SATUAN` · `M_LOKASI`
+- **Tabel (5)** — transaksi inti:
+  `T_UTAMA` (5 FK: kategori/jenis/lokasi/periode/satuan) · `T_ITEM` · `T_LAMPIRAN` · `T_APPROVAL` · `T_TINDAK_LANJUT`
+- **Opsional** (tambah bila app butuh): `T_JADWAL` (deadline/kalender), `T_LOGBOOK` (jejak per baris — melengkapi AUDIT_LOGS CoreLib) — blok header siap disalin di komentar 01.
+- **Sheet uji**: `ZZ_TEST_CRUD` · **Sheet sistem CoreLib**: `AUDIT_LOGS`, `MAIN_DATA`
 - **SIMPEG (read-only)**: `PEGAWAI`, `JABATAN`, `UNIT_KERJA`
 
-**Domain contoh lengkap**: `M_REFERENSI` + `T_UTAMA` + `T_APPROVAL` + `T_TINDAK_LANJUT` (RTL).
-**7 sheet lain**: handler aktif (get_list/save/delete) — siap pakai.
+**Seed otomatis** (`initDatabase()` / `setupApp()`): 4 kategori + 5 jenis + 3 periode (tahun-1..tahun+1) + 3 satuan + 3 lokasi — hanya jika sheet kosong.
+
+**Dihapus dari v2.10.0** (dokumentasi keputusan): `M_REFERENSI` (filler "lemari serbaguna"), `T_LOGBOOK` & `T_JADWAL` (opsional), `T_REKAP` (rekap = fungsi laporan, bukan sheet — pola si-dokumen L4/L5/L6).
 
 ---
 
@@ -76,9 +83,9 @@ src/
 
 ### Fase 2 — Penyesuaian (±10 menit)
 
-4. `01_ConfigAndBridge.gs`: Ganti `APP_CODE` + `APP_TITLE`, isi `DEFAULT_SPREADSHEET_ID` atau set Script Properties `SPREADSHEET_ID`, sesuaikan `ALL_SHEET_HEADERS`, `actionLevels` 72 sudah aktif.
+4. `01_ConfigAndBridge.gs`: Ganti `APP_CODE` + `APP_TITLE`, isi `DEFAULT_SPREADSHEET_ID` atau set Script Properties `SPREADSHEET_ID`, sesuaikan `ALL_SHEET_HEADERS` (tambah/kurangi sheet & kolom sesuai domain — **fleksibel**), `actionLevels` 88 sudah aktif.
 5. `appsscript.json`: pastikan CoreLib pin 15.
-6. Jalankan **`initDatabase()`** sekali → cek 11 sheet + ZZ_TEST_CRUD terbuat.
+6. Jalankan **`initDatabase()`** sekali → cek 10 sheet + ZZ_TEST_CRUD terbuat + seed master awal masuk.
 
 ### Fase 3 — Terhubung ke ekosistem (±10 menit)
 
@@ -88,8 +95,8 @@ src/
 
 ### Fase 4 — Mengembangkan (berulang)
 
-10. Logika bisnis di `02_AppLogic.gs`: pola `buildLocalHandlers_()` — 72 handler sudah, tambah domain baru tinggal tambah di `actionLevels` (01) + handler di 02.
-11. Tampilan pakai komponen kit + UIUX v1.10 polish: `min-w-[...]` di th, wrapper `table-scroll`, badge via `app-badge :status` valid, KPI via `app-stat-card`, pagination `btn-icon`, filter label `text-[11px]` / `.filter-label`, modal `v-if` + `@close`.
+10. Logika bisnis di `02_AppLogic.gs`: pola `buildLocalHandlers_()` — 86 handler sudah (termasuk piramida 12L/8A/6E/4R), tambah domain baru tinggal tambah di `actionLevels` (01) + handler di 02 (WAJIB sinkron — fail-closed).
+11. Tampilan pakai komponen kit + **UIUX v2**: CSS ter-compile (bukan Play CDN), nama bukan ID, tahun = select, tombol di-gate `v-can`, `min-w-[...]` di th, wrapper `table-scroll`, badge via `app-badge :status` valid, KPI via `app-stat-card`, pagination `btn-icon`, filter label `.filter-label`, modal `v-if` + `@close`, form tanpa field yang dikunci backend.
 12. Contract-check: `python3 frontend-cdn/tools/contract_check.py` — exit 0 aman.
 13. Stabil → minta Track D + repo GitHub baru.
 
@@ -101,26 +108,26 @@ src/
 
 Setelah paste + `initDatabase()`:
 
-| Fungsi | Target v2.10.0 |
+| Fungsi | Target v2.12.0 |
 |---|---|
 | `testUtilsSelfCheck()` | Semua ✅ |
-| `testAppLogicSelfCheck()` | 72 handler ✅ |
+| `testAppLogicSelfCheck()` | 86 handler ✅ |
 | `runLibraryTests()` | PASS 42 / FAIL 0 / SKIP 1 (CoreLib v2.3.0) |
 | `testAdopsiG18d()` | 13 / 0 |
-| `testDispatcherRouting()` | ~72 / 0 (registry + fail-closed) |
-| `runDomainTestsStarterKit()` | ~30 / 0 (11 sheet + SIMPEG RO + RTL) |
-| `runAllDiagnostics()` | Semua ✅ (11 sheet + SIMPEG) |
+| `testDispatcherRouting()` | 6 / 0 (registry 86 + fail-closed) |
+| `runDomainTestsStarterKit()` | ~35 / 0 (5 master + guard + T_UTAMA + RTL FSM + hook + skema 10 + **smoke piramida 12/8/6** + **dashboard 4+4+4**) |
+| `runAllDiagnostics()` | Semua ✅ (10 sheet + SIMPEG) |
 
 Satu pintu: `runAllTestsStarterKit()`.
 
 ---
 
-## 📏 Aturan wajib (kontrak ekosistem) — v2.10.0 tambah UIUX
+## 📏 Aturan wajib (kontrak ekosistem) — v2.12.0 = CDN v2.9.0 + CoreLib v2.4.0 A+B
 
 1. CoreLib first — cek katalog sebelum util baru.
 2. Tolerant reader SIMPEG.
 3. Tag kit berpasangan `<app-x></app-x>`, jangan `/>`.
-4. Pin CDN eksplisit `@v2.8.1` (v2.9.0 skip dulu, batch nanti).
+4. Pin CDN eksplisit `@v2.9.0` (8 file: layout/ui/forms/data/charts/workflow) + CoreLib pin 16.
 5. Contract-check sebelum salin.
 6. Tanggal: `CoreLib.todayIsoLocal()` / `dateKey10()` (WIB), jangan `todayIso()`.
 7. Setiap handler baru → daftarkan di `actionLevels` (01) — fail-closed.
@@ -128,13 +135,15 @@ Satu pintu: `runAllTestsStarterKit()`.
 9. Verifikasi field via `localPreSaveHook_` P2.
 10. Urutan include di Index: `V_Modals` → `V_*` → `J_State` → `J_Helpers` → `J_Api` → `J_Actions` → `J_App`.
 11. `00_Utils.gs` wajib ada.
-12. **UIUX v1.10 (baru):**
-    - th wajib `min-w-[...]` (Judul 260px, Kode 100-160px, Status 100px, Aksi 120px), wrapper `table-scroll`, bukan `overflow-x-auto`. Grep min-w ≥30.
-    - Badge wajib `<app-badge :status="valid">` — valid: aktif/disetujui/ditolak/menunggu/proses/draft/nonaktif/batal/revisi/verifikasi/belum. Mapping: selesai=disetujui, baru/draft=draft, diproses=menunggu, batal=ditolak. Dilarang raw `badge-sky/rose/amber/gray` + empty `''`.
-    - KPI wajib `<app-stat-card>` — tidak ada custom `card !p-3 text-center` + `text-lg font-black`. Props: title, :value, icon, color, subtext.
-    - Pagination `btn-icon` chevron, filter label `text-[11px] text-slate-500` / `.filter-label`, wrapper `filter-bar-analytics` / `flex flex-col sm:flex-row gap-2 items-end`.
-    - Modal `v-if="showX" @close="showX=false"` + size md/lg/2xl/3xl, bukan `:show=`.
-    - Tema per app: `:root --primary #0369a1` (sky-700) + `theme-color` + tailwind config — CDN tetap netral.
+12. **UIUX v2 (standar baru — hasil audit si-dokumen 2026-09-22):**
+    - **CSS Tailwind TER-COMPILE** (inline di Index) — Play CDN HANYA prototyping. Compile: `npx tailwindcss -i input.css -o out.min.css --minify` (config: `darkMode:'class'`, content = `src/*.html` + `frontend-cdn/frontend/*.js`). Jaga Index < 50 KB.
+    - **Nama, bukan ID** — tabel menampilkan nama (lookup helper / field `*_nama`); ID hanya sub-baris `font-mono text-[11px]`.
+    - **Tahun/periode = select** (`tahunOptions`), bukan input teks.
+    - **Tombol aksi di-gate role** — `v-can="'<level>'"` (fail-closed, cermin level backend).
+    - **Fitur setengah jadi tidak ditampilkan** (hapus tab; backend boleh tetap ada).
+    - **Form tidak menampilkan field yang dikunci backend** (mis. status FSM) — UI = cermin aturan server.
+    - Icon menu unik per halaman · title browser tanpa nomor versi internal · ukuran human-readable (`formatBytes_`).
+    - th wajib `min-w-[...]`, wrapper `table-scroll` · badge `<app-badge :status="valid">` · KPI `<app-stat-card>` · pagination `btn-icon` · filter `.filter-label` · modal `v-if` + `@close` · tema per app `:root --primary`.
 
 ---
 
@@ -174,6 +183,32 @@ si-NAMA-APP/
 
 ---
 
+## 📜 Changelog v2.12.0 (2026-09-23)
+
+**REDESIGN SKEMA** — keputusan user 2026-09-22: master = dimensi laporan, app boleh fleksibel.
+
+- **Skema 11 → 10 sheet (5 master + 5 tabel)** — baseline, FLEKSIBEL (bukan kewajiban):
+  - Master 5: `M_KATEGORI` (hierarki) · `M_JENIS` · `M_PERIODE` · `M_SATUAN` · `M_LOKASI`
+  - Tabel 5: `T_UTAMA` (+3 FK baru: jenis/lokasi/periode) · `T_ITEM` · `T_LAMPIRAN` · `T_APPROVAL` · `T_TINDAK_LANJUT`
+  - Buang: `M_REFERENSI` (filler), `T_REKAP` (→fungsi laporan); opsional: `T_LOGBOOK`, `T_JADWAL` (blok header di komentar 01)
+- **Piramida output 12 + 8 + 6 + 4 = 30** (referensi, tidak kaku):
+  - **Laporan 12**: per kategori (rollup hierarki), jenis, lokasi, periode, pegawai, status, satuan, matriks jenis×tahun, matriks jenis×lokasi, detail, lampiran, approval
+  - **Analisa 8**: distribusi lokasi/jenis, top pegawai, beban lokasi, korelasi jenis×lokasi (matrix), tren 12 bln, umur data, SLA approval
+  - **Evaluasi 6**: kelengkapan, SLA verifikasi, kepatuhan periode, kualitas data (FK yatim + duplikat), lampiran, RTL terbuka
+  - **RTL 4 sumber**: R1 kelengkapan (E1), R2 SLA (E2), R3 periode (E3), R4 manual — FSM tetap
+- **Dashboard "ukuran sedang" 4+4+4**: 4 kartu summary + 4 chart + 4 panel — **semua dihitung server-side** (`get_dashboard_`) — tidak ada lagi grafik dari 20 baris halaman pertama
+- **Handler 72 → 86** (+2 native CoreLib = 88 aksi) — sinkron 1:1 `actionLevels` (fail-closed)
+- **Guard referensial**: delete master yang masih dipakai T_UTAMA DITOLAK; parent kategori wajib ada; FK jenis wajib valid; periode kode auto (YYYY / YYYY-MM)
+- **Seed master otomatis** di `initDatabase()`/`setupApp()` (4 kategori, 5 jenis, 3 periode, 3 satuan, 3 lokasi — hanya jika kosong)
+- **UIUX v2** (standar hasil audit si-dokumen — detail di `AUDIT_UIUX_SIDOKUMEN.md`):
+  - **Play CDN dihapus** → CSS Tailwind v3.4.17 ter-compile inline (salinan: `frontend-cdn/frontend/app-tailwind.min.css`)
+  - Nama bukan ID (lookup 5 master + pegawai) · tahun select di semua filter · icon menu unik
+  - Form RTL tanpa field status (status hanya via modal + FSM) · title tanpa versi internal
+- **Test suite**: tambah `testSmokePiramida` (12L+8A+6E via dispatcher) + `testDashboard444` + guard master (parent/FK/kode auto) + detail relasi T_UTAMA
+- **Frontend**: 7 halaman (dashboard, transaksi, laporan, analisa, evaluasi, rtl, master) · menu Insight/Aksi/Data · `SK_MAPS` global (peta tab→aksi)
+
+---
+
 ## 📜 Changelog v2.10.0
 
 - **11 sheet** (was 10) — tambah `T_TINDAK_LANJUT` (alias `T_RTL`) — RTL R1-R5 contoh si-arsip
@@ -186,7 +221,7 @@ si-NAMA-APP/
 - **J_Actions**: tambah simpanRtl/hapusRtl/openRtlEdit/openRtlStatus/ubahStatusRtl
 - **J_App**: menu 5 item (dashboard, rtl, laporan, utama, master) + brand v2.10.0
 - **Index.html**: tema #0369a1 locked + include V_Rtl + V_Utama + V_Master + V_Laporan + filter-bar-analytics + progress-track CSS (kandidat CDN C1-C3 lokal)
-- **CDN**: tetap @v2.8.1 — v2.9.0 skip dulu (kandidat C1-C3 backlog, batch dengan app lain nanti) — sesuai keputusan user 21 Sept malam
+- **CDN**: @v2.9.0 (8 file & 31 opsi, 10 .min sinkron) + 6 preset tema dinamis + AppCore.getMyScope() — sesuai persetujuan user 2026-09-23
 
 ---
 
