@@ -9,7 +9,7 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 > **Handler**: **86** (config 6 + self 2 + dash 2 + simpeg 4 + master 15 + utama 4 + item 4 + lampiran 3 + approval 4 + RTL 12 + **laporan 12 + analisa 8 + evaluasi 6** + generic 2 + publik 2 + sistem 1 = 86; +2 native CoreLib = 88 aksi)
 > **Piramida output (REFERENSI — tidak kaku)**: **Laporan 12 · Analisa 8 · Evaluasi 6 · RTL 4 sumber = 30**.
 > **Dashboard "ukuran sedang"**: **4 kartu summary + 4 chart + 4 panel** — semua dihitung server-side.
-> **Total file**: 16 (4 backend + 10 frontend + 1 manifest + 1 AI_CONTEXT)
+> **Total file**: 22 (20 di `src/` = 4 backend GS + 15 frontend HTML + 1 manifest `appsscript.json` + 2 docs `README.md` & `AI_CONTEXT.md`)
 
 ---
 
@@ -29,7 +29,7 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 
 ---
 
-## 📦 Isi template (`src/` — 17 file) — v2.12.0
+## 📦 Isi template (`src/` — 20 file) — v2.12.0
 
 ```
 src/
