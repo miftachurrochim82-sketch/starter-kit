@@ -1,6 +1,8 @@
 <!-- ============================================================
-     STARTER-KIT - V_Master.html (v2.10.0 — UIUX v1.10 polish)
-     3 tab: Referensi / Kategori / Satuan — min-w + table-scroll + badge valid + btn-icon + filter label
+     STARTER-KIT - V_Master.html (v2.11.0 — 5 master = 5 dimensi)
+     Kategori (hierarki) · Jenis · Periode · Satuan · Lokasi
+     Guard di backend: parent wajib ada, FK wajib ada, delete
+     yang masih dipakai DITOLAK.
      ============================================================ -->
 <section v-if="currentPage === 'master'" class="space-y-6 animate-fade-in">
 
@@ -10,45 +12,52 @@
         <i class="fa-solid fa-book text-sky-600 dark:text-sky-400"></i> Master Data
       </h2>
       <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-        3 master (M_REFERENSI, M_KATEGORI, M_SATUAN) — contoh CRUD + UIUX v1.10
+        5 master = 5 dimensi laporan — tiap sheet menjawab "per apa?"
       </p>
     </div>
+    <button v-can="'verifikator'" class="btn btn-primary" @click="openMasterForm()"><i class="fa-solid fa-plus"></i> Tambah {{ masterTab }}</button>
   </div>
 
-  <div class="grid grid-cols-3 gap-2">
-    <button class="btn" :class="masterTab==='referensi' ? 'btn-primary' : 'btn-ghost'" @click="masterTab='referensi'"><i class="fa-solid fa-tags"></i> Referensi</button>
-    <button class="btn" :class="masterTab==='kategori' ? 'btn-primary' : 'btn-ghost'" @click="masterTab='kategori'"><i class="fa-solid fa-layer-group"></i> Kategori</button>
+  <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
+    <button class="btn" :class="masterTab==='kategori' ? 'btn-primary' : 'btn-ghost'" @click="masterTab='kategori'"><i class="fa-solid fa-sitemap"></i> Kategori</button>
+    <button class="btn" :class="masterTab==='jenis' ? 'btn-primary' : 'btn-ghost'" @click="masterTab='jenis'"><i class="fa-solid fa-tag"></i> Jenis</button>
+    <button class="btn" :class="masterTab==='periode' ? 'btn-primary' : 'btn-ghost'" @click="masterTab='periode'"><i class="fa-solid fa-calendar-days"></i> Periode</button>
     <button class="btn" :class="masterTab==='satuan' ? 'btn-primary' : 'btn-ghost'" @click="masterTab='satuan'"><i class="fa-solid fa-ruler"></i> Satuan</button>
+    <button class="btn" :class="masterTab==='lokasi' ? 'btn-primary' : 'btn-ghost'" @click="masterTab='lokasi'"><i class="fa-solid fa-location-dot"></i> Lokasi</button>
   </div>
 
-  <!-- Referensi -->
-  <div v-if="masterTab==='referensi'" class="card overflow-hidden !p-0">
+  <app-skeleton v-if="masterLoading && !kategoriList.length" type="table"></app-skeleton>
+
+  <!-- M_KATEGORI -->
+  <div v-if="!masterLoading && masterTab==='kategori'" class="card overflow-hidden !p-0">
     <div class="flex items-center justify-between p-3 border-b">
-      <h3 class="font-bold text-sm">M_REFERENSI</h3>
-      <button class="btn btn-primary" @click="showRefForm=true; refForm={id:'',kategori:'',kode:'',nama_nilai:'',urutan:0,status_aktif:'true',keterangan:''}"><i class="fa-solid fa-plus"></i> Tambah</button>
+      <h3 class="font-bold text-sm">M_KATEGORI <span class="text-[11px] text-slate-400 font-normal">— hierarki (parent → anak), basis L1 rollup</span></h3>
     </div>
-    <app-skeleton v-if="referensiLoading" type="table"></app-skeleton>
-    <div v-else class="table-scroll">
+    <div class="table-scroll">
       <table class="w-full text-xs">
         <thead class="border-b bg-slate-50 dark:bg-slate-800/50">
           <tr>
-            <th class="text-left py-2 px-3 min-w-[100px]">Kode</th>
-            <th class="text-left py-2 px-3 min-w-[240px]">Nama Nilai</th>
-            <th class="text-left py-2 px-3 min-w-[140px]">Kategori</th>
-            <th class="text-left py-2 px-3 min-w-[100px]">Status</th>
+            <th class="text-left py-2 px-3 min-w-[110px]">Kode</th>
+            <th class="text-left py-2 px-3 min-w-[220px]">Nama</th>
+            <th class="text-left py-2 px-3 min-w-[150px]">Parent</th>
+            <th class="text-left py-2 px-3 min-w-[180px]">Deskripsi</th>
+            <th class="text-right py-2 px-3 min-w-[70px]">Urutan</th>
+            <th class="text-left py-2 px-3 min-w-[90px]">Status</th>
             <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
           </tr>
         </thead>
         <tbody class="divide-y">
-          <tr v-for="r in referensiList" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+          <tr v-for="r in kategoriList" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
             <td class="py-2 px-3 font-mono font-bold">{{ r.kode }}</td>
-            <td class="py-2 px-3">{{ r.nama_nilai }}</td>
-            <td class="py-2 px-3">{{ r.kategori }}</td>
+            <td class="py-2 px-3">{{ r.nama }}</td>
+            <td class="py-2 px-3 text-slate-400">{{ r.parent_id ? namaKategori_(r.parent_id) : '—' }}</td>
+            <td class="py-2 px-3 text-slate-400 truncate max-w-[180px]">{{ r.deskripsi || '—' }}</td>
+            <td class="py-2 px-3 text-right">{{ r.urutan }}</td>
             <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
             <td class="py-2 px-3 text-right">
               <div class="flex gap-1 justify-end">
-                <button class="btn-icon" @click="refForm=Object.assign({}, r); showRefForm=true"><i class="fa-solid fa-pen"></i></button>
-                <button class="btn-icon-danger" @click="hapusReferensi(r)"><i class="fa-solid fa-trash"></i></button>
+                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -57,11 +66,148 @@
     </div>
   </div>
 
-  <div v-if="masterTab==='kategori'" class="card p-6 text-center text-xs text-slate-400">
-    M_KATEGORI — CRUD via get_kategori_list / save_kategori / delete_kategori (sudah di 01 + 02, tinggal buka UI seperti tab Referensi)
+  <!-- M_JENIS -->
+  <div v-if="!masterLoading && masterTab==='jenis'" class="card overflow-hidden !p-0">
+    <div class="flex items-center justify-between p-3 border-b">
+      <h3 class="font-bold text-sm">M_JENIS <span class="text-[11px] text-slate-400 font-normal">— jenis + sifat periode (Tahunan/Bulanan/Periodik/Fleksibel)</span></h3>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="border-b bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="text-left py-2 px-3 min-w-[110px]">Kode</th>
+            <th class="text-left py-2 px-3 min-w-[220px]">Nama</th>
+            <th class="text-left py-2 px-3 min-w-[150px]">Kategori</th>
+            <th class="text-left py-2 px-3 min-w-[110px]">Periode</th>
+            <th class="text-right py-2 px-3 min-w-[70px]">Urutan</th>
+            <th class="text-left py-2 px-3 min-w-[90px]">Status</th>
+            <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr v-for="r in jenisList" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+            <td class="py-2 px-3 font-mono font-bold">{{ r.kode }}</td>
+            <td class="py-2 px-3">{{ r.nama }}</td>
+            <td class="py-2 px-3 text-slate-400">{{ r.kategori_id ? namaKategori_(r.kategori_id) : '—' }}</td>
+            <td class="py-2 px-3">{{ r.periode }}</td>
+            <td class="py-2 px-3 text-right">{{ r.urutan }}</td>
+            <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
+            <td class="py-2 px-3 text-right">
+              <div class="flex gap-1 justify-end">
+                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
-  <div v-if="masterTab==='satuan'" class="card p-6 text-center text-xs text-slate-400">
-    M_SATUAN — CRUD via get_satuan_list / save_satuan / delete_satuan
+
+  <!-- M_PERIODE -->
+  <div v-if="!masterLoading && masterTab==='periode'" class="card overflow-hidden !p-0">
+    <div class="flex items-center justify-between p-3 border-b">
+      <h3 class="font-bold text-sm">M_PERIODE <span class="text-[11px] text-slate-400 font-normal">— tahun/bulan terkontrol (kode auto: YYYY / YYYY-MM)</span></h3>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="border-b bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="text-left py-2 px-3 min-w-[110px]">Kode</th>
+            <th class="text-left py-2 px-3 min-w-[200px]">Label</th>
+            <th class="text-left py-2 px-3 min-w-[90px]">Tahun</th>
+            <th class="text-left py-2 px-3 min-w-[80px]">Bulan</th>
+            <th class="text-left py-2 px-3 min-w-[90px]">Status</th>
+            <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr v-for="r in periodeList" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+            <td class="py-2 px-3 font-mono font-bold">{{ r.kode }}</td>
+            <td class="py-2 px-3">{{ r.label }}</td>
+            <td class="py-2 px-3">{{ r.tahun }}</td>
+            <td class="py-2 px-3">{{ r.bulan || '—' }}</td>
+            <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
+            <td class="py-2 px-3 text-right">
+              <div class="flex gap-1 justify-end">
+                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- M_SATUAN -->
+  <div v-if="!masterLoading && masterTab==='satuan'" class="card overflow-hidden !p-0">
+    <div class="flex items-center justify-between p-3 border-b">
+      <h3 class="font-bold text-sm">M_SATUAN <span class="text-[11px] text-slate-400 font-normal">— basis agregasi jumlah (L7)</span></h3>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="border-b bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="text-left py-2 px-3 min-w-[110px]">Kode</th>
+            <th class="text-left py-2 px-3 min-w-[200px]">Nama</th>
+            <th class="text-left py-2 px-3 min-w-[100px]">Simbol</th>
+            <th class="text-left py-2 px-3 min-w-[180px]">Keterangan</th>
+            <th class="text-left py-2 px-3 min-w-[90px]">Status</th>
+            <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr v-for="r in satuanList" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+            <td class="py-2 px-3 font-mono font-bold">{{ r.kode }}</td>
+            <td class="py-2 px-3">{{ r.nama }}</td>
+            <td class="py-2 px-3">{{ r.simbol }}</td>
+            <td class="py-2 px-3 text-slate-400 truncate max-w-[180px]">{{ r.keterangan || '—' }}</td>
+            <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
+            <td class="py-2 px-3 text-right">
+              <div class="flex gap-1 justify-end">
+                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- M_LOKASI -->
+  <div v-if="!masterLoading && masterTab==='lokasi'" class="card overflow-hidden !p-0">
+    <div class="flex items-center justify-between p-3 border-b">
+      <h3 class="font-bold text-sm">M_LOKASI <span class="text-[11px] text-slate-400 font-normal">— cabang/unit (basis L3/A1/A4)</span></h3>
+    </div>
+    <div class="table-scroll">
+      <table class="w-full text-xs">
+        <thead class="border-b bg-slate-50 dark:bg-slate-800/50">
+          <tr>
+            <th class="text-left py-2 px-3 min-w-[110px]">Kode</th>
+            <th class="text-left py-2 px-3 min-w-[200px]">Nama</th>
+            <th class="text-left py-2 px-3 min-w-[220px]">Alamat</th>
+            <th class="text-left py-2 px-3 min-w-[90px]">Status</th>
+            <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y">
+          <tr v-for="r in lokasiList" :key="r.id" class="hover:bg-slate-50 dark:hover:bg-slate-800/30">
+            <td class="py-2 px-3 font-mono font-bold">{{ r.kode }}</td>
+            <td class="py-2 px-3">{{ r.nama }}</td>
+            <td class="py-2 px-3 text-slate-400 truncate max-w-[220px]">{{ r.alamat || '—' }}</td>
+            <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
+            <td class="py-2 px-3 text-right">
+              <div class="flex gap-1 justify-end">
+                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
 </section>
