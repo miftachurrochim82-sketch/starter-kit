@@ -1,0 +1,123 @@
+<script>
+// ============================================================
+// STARTER-KIT - J_App.html (v2.12.0 — menu 7+1 halaman + tema Opsi B + scope Saya)
+// ============================================================
+// Bootstrap Vue 3 via AppCore.create() — CDN @v2.9.0 (10 file — 1 CSS + 9 JS & 31 opsi).
+// v2.12.0: tambah Pengaturan (tema) + helper scope Saya/Semua via AppCore.getMyScope(),
+//          CoreLib v2.4.0 A+B: WIB/periode/hariKerja + findUnique + tema dinamis.
+// (standar UIUX v2: icon unik per halaman, v-can role-gate, tema per-app --primary)
+
+var StarterKitMixin = {
+  data: function () { return Object.assign({}, window.StarterKitState.data()); },
+  computed: Object.assign({}, window.StarterKitState.computed),
+  methods: Object.assign({}, window.StarterKitHelpers.methods, window.StarterKitApi.methods, window.StarterKitActions.methods, {
+    // Scope Saya/Semua — dipanggil oleh toggle Saya/Semua di V_Utama / Pengaturan (AppCore.getMyScope)
+    getMyScope: function(){ try{ return (window.AppCore && AppCore.getMyScope) ? AppCore.getMyScope() : (this.filterScope || 'all'); }catch(e){ return this.filterScope || 'all'; } },
+    setMyScope: function(v){
+      this.filterScope = v;
+      try{ if(window.AppCore && AppCore.setMyScope) AppCore.setMyScope(v); else localStorage.setItem('sicontoh_scope', v); }catch(e){}
+      this.$forceUpdate();
+      if(this.loadUtama) this.loadUtama(1);
+      if(this.loadAll) this.loadAll();
+    },
+    // Tema — dipanggil oleh <app-theme-picker> di Pengaturan
+    applyTheme: function(codeOrObj){ try{ if(window.AppCore && AppCore.applyTheme) AppCore.applyTheme(codeOrObj); }catch(e){} },
+    onThemeChange: function(val){
+      // val = {primary, preset} atau string preset
+      var obj = (typeof val === 'string') ? (window.AppCore && AppCore.themes && AppCore.themes[val] || {primary: val, preset: val}) : val;
+      this.pendingTheme = obj;
+      this.applyTheme(obj);
+      this.themeMsg = 'Preview: ' + JSON.stringify(obj) + ' — klik Simpan untuk permanen.';
+      this.themeMsgOk = true;
+    },
+    saveTheme: async function(){
+      var cfg = this.pendingTheme;
+      if(!cfg){ try{ cfg = window.AppCore && AppCore.getTheme && AppCore.getTheme(); }catch(e){} }
+      if(!cfg || !cfg.primary){ this.themeMsg='Tema belum dipilih.'; this.themeMsgOk=false; return; }
+      this.themeSaving = true;
+      this.themeMsg = '';
+      try{
+        var res = await this.callServer('save_theme', { theme: cfg });
+        if(res && res.success){ this.themeMsg='Tema tersimpan ✓ — reload akan memakai tema baru.'; this.themeMsgOk=true; this.applyTheme(cfg); }
+        else { this.themeMsg = (res && res.error) || 'Gagal menyimpan tema.'; this.themeMsgOk=false; }
+      }catch(e){ this.themeMsg = e.message || String(e); this.themeMsgOk=false; }
+      this.themeSaving=false;
+    },
+  })
+};
+
+var app = AppCore.create({
+
+  appCode: 'SI-CONTOH',
+  appTitle: 'SI-CONTOH v2.12.0',
+  initialPage: 'dashboard',
+  storagePrefix: 'sicontoh',
+  platformUrl: 'https://script.google.com/macros/s/AKfycbwh_OUVqmxLcuF81FHmPZtT33Wrm8Ce9Da1SQ3hfkSr7gM5P8ofyAlHSgW40mq3eo-PoQ/exec',
+
+  brand: {
+    title: 'SI-CONTOH',
+    subtitle: 'Starter Kit v2.12.0',
+    logoIcon: 'fa-solid fa-cube',
+    logoChar: 'SC',
+    logoSvg: ''
+  },
+
+  // Menu — 7 halaman utama + 1 Pengaturan (tema Opsi B), icon unik per halaman
+  menu: [
+    { name: 'Utama', items: [
+      { id: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high' },
+      { id: 'utama', label: 'Transaksi', icon: 'fa-solid fa-database' }
+    ]},
+    { name: 'Insight', items: [
+      { id: 'laporan', label: 'Laporan', icon: 'fa-solid fa-table-list' },
+      { id: 'analisa', label: 'Analisa', icon: 'fa-solid fa-chart-line' },
+      { id: 'evaluasi', label: 'Evaluasi', icon: 'fa-solid fa-magnifying-glass-chart' }
+    ]},
+    { name: 'Aksi', items: [
+      { id: 'rtl', label: 'RTL', icon: 'fa-solid fa-list-check' }
+    ]},
+    { name: 'Data', items: [
+      { id: 'master', label: 'Master', icon: 'fa-solid fa-book' }
+    ]},
+    { name: 'Sistem', items: [
+      { id: 'pengaturan', label: 'Pengaturan', icon: 'fa-solid fa-palette' }
+    ]}
+  ],
+
+  pageIcons: {
+    dashboard:  'fa-solid fa-gauge-high',
+    utama:      'fa-solid fa-database',
+    laporan:    'fa-solid fa-table-list',
+    analisa:    'fa-solid fa-chart-line',
+    evaluasi:   'fa-solid fa-magnifying-glass-chart',
+    rtl:        'fa-solid fa-list-check',
+    master:     'fa-solid fa-book',
+    pengaturan: 'fa-solid fa-palette'
+  },
+
+  onNavigate: function (vm, page) {
+    if (page === 'dashboard') vm.loadAll();
+    if (page === 'utama') { if (!vm.utamaLoading) vm.loadUtama(1); }
+    if (page === 'laporan') { if (!vm.lapData[vm.laporanTab] && !vm.lapLoading) vm.loadLaporan(vm.laporanTab); }
+    if (page === 'analisa') { if (!vm.anaData[vm.analisaTab] && !vm.anaLoading) vm.loadAnalisa(vm.analisaTab); }
+    if (page === 'evaluasi') { if (!vm.evaData[vm.evaluasiTab] && !vm.evaLoading) vm.loadEvaluasi(vm.evaluasiTab); }
+    if (page === 'rtl') { if (!vm.rtlLoading) vm.loadRtl(1); }
+    if (page === 'master') { if (!vm.kategoriList.length && !vm.masterLoading) vm.loadMasterSatelit(); }
+    if (page === 'pengaturan') { /* theme picker — no load */ }
+  },
+
+  initApp: async function (vm) {
+    if (vm.dataLoaded) return;
+    // Restore tema tersimpan (AppCore.themes + safeLocal) — Opsi B
+    try { if (window.AppCore && AppCore.getTheme) { var t = AppCore.getTheme(); if(t) AppCore.applyTheme(t); } } catch(e){}
+    // Restore scope Saya/Semua
+    try { vm.filterScope = (AppCore.getMyScope ? AppCore.getMyScope() : 'all'); } catch(e){ vm.filterScope='all'; }
+    await vm.loadAll(true);
+    vm.dataLoaded = true;
+  },
+
+  mixins: [StarterKitMixin]
+});
+
+app.mount('#app');
+</script>
