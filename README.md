@@ -2,8 +2,8 @@
 
 Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN).
 
-> **Versi template**: **2.11.0** (2026-09-22) — redesign skema (keputusan user) + UIUX v2 (standar hasil audit si-dokumen).
-> **CoreLib**: pin **15** (v2.3.0) — util sadar-WIB + paginasi + pencarian + whitelist.
+> **Versi template**: **2.12.0** (2026-09-23) — redesign skema (keputusan user) + UIUX v2 (standar hasil audit si-dokumen).
+> **CoreLib**: pin **17** (v2.4.0 LIVE PASS 47) — util sadar-WIB + paginasi + pencarian + whitelist + C4-C8.
 > **CDN**: **`@v2.9.0`** — 10 FILE (1 CSS + 9 JS) & 31 OPSI (2026-09-22) — internal `"2.9.0"` — CoreLib v2.4.0 LIVE **pin 17** PASS 47. **Vue**: `3.5.42`.
 > **Skema (BASELINE — FLEKSIBEL, tidak wajib)**: **5 master = 5 dimensi laporan** + **5 tabel inti = 10 sheet**. App bisnis bebas menambah/mengurangi sheet & handler sesuai keunikan domainnya.
 > **Handler**: **86** (config 6 + self 2 + dash 2 + simpeg 4 + master 15 + utama 4 + item 4 + lampiran 3 + approval 4 + RTL 12 + **laporan 12 + analisa 8 + evaluasi 6** + generic 2 + publik 2 + sistem 1 = 86; +2 native CoreLib = 88 aksi)
