@@ -1,0 +1,42 @@
+name: CI — Contract Check (pin 17 + CDN v2.9.0)
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Check CoreLib pin 17
+        run: |
+          python3 -c "
+          import json, sys
+          data=json.load(open('src/appsscript.json'))
+          ver=str(data['dependencies']['libraries'][0]['version'])
+          print(f'pin={ver}')
+          assert ver=='17', f'pin harus 17, ketemu {ver}'
+          print('✅ pin 17 OK')
+          "
+
+      - name: Check CDN @v2.9.0 (1 CSS + 9 JS)
+        run: |
+          grep -q "frontend-cdn@v2.9.0" src/Index.html || (echo "❌ CDN bukan @v2.9.0" && exit 1)
+          grep -q "app-layout.min.js" src/Index.html || (echo "❌ app-layout.min.js tidak ditemukan (10 file)" && exit 1)
+          grep -q "app-workflow.min.js" src/Index.html || (echo "❌ app-workflow.min.js tidak ditemukan" && exit 1)
+          echo "✅ CDN @v2.9.0 1 CSS+9 JS OK"
+
+      - name: Check AppCore scope helper
+        run: |
+          grep -q "getMyScope" src/J_App.html || (echo "❌ getMyScope tidak ada" && exit 1)
+          grep -q "setMyScope" src/J_App.html || (echo "❌ setMyScope tidak ada" && exit 1)
+          echo "✅ scope helper OK"
