@@ -1,9 +1,39 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_Api.html (v2.10.0 — 11 sheet + 72 handler + RTL + UIUX v1.10)
+// STARTER-KIT - J_Api.html (v2.11.0 — loader 5M + 12L + 8A + 6E + dashboard 4+4+4)
 // ============================================================
-// Loader data dari backend (CoreLib.dispatchAction) — pola si-arsip v1.10
-// - min-w + table-scroll di view, badge valid, app-stat-card, btn-icon, filter label, modal v-if
+// Loader data dari backend (CoreLib.dispatchAction).
+// Pola: satu loader per domain; data laporan/analisa/evaluasi disimpan
+// per-tab (objek keyed) agar pindah tab tak memuat ulang data lama.
+
+// Peta tab → aksi backend (global — tidak boleh di dalam methods Vue)
+window.SK_MAPS = {
+  LAP_AKSI: {
+    kategori: 'lap_kategori', jenis: 'lap_jenis', lokasi: 'lap_lokasi',
+    periode: 'lap_periode', pegawai: 'lap_pegawai', status: 'lap_status',
+    satuan: 'lap_satuan', jenis_periode: 'lap_jenis_periode',
+    jenis_lokasi: 'lap_jenis_lokasi', detail: 'lap_detail_utama',
+    lampiran: 'lap_lampiran', approval: 'lap_approval'
+  },
+  ANA_AKSI: {
+    lokasi: 'analisa_distribusi_lokasi', jenis: 'analisa_distribusi_jenis',
+    top_pegawai: 'analisa_top_pegawai', beban_lokasi: 'analisa_beban_lokasi',
+    korelasi: 'analisa_korelasi_jenis_lokasi', tren: 'analisa_tren_periode',
+    umur: 'analisa_umur_data', sla: 'analisa_sla_approval'
+  },
+  EVA_AKSI: {
+    kelengkapan: 'evaluasi_kelengkapan', sla: 'evaluasi_sla_verifikasi',
+    periode: 'evaluasi_kepatuhan_periode', kualitas: 'evaluasi_kualitas_data',
+    lampiran: 'evaluasi_lampiran', rtl: 'evaluasi_rtl_terbuka'
+  },
+  MASTER_AKSI: {
+    kategori: { save: 'save_kategori', del: 'delete_kategori' },
+    jenis:    { save: 'save_jenis',    del: 'delete_jenis' },
+    periode:  { save: 'save_periode',  del: 'delete_periode' },
+    satuan:   { save: 'save_satuan',   del: 'delete_satuan' },
+    lokasi:   { save: 'save_lokasi',   del: 'delete_lokasi' }
+  }
+};
 
 window.StarterKitApi = {
   methods: {
@@ -14,21 +44,31 @@ window.StarterKitApi = {
       await Promise.all([
         this.loadDashboard(s),
         this.loadMasterSatelit(s),
-        this.loadUtama(1),
-        this.loadReferensi(),
-        this.loadRtl(1)
+        this.loadUtama(1, s),
+        this.loadRtl(1, s)
       ]);
     },
 
-    // Dashboard
+    // Dashboard (4 kartu + 4 chart + 4 panel — server-side)
     async loadDashboard(silent) {
       var isSilent = silent === true;
       try {
         var res = await this.callServer('get_dashboard');
         if (res && res.success && res.data) {
-          this.dashboardData = Object.assign({
-            totalUtama: 0, totalBaru: 0, totalSelesai: 0, totalRekap: 0, totalRtl: 0, rtlBaru: 0, rtlSelesai: 0, role: 'viewer', nama: ''
-          }, res.data);
+          var d = res.data;
+          this.dashboardData = {
+            summary: d.summary || { totalUtama: 0, totalSelesai: 0, approvalMenunggu: 0, rtlTerbuka: 0 },
+            chartTren: d.chartTren || { labels: [], counts: [] },
+            chartJenis: d.chartJenis || { labels: [], counts: [] },
+            chartKategori: d.chartKategori || { labels: [], counts: [] },
+            chartLokasi: d.chartLokasi || { labels: [], counts: [] },
+            panelTerbaru: d.panelTerbaru || [],
+            panelApproval: d.panelApproval || [],
+            panelRtl: d.panelRtl || [],
+            panelTidakLengkap: d.panelTidakLengkap || [],
+            role: d.role || 'viewer',
+            nama: d.nama || ''
+          };
         } else if (!isSilent) this.showToast('Gagal memuat dashboard.', 'error');
       } catch (e) {
         console.error('loadDashboard', e);
@@ -36,65 +76,99 @@ window.StarterKitApi = {
       }
     },
 
-    // Master satelit
+    // Master satelit (5 master + pegawai)
     async loadMasterSatelit(silent) {
       var isSilent = silent === true;
+      this.masterLoading = true;
       try {
         var res = await this.callServer('get_master_satelit');
         if (res && res.success && res.data) {
-          this.referensiList = res.data.referensi || [];
           this.kategoriList = res.data.kategori || [];
+          this.jenisList = res.data.jenis || [];
+          this.periodeList = res.data.periode || [];
           this.satuanList = res.data.satuan || [];
-        }
+          this.lokasiList = res.data.lokasi || [];
+          this.pegawaiList = res.data.pegawai || [];
+        } else if (!isSilent) this.showToast('Gagal memuat master.', 'error');
       } catch (e) {
-        if (!isSilent) console.error('loadMasterSatelit', e);
-      }
+        if (!isSilent) this.showToast('Error koneksi master.', 'error');
+      } finally { this.masterLoading = false; }
     },
 
-    // T_UTAMA
-    async loadUtama(page) {
+    // T_UTAMA (paginasi server-side) — + scope Saya/Semua (v2.12.0)
+    async loadUtama(page, silent) {
+      var isSilent = silent === true;
       this.utamaLoading = true;
       try {
-        var res = await this.callServer('get_utama_list', { page: page || 1, search: this.utamaFilters.search, status: this.utamaFilters.status });
-        if (res && res.success) this.utamaList = res.data || [];
-        else this.showToast(res.error || 'Gagal memuat T_UTAMA', 'error');
-      } catch (e) { this.showToast('Error koneksi T_UTAMA', 'error'); }
-      finally { this.utamaLoading = false; }
+        var p = page || this.utamaPagination.page || 1;
+        var scopeVal = 'all';
+        try { scopeVal = (window.AppCore && AppCore.getMyScope) ? AppCore.getMyScope() : (this.filterScope || 'all'); } catch(e){ scopeVal = this.filterScope || 'all'; }
+        var res = await this.callServer('get_utama_list', {
+          page: p,
+          per_page: this.utamaPagination.per_page,
+          search: this.utamaFilters.search,
+          status: this.utamaFilters.status,
+          jenis_id: this.utamaFilters.jenis_id,
+          lokasi_id: this.utamaFilters.lokasi_id,
+          tahun: this.utamaFilters.tahun,
+          filterScope: scopeVal
+        });
+        if (res && res.success) {
+          this.utamaList = res.data || [];
+          this.utamaTotal = res.total || 0;
+          this.utamaTotalPages = res.total_pages || 1;
+          this.utamaPagination.page = res.page || p;
+        } else if (!isSilent) this.showToast((res && res.error) || 'Gagal memuat T_UTAMA', 'error');
+      } catch (e) {
+        if (!isSilent) this.showToast('Error koneksi T_UTAMA', 'error');
+      } finally { this.utamaLoading = false; }
     },
 
-    // Generic master list (M_*)
-    async loadReferensi() {
-      this.referensiLoading = true;
+    // Laporan (12 tab)
+    async loadLaporan(tab) {
+      var t = tab || this.laporanTab;
+      this.lapLoading = true;
       try {
-        var res = await this.callServer('get_referensi_list', {});
-        if (res && res.success) this.referensiList = res.data || [];
-      } catch (e) {} finally { this.referensiLoading = false; }
+        var aksi = window.SK_MAPS.LAP_AKSI[t];
+        if (!aksi) { this.lapLoading = false; return; }
+        var res = await this.callServer(aksi, { tahun: this.lapTahun });
+        if (res && res.success) this.lapData[t] = res.data;
+        else this.showToast((res && res.error) || 'Gagal memuat laporan.', 'error');
+      } catch (e) { this.showToast('Error koneksi laporan.', 'error'); }
+      finally { this.lapLoading = false; }
     },
 
-    // Laporan contoh L4/L5
-    async loadLapKlasifikasi() {
-      this.lapKlasLoading = true;
+    // Analisa (8 tab)
+    async loadAnalisa(tab) {
+      var t = tab || this.analisaTab;
+      this.anaLoading = true;
       try {
-        var res = await this.callServer('lap_rekap_klasifikasi', { tahun: this.lapKlasTahun });
-        if (res && res.success) this.lapKlasData = res.data;
-        else this.showToast(res.error || 'Gagal rekap klasifikasi', 'error');
-      } catch (e) { this.showToast('Error koneksi rekap', 'error'); }
-      finally { this.lapKlasLoading = false; }
+        var aksi = window.SK_MAPS.ANA_AKSI[t];
+        if (!aksi) { this.anaLoading = false; return; }
+        var res = await this.callServer(aksi, { tahun: this.anaTahun });
+        if (res && res.success) this.anaData[t] = res.data;
+        else this.showToast((res && res.error) || 'Gagal memuat analisa.', 'error');
+      } catch (e) { this.showToast('Error koneksi analisa.', 'error'); }
+      finally { this.anaLoading = false; }
     },
 
-    // Analisa contoh A3
-    async loadAnalisaUnit() {
-      this.analisaLoading = true;
+    // Evaluasi (6 tab)
+    async loadEvaluasi(tab) {
+      var t = tab || this.evaluasiTab;
+      this.evaLoading = true;
       try {
-        var res = await this.callServer('analisa_distribusi_unit', { tahun: this.analisaTahun });
-        if (res && res.success) this.analisaUnitData = res.data;
-        else this.showToast(res.error || 'Gagal analisa unit', 'error');
-      } catch (e) { this.showToast('Error koneksi analisa', 'error'); }
-      finally { this.analisaLoading = false; }
+        var aksi = window.SK_MAPS.EVA_AKSI[t];
+        if (!aksi) { this.evaLoading = false; return; }
+        var res = await this.callServer(aksi, { tahun: this.evaTahun });
+        if (res && res.success) this.evaData[t] = res.data;
+        else this.showToast((res && res.error) || 'Gagal memuat evaluasi.', 'error');
+      } catch (e) { this.showToast('Error koneksi evaluasi.', 'error'); }
+      finally { this.evaLoading = false; }
     },
 
-    // RTL — v2.10.0 (contoh si-arsip R1-R5)
-    async loadRtl(page) {
+    // RTL
+    async loadRtl(page, silent) {
+      var isSilent = silent === true;
       this.rtlLoading = true;
       try {
         var p = page || this.rtlPage || 1;
@@ -111,11 +185,9 @@ window.StarterKitApi = {
           this.rtlTotalData = res.total || this.rtlList.length;
           this.rtlTotalPages = res.total_pages || 1;
           this.rtlPage = res.page || p;
-        } else {
-          this.showToast(res.error || 'Gagal memuat RTL', 'error');
-        }
+        } else if (!isSilent) this.showToast((res && res.error) || 'Gagal memuat RTL', 'error');
       } catch (e) {
-        this.showToast('Error koneksi RTL', 'error');
+        if (!isSilent) this.showToast('Error koneksi RTL', 'error');
       } finally { this.rtlLoading = false; }
     },
 
@@ -130,7 +202,6 @@ window.StarterKitApi = {
       } catch (e) { this.showToast('Error generate RTL', 'error'); }
       finally { this.rtlGenerating = false; }
     }
-
   }
 };
 </script>
