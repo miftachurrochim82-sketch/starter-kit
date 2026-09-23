@@ -1,62 +1,94 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_State.html (v2.10.0 — 11 sheet + 72 handler + RTL + UIUX v1.10)
+// STARTER-KIT - J_State.html (v2.11.0 — 5M+5T + piramida 12/8/6/4 + dashboard 4+4+4)
 // ============================================================
 // State reaktif + computed untuk seluruh app.
-// v2.10.0: tambah RTL state (R1-R5 contoh si-arsip) + laporan/analisa/evaluasi state + UIUX v1.10 polish
-// - min-w + table-scroll di view, badge valid, app-stat-card, btn-icon, filter label, modal v-if
+// v2.11.0:
+// - Dashboard 4 kartu + 4 chart + 4 panel (data dari server)
+// - 5 master: kategori, jenis, periode, satuan, lokasi
+// - 12 laporan / 8 analisa / 6 evaluasi (data per-tab)
+// - tahunOptions: select tahun (standar UIUX v2 — bukan teks bebas)
 
 window.StarterKitState = {
 
   data() {
+    var th = String(new Date().getFullYear());
     return {
 
       dataLoaded: false,
 
-      // Dashboard KPI
+      // ==================== DASHBOARD 4+4+4 ====================
       dashboardData: {
-        totalUtama: 0,
-        totalBaru: 0,
-        totalSelesai: 0,
-        totalRekap: 0,
-        totalRtl: 0,
-        rtlBaru: 0,
-        rtlSelesai: 0,
+        summary: { totalUtama: 0, totalSelesai: 0, approvalMenunggu: 0, rtlTerbuka: 0 },
+        chartTren: { labels: [], counts: [] },
+        chartJenis: { labels: [], counts: [] },
+        chartKategori: { labels: [], counts: [] },
+        chartLokasi: { labels: [], counts: [] },
+        panelTerbaru: [],
+        panelApproval: [],
+        panelRtl: [],
+        panelTidakLengkap: [],
         role: 'viewer',
         nama: ''
       },
 
-      // T_UTAMA
+      // ==================== 5 MASTER ====================
+      kategoriList: [],
+      jenisList: [],
+      periodeList: [],
+      satuanList: [],
+      lokasiList: [],
+      pegawaiList: [],
+      masterLoading: false,
+      masterTab: 'kategori',
+      showMasterForm: false,
+      masterSaving: false,
+      masterForm: {
+        id: '', kode: '', nama: '', parent_id: '', deskripsi: '',
+        kategori_id: '', periode: 'Fleksibel', tahun: th, bulan: '',
+        simbol: '', alamat: '', keterangan: '', urutan: 0, status_aktif: 'true'
+      },
+
+      // ==================== T_UTAMA ====================
       utamaList: [],
       utamaLoading: false,
-      utamaFilters: { search: '', status: '' },
-      utamaPagination: { page: 1, limit: 10 },
+      utamaFilters: { search: '', status: '', jenis_id: '', lokasi_id: '', tahun: '' },
+      utamaPagination: { page: 1, per_page: 20 },
+      utamaTotal: 0,
+      utamaTotalPages: 1,
       showUtamaForm: false,
       utamaSaving: false,
       utamaForm: {
-        id: '', kode: '', judul: '', deskripsi: '', pegawai_id: '', kategori_id: '', satuan_id: '',
+        id: '', kode: '', judul: '', deskripsi: '', pegawai_id: '',
+        kategori_id: '', jenis_id: '', lokasi_id: '', periode_id: '', satuan_id: '',
         tanggal: '', jumlah: 0, nilai: 0, status: 'draft', catatan: ''
       },
 
-      // M_REFERENSI
-      referensiList: [],
-      referensiLoading: false,
-      kategoriList: [],
-      satuanList: [],
+      // ==================== LAPORAN (12) ====================
+      laporanTab: 'kategori',
+      lapLoading: false,
+      lapTahun: th,
+      lapData: {},
 
-      // M_KATEGORI / M_SATUAN (generic master)
-      masterTab: 'referensi',
-      refForm: { id: '', kategori: '', kode: '', nama_nilai: '', urutan: 0, status_aktif: 'true', keterangan: '' },
-      showRefForm: false,
-      refSaving: false,
+      // ==================== ANALISA (8) ====================
+      analisaTab: 'lokasi',
+      anaLoading: false,
+      anaTahun: th,
+      anaData: {},
 
-      // T_TINDAK_LANJUT / RTL — v2.10.0 (contoh si-arsip R1-R5)
+      // ==================== EVALUASI (6) ====================
+      evaluasiTab: 'kelengkapan',
+      evaLoading: false,
+      evaTahun: th,
+      evaData: {},
+
+      // ==================== RTL ====================
       rtlList: [],
       rtlLoading: false,
       rtlSaving: false,
       rtlGenerating: false,
       rtlGenerateSumber: 'semua',
-      rtlGenerateTahun: String(new Date().getFullYear()),
+      rtlGenerateTahun: th,
       rtlSearch: '',
       rtlFilters: { status_rtl: '', sumber_evaluasi: '', tahun: '' },
       rtlPage: 1,
@@ -70,116 +102,66 @@ window.StarterKitState = {
       rtlStatusProgress: 0,
       rtlStatusCatatan: '',
 
-      // Laporan (generic)
-      laporanTab: 'klasifikasi',
-      lapKlasData: null,
-      lapKlasLoading: false,
-      lapKlasTahun: String(new Date().getFullYear()),
+      // ==================== UI ====================
+      rowMenuId: null,
 
-      // Analisa
-      analisaTab: 'unit',
-      analisaTahun: String(new Date().getFullYear()),
-      analisaUnitData: null,
-      analisaLoading: false,
-
-      // Row menu
-      rowMenuId: null
+      // ==================== PENGATURAN v2.12.0 (tema Opsi B + scope) ====================
+      filterScope: 'all',
+      pendingTheme: null,
+      themeSaving: false,
+      themeMsg: '',
+      themeMsgOk: false
     };
   },
 
   computed: {
 
-    // KPI turunan
-    kpiStatusAktif() {
-      return (this.utamaList || []).filter(function (r) {
-        var st = String(r.status || '').toLowerCase();
-        return st === 'draft' || st === 'diajukan' || st === 'proses';
-      }).length;
-    },
-
-    // Filter & paginasi T_UTAMA
-    utamaFilterDefs() {
-      return [
-        { key: 'search', label: 'Pencarian', type: 'text', placeholder: 'Cari kode, judul, deskripsi…', span: 2 },
-        { key: 'status', label: 'Status', type: 'select', options: [
-          { value: 'draft', label: 'Draft' },
-          { value: 'baru', label: 'Baru' },
-          { value: 'diproses', label: 'Diproses' },
-          { value: 'selesai', label: 'Selesai' },
-          { value: 'batal', label: 'Batal' }
-        ] }
-      ];
-    },
-
-    filteredUtama() {
-      var f = this.utamaFilters || {};
-      var q = String(f.search || '').toLowerCase().trim();
-      var st = String(f.status || '').toLowerCase().trim();
-      var self = this;
-      return (this.utamaList || []).filter(function (r) {
-        if (st && String(r.status || '').toLowerCase().trim() !== st) return false;
-        if (q) {
-          var hay = [r.kode, r.judul, r.deskripsi, r.catatan].map(function (x) { return String(x || '').toLowerCase(); }).join(' ');
-          if (hay.indexOf(q) === -1) return false;
-        }
-        return true;
-      });
-    },
-
-    paginatedUtama() {
-      return AppCore.paginate(this.filteredUtama, this.utamaPagination.page, this.utamaPagination.limit);
-    },
-
-    utamaTotalPages() {
-      return AppCore.pageCount(this.filteredUtama, this.utamaPagination.limit);
-    },
-
-    // Chart tren 12 bulan
-    chartTrenLabels() {
-      var labels = [];
-      var names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
-      var now = new Date();
-      for (var i = 11; i >= 0; i--) {
-        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        labels.push(names[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2));
-      }
-      return labels;
-    },
-
-    chartTrenDatasets() {
-      var counts = {};
-      var keys = [];
-      var now = new Date();
-      for (var i = 11; i >= 0; i--) {
-        var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        var k = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-        keys.push(k);
-        counts[k] = 0;
-      }
+    // Tahun: opsi select (tahun saat ini -3..0 + tahun yang ada di data)
+    tahunOptions() {
+      var now = String(new Date().getFullYear());
+      var set = {};
+      set[now] = 1;
+      set[String(Number(now) - 1)] = 1;
+      set[String(Number(now) - 2)] = 1;
+      set[String(Number(now) - 3)] = 1;
       (this.utamaList || []).forEach(function (r) {
-        var tgl = r.tanggal || r.created_at || '';
-        var k = String(tgl).slice(0, 7);
-        if (counts[k] !== undefined) counts[k]++;
+        var t = String(r.tanggal || '').slice(0, 4);
+        if (/^\d{4}$/.test(t)) set[t] = 1;
       });
-      return [{ label: 'Jumlah Data', data: keys.map(function (k) { return counts[k]; }) }];
+      return Object.keys(set).sort().reverse();
     },
 
+    // ---------- akses chart dashboard (shape aman) ----------
+    dashTren() { return this.dashboardData.chartTren || { labels: [], counts: [] }; },
+    dashJenis() { return this.dashboardData.chartJenis || { labels: [], counts: [] }; },
+    dashKategori() { return this.dashboardData.chartKategori || { labels: [], counts: [] }; },
+    dashLokasi() { return this.dashboardData.chartLokasi || { labels: [], counts: [] }; },
+
+    // warna chart — tema #0369a1 (sky)
     chartTrenColors() { return ['#0369a1']; },
+    chartJenisColors() { return ['#0284c7']; },
+    chartKategoriColors() { return ['#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#0c4a6e', '#334155', '#64748b', '#94a3b8']; },
+    chartLokasiColors() { return ['#0369a1']; },
+    chartTrenAnalisaColors() { return ['#f59e0b']; },
 
-    chartStatusLabels() { return ['Draft', 'Baru', 'Diproses', 'Selesai', 'Batal']; },
+    // ---------- data laporan/analisa/evaluasi per tab ----------
+    lapDataAktif() { return this.lapData[this.laporanTab] || null; },
+    anaDataAktif() { return this.anaData[this.analisaTab] || null; },
+    evaDataAktif() { return this.evaData[this.evaluasiTab] || null; },
 
-    chartStatusDatasets() {
-      var counts = { draft: 0, baru: 0, diproses: 0, selesai: 0, batal: 0 };
-      (this.utamaList || []).forEach(function (r) {
-        var s = String(r.status || 'draft').toLowerCase();
-        if (counts[s] !== undefined) counts[s]++;
-      });
-      return [{ label: 'Status', data: [counts.draft, counts.baru, counts.diproses, counts.selesai, counts.batal] }];
+    // trend chart analisa (A6)
+    chartAnalisaTrenLabels() {
+      var d = this.anaData['tren'];
+      return d && d.periode ? d.periode.map(function (k) {
+        var p = String(k).split('-');
+        var names = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
+        return names[Number(p[1]) - 1] + ' ' + p[0].slice(2);
+      }) : [];
     },
-
-    chartStatusColors() { return ['#94a3b8', '#0ea5e9', '#f59e0b', '#10b981', '#f43f5e']; }
-
+    chartAnalisaTrenDatasets() {
+      var d = this.anaData['tren'];
+      return d && d.counts ? [{ label: 'Jumlah', data: d.counts }] : [];
+    }
   }
-
 };
 </script>

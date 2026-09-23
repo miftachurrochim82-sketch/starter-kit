@@ -1,8 +1,32 @@
 // ============================================================
-// STARTER-KIT - 01_ConfigAndBridge.gs (v2.10.0 — CoreLib-First + UIUX v1.10 + RTL)
+// STARTER-KIT - 01_ConfigAndBridge.gs (v2.12.0 — CDN v2.9.0 8 file + CoreLib v2.4.0 A+B)
 // ============================================================
-// Bridge tipis ke CoreLib v2.3.0 (pin 15) + kontrak dispatcher v2.
-// Pola identik dengan si-arsip v1.10 (11 sheet + 72 handler + RTL R1-R5 contoh).
+// Changelog:
+//   v2.12.0 — CDN v2.9.0 (8 file & 31 opsi) + CoreLib v2.4.0 A+B (2026-09-23):
+//             • Tema Opsi B: getThemeCss() → CoreLib.getThemeCss() + <app-theme-picker>
+//               + THEME_JSON di ScriptProperties (6 preset: emerald/sky/amber/violet/rose/teal)
+//             • Menu "Saya": ownerField helper + AppCore.getMyScope() + scope toggle Saya/Semua
+//               (filterScope Saya/Semua, declarative router RLS ready)
+//             • Workflow: STATUS_MAP + CoreLib.validateTransition / assertOwnership
+//             • Periode: CoreLib.periodeBulan / dalamPeriode / hitungHariKerja (for piramida)
+//             • Unique: CoreLib.findUnique / upsertUnique (anti-duplikat kode)
+//             • Bump pin CoreLib 15→16, CDN @v2.8.1→@v2.9.0 (8 file: layout/ui/forms/data/charts/workflow)
+//   v2.11.0 — REDESIGN SKEMA (keputusan user 2026-09-22):
+//             5 master = 5 dimensi laporan: M_KATEGORI (hierarki), M_JENIS,
+//             M_PERIODE, M_SATUAN, M_LOKASI.
+//             5 tabel inti: T_UTAMA, T_ITEM, T_LAMPIRAN, T_APPROVAL,
+//             T_TINDAK_LANJUT (RTL).
+//             BUANG: M_REFERENSI (filler), T_LOGBOOK (AUDIT_LOGS CoreLib
+//             sudah cukup), T_JADWAL & T_REKAP (rekap = fungsi laporan,
+//             bukan sheet). JADWAL/LOGBOOK tetap tersedia opsional —
+//             salin blok header-nya jika app membutuhkannya.
+//             T_UTAMA + 3 FK baru: jenis_id, lokasi_id, periode_id.
+//             actionLevels 72 → 88 handler (12L + 8A + 6E + 4R sumber).
+//             Semua angka = BASELINE REKOMENDASI, bukan kewajiban —
+//             app bisnis bebas menambah/mengurangi sheet & handler.
+//   v2.10.1 — FIX K1: isRefSheet_ hanya untuk master SIMPEG (PEGAWAI/
+//             UNIT_KERJA/JABATAN). Pola tetap dipertahankan di v2.11.0.
+// Bridge tipis ke CoreLib v2.4.0 (pin 16) + kontrak dispatcher v2 + CDN v2.9.0.
 //
 // Bagian yang perlu Anda sesuaikan ditandai [SESUAIKAN].
 //
@@ -13,44 +37,44 @@
 //   3. DEFAULT_SPREADSHEET_ID (§1) — isi ID spreadsheet DB
 //                                    atau kosongkan + set Script Properties
 //   4. ALL_SHEET_HEADERS (§3b)    — sesuaikan kolom bisnis
-//   5. actionLevels (§7)          — 72 handler (11 sheet + laporan + analisa + evaluasi + RTL)
-//   6. getAppConfig_().actionLevels & buildLocalHandlers_() (02)
-//      WAJIB sinkron 1:1 — kalau tidak, fail-closed
+//   5. actionLevels (§7)          — 88 handler; kalau menambah/menghapus
+//      handler di 02, sinkronkan di sini — kalau tidak, fail-closed
 //
-// Semua komentar [SESUAIKAN] = opsional (boleh diubah/dibiarkan).
+// ⚡ SKEMA 10 SHEET (baseline v2.11.0 — FLEKSIBEL, bukan kewajiban):
+//   Master (5) — tiap sheet = 1 dimensi laporan ("per apa?"):
+//     M_KATEGORI   — hierarki (parent_id) → L1 rollup
+//     M_JENIS      — jenis + periode → L2/A2/A7
+//     M_PERIODE    — tahun/bulan terkontrol → L4/A6 + SLA
+//     M_SATUAN     — kuantitas/nilai → L7
+//     M_LOKASI     — cabang/unit → L3/A1/A4
+//   Tabel (5) — transaksi inti:
+//     T_UTAMA           — 1 baris = 1 kejadian bisnis
+//     T_ITEM            — detail per T_UTAMA (N)
+//     T_LAMPIRAN        — file/dokumen bukti (N)
+//     T_APPROVAL        — alur verifikasi
+//     T_TINDAK_LANJUT   — RTL (puncak piramida)
 //
-// ────────────────────────────────────────────────────────────
-// ⚡ SKEMA 11 SHEET (standar ekosistem v2.10.0: master 3 + tabel 8 incl RTL):
-//   Master (3):
-//     M_REFERENSI   — referensi umum (kategori/kode/nama_nilai)
-//     M_KATEGORI    — master kategori
-//     M_SATUAN      — master satuan
-//   Tabel (8):
-//     T_UTAMA       — transaksi utama
-//     T_ITEM        — item/detail dari T_UTAMA
-//     T_LOGBOOK     — log/riwayat kejadian
-//     T_LAMPIRAN    — lampiran dokumen (multi per entri)
-//     T_APPROVAL    — workflow persetujuan/verifikasi
-//     T_JADWAL      — jadwal/kalender agenda
-//     T_REKAP       — rekap periodik
-//     T_TINDAK_LANJUT (alias T_RTL) — rencana tindak lanjut (puncak piramida, contoh si-arsip R1-R5)
+// Opsional (tambahkan bila app membutuhkannya):
+//   T_JADWAL   — deadline/kalender per kejadian
+//   T_LOGBOOK  — jejak per baris bisnis (melengkapi AUDIT_LOGS CoreLib)
 //
-// Referensi SIMPEG (PEGAWAI/JABATAN/UNIT_KERJA) & sheet uji ZZ_TEST_CRUD
+// Referensi SIMPEG (PEGAWAI/JABATAN/UNIT_KERJA) & ZZ_TEST_CRUD
 // tidak dihitung sebagai budget sheet bisnis.
 //
-// UIUX v1.10 polish (dari si-arsip):
-// - min-w di th + table-scroll wrapper (HP 360px scroll mulus)
-// - badge valid via app-badge status (aktif/disetujui/ditolak/menunggu/proses/draft/nonaktif)
-// - stat-card via app-stat-card (custom card !p-3 0)
-// - pagination btn-icon + filter label text-[11px]
-// - modal v-if + @close + size md/lg/2xl/3xl + tema #0369a1
+// UIUX v2 (standar hasil audit si-dokumen 2026-09-22):
+// - CSS Tailwind TER-COMPILE (bukan Play CDN), inline di Index.html
+// - Tidak ada ID mentah di tabel — nama via lookup
+// - Tahun/periode = select (tahunOptions), bukan teks bebas
+// - Tombol aksi di-gate role (v-can), fail-closed
+// - min-w di th + table-scroll, app-stat-card, app-badge valid,
+//   modal v-if + @close, tema per app --primary
 // ============================================================
 
 // ==================== §1 KONSTANTA GLOBAL ====================
 
 // [SESUAIKAN] Kode aplikasi — harus terdaftar di si-platform (sheet applications)
 var APP_CODE  = 'SI-CONTOH';
-var APP_TITLE = 'SI-CONTOH — Starter Kit Web App v2.10.0';
+var APP_TITLE = 'SI-CONTOH — Starter Kit Web App v2.12.0';
 
 // ID spreadsheet MASTER SIMPEG (jangan diubah — PEGAWAI/JABATAN/UNIT_KERJA)
 var DEFAULT_MASTER_SPREADSHEET_ID = '1HvMXmvdtgAUZ9A0-SQHZp9QjnYv1A7Ku_oJIjbT8gT0';
@@ -69,6 +93,71 @@ var DATA_CACHE_TTL      = 300;           // 5 menit (sheet transaksi)
 
 // Delegasi — satu sumber kebenaran level role
 var ROLE_LEVELS = CoreLib.MASTER_ROLE_LEVELS;
+
+// ==================== §1b TEMA PER-APP (CoreLib v2.4.0 C8) ====================
+// THEME_JSON disimpan di Script Properties sebagai JSON string:
+//   {"primary":"#065f46","preset":"emerald"}  (6 preset: emerald/sky/amber/violet/rose/teal)
+// Frontend inject via <?!= getThemeCss() ?> di Index.html + <app-theme-picker>.
+// Default: emerald (#065f46) bila properti kosong.
+var DEFAULT_THEME = { primary: '#065f46', preset: 'emerald' };
+
+function getThemeConfig_() {
+  try { return CoreLib.getThemeConfig(appProps_(), DEFAULT_THEME); }
+  catch (e) { return DEFAULT_THEME; }
+}
+
+// Dipanggil oleh Index.html template: <?!= getThemeCss() ?>
+function getThemeCss() {
+  try { return CoreLib.getThemeCss(appProps_(), DEFAULT_THEME); }
+  catch (e) { return ':root{--primary:#065f46}'; }
+}
+
+// Dipanggil oleh handler save_theme (admin) untuk simpan THEME_JSON
+function saveThemeConfig_(obj) {
+  if (!obj || !obj.primary) throw new Error('Tema tidak valid.');
+  return CoreLib.buildThemeCss ? CoreLib.buildThemeCss(obj) : getThemeCss();
+}
+
+// ==================== §1c SCOPE "SAYA" (RLS ownerField) ====================
+// Helper untuk filter Saya/Semua di handler utama.
+// Di frontend: AppCore.getMyScope() → 'mine' | 'all' (disimpan localStorage)
+// Di backend: filter rows where row.pegawai_id === session.pegawai_id
+// resources declaratif untuk dispatcher: auto-RLS bila set ownerField
+var SCOPE_OWNER_FIELD = 'pegawai_id'; // kolom pemilik di T_UTAMA/T_ITEM
+
+function filterByScope_(rows, scope, session) {
+  if (scope === 'mine' && session && session.pegawai_id) {
+    return rows.filter(function(r){ return String(r[SCOPE_OWNER_FIELD]||'') === String(session.pegawai_id); });
+  }
+  return rows;
+}
+
+// ==================== §1d WORKFLOW & PERIODE (CoreLib v2.4.0 A+B) ====================
+// STATUS_MAP untuk validateTransition (C4) — transisi legal per resource
+var STATUS_MAP = {
+  'T_UTAMA': {
+    'draft':      ['diajukan', 'arsip'],
+    'diajukan':   ['disetujui', 'ditolak', 'direvisi'],
+    'direvisi':   ['diajukan', 'arsip'],
+    'disetujui':  ['selesai', 'arsip'],
+    'ditolak':    ['diajukan', 'arsip'],
+    'selesai':    ['arsip'],
+    'arsip':      []
+  },
+  'T_TINDAK_LANJUT': {
+    'baru':       ['proses', 'batal'],
+    'proses':     ['selesai', 'tertunda'],
+    'tertunda':   ['proses', 'batal'],
+    'selesai':    [],
+    'batal':      []
+  }
+};
+
+// Wrapper tipis — biar app bisa panggil tanpa import CoreLib langsung
+function periodeBulan_(tanggalStr){ try{ return CoreLib.periodeBulan(tanggalStr); }catch(e){ return ''; } }
+function dalamPeriode_(tgl, start, end){ try{ return CoreLib.dalamPeriode(tgl, start, end); }catch(e){ return false; } }
+function hitungHariKerja_(start, end){ try{ return CoreLib.hitungHariKerja(start, end); }catch(e){ return 0; } }
+function findUnique_(sheet, field, value){ return CoreLib.findUnique(SPREADSHEET_ID, sheet, field, value, ALL_SHEET_HEADERS); }
 
 // ==================== §2 PROPERTIES & SPREADSHEET ====================
 // Store MILIK APP (bukan library) — wajib dioper ke CoreLib.getEnvProperty.
@@ -89,39 +178,36 @@ var PLATFORM_API_URL = CoreLib.getEnvProperty('PLATFORM_API_URL', appProps_())
 // ==================== §3 SKEMA SHEET ====================
 // [SESUAIKAN] Anda bebas ganti nama sheet bisnis (mis. T_UTAMA → T_ASET).
 // Yang penting: kolom audit (created_at..deleted_at) ada — dipakai CoreLib.
+// v2.11.0: 5 master + 5 tabel = 10 sheet bisnis (baseline, fleksibel).
 
 var LOCAL_SHEETS = {
-  // Master (3)
-  M_REFERENSI: 'M_REFERENSI',
-  M_KATEGORI:  'M_KATEGORI',
-  M_SATUAN:    'M_SATUAN',
-  // Tabel (8) — v2.10.0 +T_TINDAK_LANJUT (RTL)
+  // Master (5) — tiap sheet = 1 dimensi laporan
+  M_KATEGORI: 'M_KATEGORI',
+  M_JENIS:    'M_JENIS',
+  M_PERIODE:  'M_PERIODE',
+  M_SATUAN:   'M_SATUAN',
+  M_LOKASI:   'M_LOKASI',
+  // Tabel (5) — transaksi inti
   T_UTAMA:         'T_UTAMA',
   T_ITEM:          'T_ITEM',
-  T_LOGBOOK:       'T_LOGBOOK',
   T_LAMPIRAN:      'T_LAMPIRAN',
   T_APPROVAL:      'T_APPROVAL',
-  T_JADWAL:        'T_JADWAL',
-  T_REKAP:         'T_REKAP',
-  T_TINDAK_LANJUT: 'T_TINDAK_LANJUT',
-  T_RTL:           'T_TINDAK_LANJUT' // alias untuk kompatibilitas si-arsip
+  T_TINDAK_LANJUT: 'T_TINDAK_LANJUT'
 };
 
 // Prefix ID per-sheet (dipakai localPreSaveHook_ + CoreLib.genUniqueCode).
 // [SESUAIKAN] Boleh diubah sesuai singkatan Anda.
 var LOCAL_ID_PREFIX_ = {
-  'M_REFERENSI':     'ref',
   'M_KATEGORI':      'kat',
+  'M_JENIS':         'jen',
+  'M_PERIODE':       'per',
   'M_SATUAN':        'sat',
+  'M_LOKASI':        'lok',
   'T_UTAMA':         'utm',
   'T_ITEM':          'itm',
-  'T_LOGBOOK':       'log',
   'T_LAMPIRAN':      'lmp',
   'T_APPROVAL':      'apr',
-  'T_JADWAL':        'jdw',
-  'T_REKAP':         'rkp',
-  'T_TINDAK_LANJUT': 'rtl',
-  'T_RTL':           'rtl'
+  'T_TINDAK_LANJUT': 'rtl'
 };
 
 // Alias nama sheet SIMPEG → kanonik (dibaca dari MASTER via CoreLib)
@@ -143,52 +229,70 @@ function isSimpegSheet_(sheetName) {
   return canonicalSimpegSheet_(sheetName) !== null;
 }
 
-// Sheet referensi app (prefix 'M_') — cache lebih panjang
+// Sheet referensi READ-ONLY — HANYA master SIMPEG (PEGAWAI/UNIT_KERJA/JABATAN).
+// (Warisan fix K1 v2.10.1, tetap berlaku di v2.11.0): sheet lokal ber-prefix
+// M_ BUKAN referensi — mereka harus tetap bisa ditulis.
 function isRefSheet_(name) {
-  return String(name || '').toUpperCase().indexOf('M_') === 0;
+  var n = String(name || '').trim();
+  if (!n) return false;
+  var upper = n.toUpperCase();
+  // Sheet lokal (terdaftar di LOCAL_SHEETS) → boleh ditulis
+  if (LOCAL_SHEETS[n] || LOCAL_SHEETS[upper]) return false;
+  // Hanya master SIMPEG yang read-only
+  return isSimpegSheet_(n);
 }
 
 // ==================== §3b HEADER MAP ====================
 // Header lengkap semua sheet bisnis + ZZ_TEST_CRUD + 3 SIMPEG.
 //
 // ⚠️ Kolom audit ('created_at','updated_at','created_by','updated_by','deleted_at')
-// WAJIB ada di setiap sheet — dipakai CoreLib untuk tracking.
+// WAJIB ada di setiap sheet — dipakai CoreLib.
 //
 // [SESUAIKAN] Field bisnis per sheet — bebas diubah sesuai kebutuhan.
 //             Yang penting: 'id' selalu kolom pertama.
+//
+// OPSIONAL (v2.11.0 tidak membuat otomatis — salin bila app membutuhkannya):
+//   T_JADWAL:  ['id','utama_id','judul','tanggal_mulai','tanggal_selesai',
+//               'lokasi','pegawai_id','status','keterangan', + 5 audit]
+//   T_LOGBOOK: ['id','utama_id','tanggal','pegawai_id','aksi','catatan_sebelum',
+//               'catatan_sesudah', + 5 audit]
 
 var ALL_SHEET_HEADERS = {
 
-  // ==================== MASTER BISNIS ====================
-  M_REFERENSI: [
-    'id', 'kategori', 'kode', 'nama_nilai', 'urutan', 'status_aktif', 'keterangan',
-    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
-  ],
+  // ==================== MASTER (5 DIMENSI) ====================
   M_KATEGORI: [
     'id', 'kode', 'nama', 'parent_id', 'deskripsi', 'urutan', 'status_aktif',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  M_JENIS: [
+    'id', 'kode', 'nama', 'kategori_id', 'periode', 'deskripsi', 'urutan', 'status_aktif',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
+  M_PERIODE: [
+    'id', 'kode', 'label', 'tahun', 'bulan', 'status_aktif',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
   M_SATUAN: [
     'id', 'kode', 'nama', 'simbol', 'keterangan', 'status_aktif',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
+  M_LOKASI: [
+    'id', 'kode', 'nama', 'alamat', 'keterangan', 'status_aktif',
+    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
+  ],
 
-  // ==================== TABEL BISNIS ====================
+  // ==================== TABEL (5 TRANSASKSI INTI) ====================
   T_UTAMA: [
-    'id', 'kode', 'judul', 'deskripsi', 'pegawai_id', 'kategori_id', 'satuan_id',
-    'tanggal', 'jumlah', 'nilai', 'status', 'catatan',
+    'id', 'kode', 'judul', 'deskripsi', 'pegawai_id', 'kategori_id', 'jenis_id',
+    'lokasi_id', 'periode_id', 'satuan_id', 'tanggal', 'jumlah', 'nilai', 'status', 'catatan',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
   T_ITEM: [
     'id', 'utama_id', 'nama_item', 'kode_item', 'jumlah', 'satuan_id', 'nilai', 'catatan',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
-  T_LOGBOOK: [
-    'id', 'utama_id', 'tanggal', 'pegawai_id', 'aksi', 'catatan_sebelum', 'catatan_sesudah',
-    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
-  ],
   T_LAMPIRAN: [
-    'id', 'utama_id', 'jenis_dokumen', 'nama_dokumen', 'url', 'keterangan',
+    'id', 'utama_id', 'jenis_lampiran', 'nama_file', 'url', 'keterangan',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
   T_APPROVAL: [
@@ -196,23 +300,7 @@ var ALL_SHEET_HEADERS = {
     'catatan', 'tanggal_approve',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
   ],
-  T_JADWAL: [
-    'id', 'utama_id', 'judul', 'tanggal_mulai', 'tanggal_selesai', 'lokasi',
-    'pegawai_id', 'status', 'keterangan',
-    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
-  ],
-  T_REKAP: [
-    'id', 'periode', 'pegawai_id', 'unit_id', 'kategori_id',
-    'total_item', 'total_nilai', 'ringkasan_json', 'status_rekap', 'generated_at',
-    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
-  ],
-  // v2.10.0 — RTL / Tindak Lanjut (puncak piramida, contoh si-arsip R1-R5)
   T_TINDAK_LANJUT: [
-    'id', 'sumber_evaluasi', 'judul_rtl', 'deskripsi', 'assigned_to', 'due_date',
-    'status_rtl', 'progress_pct', 'dokumen_terkait', 'catatan',
-    'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
-  ],
-  T_RTL: [
     'id', 'sumber_evaluasi', 'judul_rtl', 'deskripsi', 'assigned_to', 'due_date',
     'status_rtl', 'progress_pct', 'dokumen_terkait', 'catatan',
     'created_at', 'updated_at', 'created_by', 'updated_by', 'deleted_at'
@@ -249,7 +337,7 @@ var ALL_SHEET_HEADERS = {
 function normalizeEntityId_(id) {
   var s = CoreLib.normId(id);
   if (!s) return '';
-  var m = s.match(/^([A-Z]+)-0*(\\d+)$/);
+  var m = s.match(/^([A-Z]+)-0*(\d+)$/);
   if (m) {
     var prefix = m[1];
     var num = Number(m[2]);
@@ -261,7 +349,8 @@ function normalizeEntityId_(id) {
 var ID_FIELDS_TO_NORMALIZE_ = [
   'pegawai_id', 'unit_id', 'jabatan_id', 'atasan_id',
   'plt_pegawai_id', 'kepala_unit_id', 'kepala_pegawai_id',
-  'kategori_id', 'satuan_id', 'utama_id', 'approver_id',
+  'kategori_id', 'jenis_id', 'periode_id', 'lokasi_id', 'satuan_id',
+  'parent_id', 'utama_id', 'approver_id',
   'assigned_to', 'dokumen_terkait'
 ];
 
@@ -315,9 +404,6 @@ function getSheetData_(sheetName, options) {
   var ssId = SPREADSHEET_ID;
   if (!ssId) { Logger.log('[WARN] getSheetData_ tanpa SPREADSHEET_ID.'); return []; }
 
-  // Alias T_RTL → T_TINDAK_LANJUT
-  if (String(sheetName).toUpperCase() === 'T_RTL') sheetName = 'T_TINDAK_LANJUT';
-
   var canonicalSimpeg = canonicalSimpegSheet_(sheetName);
   var lookupName = canonicalSimpeg || sheetName;
   var coreOptions = canonicalSimpeg
@@ -343,12 +429,11 @@ function getSheetData_(sheetName, options) {
 
 /**
  * Simpan / update record (delegasi ke CoreLib.apiSave).
- * Menolak SIMPEG (read-only). Pre-save hook (P1 gen-id) selalu aktif.
+ * Menolak SIMPEG (read-only). Pre-save hook (P1 gen-id + P2 kunci) selalu aktif.
  */
 function saveRecord_(sheetName, record, actor) {
-  if (String(sheetName).toUpperCase() === 'T_RTL') sheetName = 'T_TINDAK_LANJUT';
   if (isSimpegSheet_(sheetName)) {
-    throw new Error('Akses Ditolak: Sheet \"' + sheetName + '\" read-only (SIMPEG).');
+    throw new Error('Akses Ditolak: Sheet "' + sheetName + '" read-only (SIMPEG).');
   }
   if (!record || typeof record !== 'object') {
     throw new Error('Record tidak valid.');
@@ -376,9 +461,8 @@ function saveRecord_(sheetName, record, actor) {
  * Soft delete record (delegasi ke CoreLib.apiDelete).
  */
 function softDeleteRecord_(sheetName, id, actor) {
-  if (String(sheetName).toUpperCase() === 'T_RTL') sheetName = 'T_TINDAK_LANJUT';
   if (isSimpegSheet_(sheetName)) {
-    throw new Error('Akses Ditolak: Sheet \"' + sheetName + '\" read-only (SIMPEG).');
+    throw new Error('Akses Ditolak: Sheet "' + sheetName + '" read-only (SIMPEG).');
   }
   if (!SPREADSHEET_ID) return false;
 
@@ -393,7 +477,6 @@ function softDeleteRecord_(sheetName, id, actor) {
  * deleted_at sudah jalan). Record yang sudah di-soft-delete → null.
  */
 function findRecordById_(sheetName, id) {
-  if (String(sheetName).toUpperCase() === 'T_RTL') sheetName = 'T_TINDAK_LANJUT';
   var target = normalizeEntityId_(id);
   if (!target) return null;
   var rows = getSheetData_(sheetName);
@@ -405,13 +488,13 @@ function findRecordById_(sheetName, id) {
 
 // ==================== §6 PRE-SAVE HOOK (P1 + P2) ====================
 // P1: id kosong → generate (cegah PK jatuh ke kolom lain = data loss).
-// P2: kunci field verifikasi untuk sheet dengan workflow approval + RTL status.
+// P2: kunci field verifikasi untuk T_APPROVAL (hanya verifikator+).
+// P2b: normalisasi RTL status + progress.
 
 function localPreSaveHook_(canonical, record, actor) {
   var C = String(canonical || '').toUpperCase();
-  if (C === 'T_RTL') C = 'T_TINDAK_LANJUT';
 
-  // P1: generate id kalau kosong (prefix per-sheet, konsisten kode lama)
+  // P1: generate id kalau kosong (prefix per-sheet)
   if (!record.id || String(record.id).trim() === '') {
     var pfx = LOCAL_ID_PREFIX_[C]
            || C.replace(/^M_/, '').replace(/^T_/, '').substring(0, 3).toLowerCase();
@@ -431,7 +514,7 @@ function localPreSaveHook_(canonical, record, actor) {
     }
   }
 
-  // P2b: RTL status transition guard (contoh si-arsip)
+  // P2b: RTL — status default + progress default
   if (C === 'T_TINDAK_LANJUT') {
     if (!record.status_rtl) record.status_rtl = record.status_rtl || record.status || 'baru';
     if (record.progress_pct === undefined || record.progress_pct === '') {
@@ -439,12 +522,46 @@ function localPreSaveHook_(canonical, record, actor) {
     }
   }
 
+  // P3: Workflow guard (C4) — cegah loncat status ilegal via validateTransition
+  // Hanya bila record sudah ada (update) dan status berubah
+  if (STATUS_MAP[C] && record.id) {
+    try {
+      var oldForTransition = findRecordById_(canonical, record.id);
+      if (oldForTransition) {
+        var oldStatus = String(oldForTransition.status || oldForTransition.status_rtl || '').toLowerCase();
+        var newStatus = String(record.status || record.status_rtl || '').toLowerCase();
+        if (oldStatus && newStatus && oldStatus !== newStatus) {
+          // pakai CoreLib bila tersedia (CoreLib v2.4.0+), fallback ke STATUS_MAP lokal
+          if (CoreLib.validateTransition) {
+            CoreLib.validateTransition(C, oldStatus, newStatus, STATUS_MAP);
+          } else {
+            var allowed = (STATUS_MAP[C][oldStatus] || []);
+            if (allowed.indexOf(newStatus) === -1) throw new Error('Transisi status tidak sah: ' + oldStatus + ' → ' + newStatus);
+          }
+        }
+      }
+    } catch (e) {
+      // biarkan error transisi naik (akan ditampilkan sebagai VALIDATION_ERROR)
+      if (String(e.message).indexOf('Transisi') !== -1) throw e;
+    }
+  }
+
+  // P4: Unique guard contoh (C7) — cegah duplikat kode di master
+  // Aktif hanya untuk M_* dengan field 'kode' (opsional, bisa dimatikan bila app mengizinkan duplikat)
+  // if (C.indexOf('M_') === 0 && record.kode) {
+  //   var dup = CoreLib.findUnique ? CoreLib.findUnique(SPREADSHEET_ID, canonical, 'kode', record.kode, ALL_SHEET_HEADERS) : null;
+  //   if (dup && String(dup.id) !== String(record.id)) throw new Error('Kode sudah dipakai: ' + record.kode);
+  // }
+
   return { record: record };
 }
 
 // ==================== §7 KONTRAK DISPATCHER v2 ====================
 // actionLevels fail-closed: aksi tak dikenal = 'viewer' (default dispatcher).
-// Total 72 handler (11 sheet + laporan + analisa + evaluasi + RTL) — v2.10.0
+// Total 88 handler (v2.11.0):
+//   config 6 + self 2 + dashboard 2 + simpeg 4 + master 15 + utama 4 +
+//   item 4 + lampiran 3 + approval 4 + RTL 12 + laporan 12 +
+//   analisa 8 + evaluasi 6 + generic 2 + publik 3 + sistem 1
 
 function getAppConfig_() {
   return {
@@ -464,7 +581,6 @@ function getAppConfig_() {
     preSaveHook:     localPreSaveHook_,
 
     // ---- Level aksi (fail-closed: default 'viewer' via CoreLib.dispatchAction) ----
-    // Total 72 (v2.10.0) — 11 sheet + laporan + analisa + evaluasi + RTL (contoh si-arsip)
     actionLevels: {
       // Config (admin) — 6
       'get_config':           'viewer',
@@ -488,20 +604,30 @@ function getAppConfig_() {
       'get_jabatan_list':     'viewer',
       'get_master_satelit':   'viewer',
 
-      // M_REFERENSI — 3
-      'get_referensi_list':   'viewer',
-      'save_referensi':       'verifikator',
-      'delete_referensi':     'verifikator',
-
       // M_KATEGORI — 3
       'get_kategori_list':    'viewer',
       'save_kategori':        'verifikator',
       'delete_kategori':      'verifikator',
 
+      // M_JENIS — 3
+      'get_jenis_list':       'viewer',
+      'save_jenis':           'verifikator',
+      'delete_jenis':         'verifikator',
+
+      // M_PERIODE — 3
+      'get_periode_list':     'viewer',
+      'save_periode':         'verifikator',
+      'delete_periode':       'verifikator',
+
       // M_SATUAN — 3
       'get_satuan_list':      'viewer',
       'save_satuan':          'verifikator',
       'delete_satuan':        'verifikator',
+
+      // M_LOKASI — 3
+      'get_lokasi_list':      'viewer',
+      'save_lokasi':          'verifikator',
+      'delete_lokasi':        'verifikator',
 
       // T_UTAMA — 4
       'get_utama_list':       'viewer',
@@ -515,10 +641,6 @@ function getAppConfig_() {
       'save_item':            'user',
       'delete_item':          'user',
 
-      // T_LOGBOOK — 2
-      'get_logbook_list':     'viewer',
-      'save_logbook':         'user',
-
       // T_LAMPIRAN — 3
       'get_lampiran_list':    'viewer',
       'save_lampiran':        'user',
@@ -529,28 +651,6 @@ function getAppConfig_() {
       'save_approval':        'user',
       'delete_approval':      'user',
       'verifikasi_approval':  'verifikator',
-
-      // T_JADWAL — 4
-      'get_jadwal_list':      'viewer',
-      'get_jadwal_detail':    'viewer',
-      'save_jadwal':          'user',
-      'delete_jadwal':        'user',
-
-      // T_REKAP — 4
-      'get_rekap_list':       'viewer',
-      'generate_rekap':       'verifikator',
-      'lap_rekap_klasifikasi': 'viewer',
-      'lap_rekap_unit':       'viewer',
-
-      // Analisa (contoh si-arsip A3-A5) — 3
-      'analisa_distribusi_unit': 'viewer',
-      'analisa_top_pengirim':    'viewer',
-      'analisa_beban_pejabat':   'viewer',
-
-      // Evaluasi (contoh si-arsip E1/E3/E5) — 3
-      'evaluasi_sla_disposisi':  'viewer',
-      'evaluasi_kelengkapan':    'viewer',
-      'evaluasi_jra':            'viewer',
 
       // T_TINDAK_LANJUT / RTL — 12 (6 generic + 6 alias rtl_*)
       'get_tindak_lanjut_list':    'viewer',
@@ -566,6 +666,38 @@ function getAppConfig_() {
       'generate_tindak_lanjut':    'user',
       'rtl_generate':              'user',
 
+      // Laporan (12) — L1..L12
+      'lap_kategori':        'viewer',
+      'lap_jenis':           'viewer',
+      'lap_lokasi':          'viewer',
+      'lap_periode':         'viewer',
+      'lap_pegawai':         'viewer',
+      'lap_status':          'viewer',
+      'lap_satuan':          'viewer',
+      'lap_jenis_periode':   'viewer',
+      'lap_jenis_lokasi':    'viewer',
+      'lap_detail_utama':    'viewer',
+      'lap_lampiran':        'viewer',
+      'lap_approval':        'viewer',
+
+      // Analisa (8) — A1..A8
+      'analisa_distribusi_lokasi':     'viewer',
+      'analisa_distribusi_jenis':      'viewer',
+      'analisa_top_pegawai':           'viewer',
+      'analisa_beban_lokasi':          'viewer',
+      'analisa_korelasi_jenis_lokasi': 'viewer',
+      'analisa_tren_periode':          'viewer',
+      'analisa_umur_data':             'viewer',
+      'analisa_sla_approval':          'viewer',
+
+      // Evaluasi (6) — E1..E6
+      'evaluasi_kelengkapan':       'viewer',
+      'evaluasi_sla_verifikasi':    'viewer',
+      'evaluasi_kepatuhan_periode': 'viewer',
+      'evaluasi_kualitas_data':      'viewer',
+      'evaluasi_lampiran':          'viewer',
+      'evaluasi_rtl_terbuka':       'viewer',
+
       // Generic routing — 2
       'save':                 'admin',
       'delete':               'admin',
@@ -576,11 +708,40 @@ function getAppConfig_() {
       'logout':               'viewer',
 
       // Sistem — 1
-      'init_database':        'super'
+      'init_database':        'super',
+
+      // Tema per-app (admin) — 2
+      'get_theme':            'viewer',
+      'save_theme':           'admin'
     },
 
+    // Resource RLS declarative (dipakai CoreLib.dispatchAction untuk filter ownerField)
+    // FE cukup kirim filterScope: AppCore.getMyScope() → 'mine'|'all', BE filter otomatis.
+    resources: {
+      'T_UTAMA':         { ownerField: 'pegawai_id' },
+      'T_ITEM':          { ownerField: 'pegawai_id' },
+      'T_TINDAK_LANJUT': { ownerField: 'assigned_to' }
+    },
+
+    // Peta transisi status (dipakai CoreLib.validateTransition di preSaveHook / handler)
+    statusMap: STATUS_MAP,
+
     entityPermissions: {},
-    localHandlers: {}
+    localHandlers: {
+      // Handler tema — simpan THEME_JSON ke ScriptProperties
+      'get_theme': function(payload, ctx){
+        return { success:true, data: getThemeConfig_() };
+      },
+      'save_theme': function(payload, ctx){
+        if (!ctx || !ctx.session) throw new Error('Unauthorized');
+        // hanya admin+ boleh (sudah gate di actionLevels, double-check)
+        CoreLib.checkRole_(ctx.session.role, 'admin');
+        var cfg = payload && (payload.theme || payload.data || payload);
+        if (!cfg || !cfg.primary) throw new Error('Tema tidak valid: primary wajib.');
+        PropertiesService.getScriptProperties().setProperty('THEME_JSON', JSON.stringify(cfg));
+        return { success:true, data: cfg, css: getThemeCss() };
+      }
+    }
   };
 }
 
