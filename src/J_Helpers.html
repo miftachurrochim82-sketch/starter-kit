@@ -1,21 +1,20 @@
 <script>
 // ============================================================
-// STARTER-KIT - J_Helpers.html (v2.10.0 — UIUX v1.10 + RTL + fmtTgl)
+// STARTER-KIT - J_Helpers.html (v2.11.0 — lookup nama (UIUX v2: nama bukan ID) + fmtTgl)
 // ============================================================
-// Helper MURNI domain app + UIUX polish dari si-arsip v1.10
-// - fmtTgl (ganti formatTanggal lama), badge mapping valid, progress bar, filter label
+// Helper MURNI domain app + standar UIUX v2 (audit si-dokumen 2026-09-22):
+// - fmtTgl (WIB), badge mapping valid, lookup nama per master,
+//   formatBytes_, formatRupiahRingkas_
 
 window.StarterKitHelpers = {
   methods: {
 
-    // ==================== TANGGAL (WIB) — v1.10 ====================
-    // fmtTgl = pengganti formatTanggal lama (konsisten dengan si-arsip)
+    // ==================== TANGGAL (WIB) ====================
     fmtTgl(val) {
       if (!val) return '—';
       try {
         var d = new Date(val);
         if (isNaN(d.getTime())) return String(val);
-        // pakai CoreLib.dateKey10 kalau ada (sadar-WIB)
         if (window.CoreLib && CoreLib.dateKey10) {
           var k = CoreLib.dateKey10(val);
           if (k) {
@@ -27,11 +26,9 @@ window.StarterKitHelpers = {
       } catch (e) { return String(val); }
     },
 
-    // alias untuk kompatibilitas lama
     formatTanggal(val) { return this.fmtTgl(val); },
 
-    // ==================== BADGE MAPPING — v1.10 valid list ====================
-    // Valid: aktif/selesai/disetujui/ditolak/batal/revisi/verifikasi/draft/belum/menunggu/proses/success/danger/warning/info/emerald/purple/nonaktif
+    // ==================== BADGE MAPPING (status valid kit) ====================
     badgeStatusUtama(status) {
       var s = String(status || '').toLowerCase().trim();
       if (s === 'selesai' || s === 'disetujui') return 'disetujui';
@@ -42,6 +39,15 @@ window.StarterKitHelpers = {
       if (s === 'revisi') return 'revisi';
       if (s === 'verifikasi') return 'verifikasi';
       return 'proses';
+    },
+
+    badgeStatusApproval(status) {
+      var s = String(status || '').toLowerCase().trim();
+      if (s === 'disetujui' || s === 'selesai') return 'disetujui';
+      if (s === 'ditolak' || s === 'batal') return 'ditolak';
+      if (s === 'revisi') return 'revisi';
+      if (s === 'menunggu') return 'menunggu';
+      return 'menunggu';
     },
 
     badgeStatusRtl(status) {
@@ -55,72 +61,44 @@ window.StarterKitHelpers = {
 
     badgeSumberEvaluasi(sumber) {
       var s = String(sumber || '').toUpperCase().trim();
-      if (s === 'E6') return 'ditolak';
-      if (s === 'E7') return 'menunggu';
-      if (s === 'E8' || s === 'E5') return 'proses';
+      if (s === 'E2') return 'ditolak';
+      if (s === 'E3') return 'menunggu';
+      if (s === 'E1') return 'proses';
       return 'disetujui';
     },
 
-    // ==================== LOOKUP DOMAIN ====================
-    namaKategori_(id) {
-      var key = String(id || '').trim();
-      if (!key) return '—';
-      var list = this.kategoriList || [];
-      for (var i = 0; i < list.length; i++) {
-        var k = list[i] || {};
-        if (String(k.id || '').trim() === key) return k.nama || k.kode || key;
-      }
-      return key;
-    },
-
-    namaSatuan_(id) {
-      var key = String(id || '').trim();
-      if (!key) return '—';
-      var list = this.satuanList || [];
-      for (var i = 0; i < list.length; i++) {
-        var s = list[i] || {};
-        if (String(s.id || '').trim() === key) return s.nama || s.simbol || key;
-      }
-      return key;
-    },
-
-    getPegawaiNama(id) {
-      if (!id) return '';
-      var list = this.masterPegawaiList || [];
-      var target = String(id).trim();
-      for (var i = 0; i < list.length; i++) {
-        var p = list[i] || {};
-        if (String(p.id || '').trim() === target || String(p.pegawai_id || '').trim() === target || String(p.nip || '').trim() === target) {
-          return p.nama_lengkap || p.nama || p.display_name || '';
+    // ==================== LOOKUP NAMA (standar: nama, bukan ID) ====================
+    _lookup(list, key, fields) {
+      var k = String(key || '').trim();
+      if (!k) return '—';
+      var arr = list || [];
+      for (var i = 0; i < arr.length; i++) {
+        var r = arr[i] || {};
+        var id = String(r.id || r.pegawai_id || '').trim();
+        if (id === k) {
+          for (var f = 0; f < fields.length; f++) {
+            if (r[fields[f]]) return r[fields[f]];
+          }
         }
       }
-      return '';
+      return k;
     },
 
-    nipPegawai(id) {
-      if (!id) return '-';
-      var list = this.masterPegawaiList || [];
-      var target = String(id).trim();
-      for (var i = 0; i < list.length; i++) {
-        var p = list[i] || {};
-        if (String(p.id || '').trim() === target || String(p.pegawai_id || '').trim() === target) return p.nip || '-';
-      }
-      return '-';
-    },
+    namaKategori_(id) { return this._lookup(this.kategoriList, id, ['nama', 'kode']); },
+    namaJenis_(id) { return this._lookup(this.jenisList, id, ['nama', 'kode']); },
+    namaPeriode_(id) { return this._lookup(this.periodeList, id, ['label', 'kode']); },
+    namaSatuan_(id) { return this._lookup(this.satuanList, id, ['nama', 'simbol', 'kode']); },
+    namaLokasi_(id) { return this._lookup(this.lokasiList, id, ['nama', 'kode']); },
+    namaPegawai_(id) { return this._lookup(this.pegawaiList, id, ['nama']); },
 
     // ==================== UTIL KECIL ====================
     normStr(v) { return String(v == null ? '' : v).trim().toLowerCase(); },
 
-    formatNamaPegawai(str) {
-      if (!str || str === '-') return '-';
-      var s = String(str).trim();
-      if (s.indexOf(',') !== -1) {
-        var parts = s.split(',');
-        var depan = parts[0].trim().toLowerCase().replace(/(^\s|\s)\S/g, function (c) { return c.toUpperCase(); });
-        var gelar = parts.slice(1).join(',').trim();
-        return depan + ', ' + gelar;
-      }
-      return s.toLowerCase().replace(/(^\s|\s)\S/g, function (c) { return c.toUpperCase(); });
+    formatBytes_(n) {
+      var v = Number(n) || 0;
+      if (v < 1024) return v + ' B';
+      if (v < 1024 * 1024) return (v / 1024).toFixed(1) + ' KB';
+      return (v / (1024 * 1024)).toFixed(2) + ' MB';
     },
 
     formatRupiahRingkas_(n) {
@@ -129,15 +107,24 @@ window.StarterKitHelpers = {
       if (abs >= 1e9) return (num / 1e9).toFixed(1).replace('.', ',') + ' M';
       if (abs >= 1e6) return (num / 1e6).toFixed(1).replace('.', ',') + ' Jt';
       if (abs >= 1e3) return (num / 1e3).toFixed(0) + ' Rb';
-      return this.formatRupiah ? this.formatRupiah(num) : 'Rp ' + num.toLocaleString('id-ID');
+      return 'Rp ' + num.toLocaleString('id-ID');
     },
 
-    // Row menu toggle (G32 quick action)
     toggleRowMenu(id) {
       this.rowMenuId = this.rowMenuId === id ? null : id;
     },
-    closeMenu() { this.rowMenuId = null; }
+    closeMenu() { this.rowMenuId = null; },
 
+    // Sel matriks korelasi Jenis × Lokasi (A5)
+    korelasiCell_(jenisId, lokasiId) {
+      var d = this.anaData['korelasi'];
+      if (!d || !d.cells) return 0;
+      for (var i = 0; i < d.cells.length; i++) {
+        var c = d.cells[i];
+        if (String(c.jenis_id) === String(jenisId) && String(c.lokasi_id) === String(lokasiId)) return c.jml;
+      }
+      return 0;
+    }
   }
 };
 </script>
