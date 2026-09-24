@@ -15,7 +15,7 @@
         5 master = 5 dimensi laporan — tiap sheet menjawab "per apa?"
       </p>
     </div>
-    <button v-can="'verifikator'" class="btn btn-primary" @click="openMasterForm()"><i class="fa-solid fa-plus"></i> Tambah {{ masterTab }}</button>
+    <button v-can="'viewer'" class="btn btn-primary" @click="openMasterForm()"><i class="fa-solid fa-plus"></i> Tambah {{ masterTab }}</button>
   </div>
 
   <div class="grid grid-cols-2 sm:grid-cols-5 gap-2">
@@ -56,8 +56,8 @@
             <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
             <td class="py-2 px-3 text-right">
               <div class="flex gap-1 justify-end">
-                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                <button v-can="'viewer'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'viewer'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -94,8 +94,8 @@
             <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
             <td class="py-2 px-3 text-right">
               <div class="flex gap-1 justify-end">
-                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                <button v-can="'viewer'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'viewer'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -130,8 +130,8 @@
             <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
             <td class="py-2 px-3 text-right">
               <div class="flex gap-1 justify-end">
-                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                <button v-can="'viewer'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'viewer'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -166,8 +166,8 @@
             <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
             <td class="py-2 px-3 text-right">
               <div class="flex gap-1 justify-end">
-                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                <button v-can="'viewer'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'viewer'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>
@@ -200,8 +200,8 @@
             <td class="py-2 px-3"><app-badge size="sm" :status="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'" :label="String(r.status_aktif)==='false' ? 'nonaktif' : 'aktif'"></app-badge></td>
             <td class="py-2 px-3 text-right">
               <div class="flex gap-1 justify-end">
-                <button v-can="'verifikator'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                <button v-can="'verifikator'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+                <button v-can="'viewer'" class="btn-icon" @click="openMasterEdit(r)" title="Edit"><i class="fa-solid fa-pen"></i></button>
+                <button v-can="'viewer'" class="btn-icon-danger" @click="hapusMaster(r)" title="Hapus"><i class="fa-solid fa-trash"></i></button>
               </div>
             </td>
           </tr>
