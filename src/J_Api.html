@@ -124,7 +124,7 @@ window.StarterKitApi = {
       } finally { this.utamaLoading = false; }
     },
 
-    // Laporan (12 tab)
+    // Laporan (12 tab) — single
     async loadLaporan(tab) {
       var t = tab || this.laporanTab;
       this.lapLoading = true;
@@ -137,8 +137,33 @@ window.StarterKitApi = {
       } catch (e) { this.showToast('Error koneksi laporan.', 'error'); }
       finally { this.lapLoading = false; }
     },
+    // Laporan — 2 tab grid (dimensi 7 + matriks 5)
+    async loadLaporanGrup(grup) {
+      var g = grup || this.laporanGrupTab || 'dimensi';
+      var tabs = g==='dimensi' ? ['kategori','jenis','lokasi','periode','pegawai','status','satuan'] : ['jenis_periode','jenis_lokasi','detail','lampiran','approval'];
+      this.lapLoading = true;
+      try {
+        var promises = tabs.map(async (t) => {
+          var aksi = window.SK_MAPS.LAP_AKSI[t];
+          if (!aksi) return;
+          try {
+            var res = await this.callServer(aksi, { tahun: this.lapTahun });
+            if (res && res.success) {
+              if (t==='detail') {
+                // getUtamaList returns {data:[], total, total_pages, page} — wrap to {data, total}
+                if (Array.isArray(res.data)) this.lapData[t] = { data: res.data, total: res.total || res.data.length, tahun: this.lapTahun };
+                else this.lapData[t] = res.data;
+              } else {
+                this.lapData[t] = res.data;
+              }
+            }
+          } catch(e) {}
+        });
+        await Promise.all(promises);
+      } finally { this.lapLoading = false; }
+    },
 
-    // Analisa (8 tab)
+    // Analisa (8 tab) — single
     async loadAnalisa(tab) {
       var t = tab || this.analisaTab;
       this.anaLoading = true;
@@ -151,8 +176,21 @@ window.StarterKitApi = {
       } catch (e) { this.showToast('Error koneksi analisa.', 'error'); }
       finally { this.anaLoading = false; }
     },
+    // Analisa — grid 1 halaman (8 sekaligus)
+    async loadAnalisaGrid() {
+      var tabs = Object.keys(window.SK_MAPS.ANA_AKSI);
+      this.anaLoading = true;
+      try {
+        var promises = tabs.map(async (t) => {
+          var aksi = window.SK_MAPS.ANA_AKSI[t];
+          try { var res = await this.callServer(aksi, { tahun: this.anaTahun }); if (res && res.success) this.anaData[t] = res.data; } catch(e) {}
+        });
+        await Promise.all(promises);
+        this.anaGridLoaded = true;
+      } finally { this.anaLoading = false; }
+    },
 
-    // Evaluasi (6 tab)
+    // Evaluasi (6 tab) — single
     async loadEvaluasi(tab) {
       var t = tab || this.evaluasiTab;
       this.evaLoading = true;
@@ -164,6 +202,19 @@ window.StarterKitApi = {
         else this.showToast((res && res.error) || 'Gagal memuat evaluasi.', 'error');
       } catch (e) { this.showToast('Error koneksi evaluasi.', 'error'); }
       finally { this.evaLoading = false; }
+    },
+    // Evaluasi — grid 1 halaman (6 sekaligus)
+    async loadEvaluasiGrid() {
+      var tabs = Object.keys(window.SK_MAPS.EVA_AKSI);
+      this.evaLoading = true;
+      try {
+        var promises = tabs.map(async (t) => {
+          var aksi = window.SK_MAPS.EVA_AKSI[t];
+          try { var res = await this.callServer(aksi, { tahun: this.evaTahun }); if (res && res.success) this.evaData[t] = res.data; } catch(e) {}
+        });
+        await Promise.all(promises);
+        this.evaGridLoaded = true;
+      } finally { this.evaLoading = false; }
     },
 
     // RTL

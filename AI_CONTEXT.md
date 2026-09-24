@@ -1,7 +1,7 @@
 # 🤖 AI_CONTEXT.md — Surat Pengantar Ekosistem (untuk AI coder / developer baru)
 
 > Baca file ini **DULU** sebelum menyentuh apa pun di folder ini.
-> Versi konteks: 2026-09-23 (starter-kit v2.12.0 — CDN v2.9.1 + CoreLib v2.4.0 A+B — 5 master + 5 tabel + piramida 12/8/6/4 + dashboard 4+4+4 + UIUX v2) • Pemelihara: Tim TI Diskominfo Kab. Trenggalek
+> Versi konteks: 2026-09-24 (starter-kit v2.13.0 — Grid 1 halaman: Laporan 2-tab 2-kolom + Analisa/Evaluasi tanpa tab + angka tengah + tepi px-4/6 — CDN v2.9.1 hold + CoreLib v2.4.0) • Pemelihara: Tim TI Diskominfo Kab. Trenggalek
 
 ---
 
@@ -27,7 +27,9 @@
 - v2.0.1 (2026-09-19): CoreLib pin 15 + dispatchAction + 10 sheet
 - v2.10.0 (2026-09-21): 11 sheet + 72 handler + RTL + UIUX v1.10 (cetakan si-arsip v1.10)
 - v2.10.1 (2026-09-22): FIX K1 (isRefSheet_) + P1 (RTL FSM)
-- **v2.12.0 (2026-09-23): CDN v2.9.1 + CoreLib v2.4.0 A+B + Pengaturan (tema/scope) — 5M+5T + piramida 12/8/6/4 + dashboard 4+4+4 + UIUX v2**
+- **v2.13.0 (2026-09-24): Grid 1 halaman — Laporan 2-tab (Dimensi 7 + Matriks 5) 2-kolom + Analisa 8 tanpa tab 2×4 + Evaluasi 6 tanpa tab 2×3 + RTL fix + angka tengah (JUMLAH/TAHUN) + tepi px-4/6 tidak mepet + CDN 404 hold (comment 6 file baru) + L8/L9 flat (tahun/lokasi) + lookup kode + detail wrap**
+
+**v2.12.0 (2026-09-23): CDN v2.9.1 + CoreLib v2.4.0 A+B + Pengaturan (tema/scope) — 5M+5T + piramida 12/8/6/4 + dashboard 4+4+4 + UIUX v2**
 
 **DOKUMEN DESAIN LEBIH LENGKAP** (di workspace, di luar repo): `DESAIN_SCHEMA_V2_11.md` (peta 30 output + alasan fleksibel) dan `AUDIT_UIUX_SIDOKUMEN.md` (12 aturan UIUX v2).
 
@@ -78,7 +80,7 @@
 
 ---
 
-## 5. Cara mengetes v2.12.0
+## 5. Cara mengetes v2.13.0
 
 - CoreLib: `testAll` di Library → PASS 42 / FAIL 0 / SKIP 1
 - App: `runAllTestsStarterKit()`:
@@ -100,7 +102,7 @@
 
 ---
 
-## 7. Struktur src/ v2.12.0 (17 file: + V_Pengaturan.html)
+## 7. Struktur src/ v2.13.0 (17 file: Grid 1 halaman + V_Pengaturan.html)
 
 ```
 src/

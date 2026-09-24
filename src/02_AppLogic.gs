@@ -885,7 +885,7 @@ function lapSatuan_(params) {
   } catch (err) { return { success: false, error: err.message }; }
 }
 
-// L8 — matriks Jenis × Tahun (per jenis: rekap per tahun)
+// L8 — matriks Jenis × Tahun (FLAT untuk tabel: [{jenis_nama, tahun, jml}])
 function lapJenisPeriode_(params) {
   try {
     var utama = getSheetData_('T_UTAMA');
@@ -899,20 +899,18 @@ function lapJenisPeriode_(params) {
       if (!map[k]) map[k] = {};
       map[k][th] = (map[k][th] || 0) + 1;
     });
-    var rekap = Object.keys(map).map(function (k) {
-      var rows = Object.keys(map[k]).sort().map(function (th) { return { tahun: th, jml: map[k][th] }; });
-      return { jenis_id: k, jenis_nama: namaJ[k] || k, rekap: rows };
+    var rekap = [];
+    Object.keys(map).forEach(function (k) {
+      Object.keys(map[k]).forEach(function (th) {
+        rekap.push({ jenis_id: k, jenis_nama: namaJ[k] || k, tahun: th, jml: map[k][th] });
+      });
     });
-    rekap.sort(function (a, b) {
-      var ta = a.rekap.reduce(function (s, r) { return s + r.jml; }, 0);
-      var tb = b.rekap.reduce(function (s, r) { return s + r.jml; }, 0);
-      return tb - ta;
-    });
+    rekap.sort(function (a, b) { return b.jml - a.jml; });
     return { success: true, data: { tahun: tahun, total: filtered.length, rekap: rekap } };
   } catch (err) { return { success: false, error: err.message }; }
 }
 
-// L9 — matriks Jenis × Lokasi
+// L9 — matriks Jenis × Lokasi (FLAT untuk tabel: [{jenis_nama, lokasi_nama, jml}])
 function lapJenisLokasi_(params) {
   try {
     var utama = getSheetData_('T_UTAMA');
@@ -927,12 +925,13 @@ function lapJenisLokasi_(params) {
       if (!map[k]) map[k] = {};
       map[k][l] = (map[k][l] || 0) + 1;
     });
-    var rekap = Object.keys(map).map(function (k) {
-      var rows = Object.keys(map[k]).map(function (l) {
-        return { lokasi_id: l, lokasi_nama: namaL[l] || (l === 'tanpa' ? 'Tanpa lokasi' : l), jml: map[k][l] };
-      }).sort(function (a, b) { return b.jml - a.jml; });
-      return { jenis_id: k, jenis_nama: namaJ[k] || k, rekap: rows };
+    var rekap = [];
+    Object.keys(map).forEach(function (k) {
+      Object.keys(map[k]).forEach(function (l) {
+        rekap.push({ jenis_id: k, jenis_nama: namaJ[k] || k, lokasi_id: l, lokasi_nama: namaL[l] || (l === 'tanpa' ? 'Tanpa lokasi' : l), jml: map[k][l] });
+      });
     });
+    rekap.sort(function (a, b) { return b.jml - a.jml; });
     return { success: true, data: { tahun: tahun, total: filtered.length, rekap: rekap } };
   } catch (err) { return { success: false, error: err.message }; }
 }
@@ -978,7 +977,7 @@ function lapApproval_(params) {
       var u = utamaMap[String(r.utama_id)] || {};
       return { id: r.id, urutan: r.urutan, utama_id: r.utama_id, kode: u.kode || '', judul: u.judul || '', dibuat: String(r.created_at || '').slice(0, 10) };
     });
-    return { success: true, data: { total: approval.length, rekap_status: rekapStatus, menanti: menanti } };
+    return { success: true, data: { total: approval.length, rekap_status: rekapStatus, menanti: menanti, rekap: menanti } };
   } catch (err) { return { success: false, error: err.message }; }
 }
 

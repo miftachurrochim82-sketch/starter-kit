@@ -64,23 +64,26 @@ window.StarterKitState = {
         tanggal: '', jumlah: 0, nilai: 0, status: 'draft', catatan: ''
       },
 
-      // ==================== LAPORAN (12) ====================
+      // ==================== LAPORAN (12) — 2 tab grid (dimensi | matriks) ====================
       laporanTab: 'kategori',
+      laporanGrupTab: 'dimensi',
       lapLoading: false,
       lapTahun: th,
       lapData: {},
 
-      // ==================== ANALISA (8) ====================
+      // ==================== ANALISA (8) — grid 1 halaman ====================
       analisaTab: 'lokasi',
       anaLoading: false,
       anaTahun: th,
       anaData: {},
+      anaGridLoaded: false,
 
-      // ==================== EVALUASI (6) ====================
+      // ==================== EVALUASI (6) — grid 1 halaman ====================
       evaluasiTab: 'kelengkapan',
       evaLoading: false,
       evaTahun: th,
       evaData: {},
+      evaGridLoaded: false,
 
       // ==================== RTL ====================
       rtlList: [],

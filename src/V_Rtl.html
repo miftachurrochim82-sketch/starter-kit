@@ -4,7 +4,7 @@
      manual → R4. Status hanya via modal Ubah Status (state machine
      backend FSM) — TIDAK ADA field status di form (UIUX v2).
      ============================================================ -->
-<section v-if="currentPage === 'rtl'" class="space-y-6 animate-fade-in">
+<section v-if="currentPage === 'rtl'" class="space-y-6 animate-fade-in px-4 sm:px-6 lg:px-6">
 
   <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
     <div>
@@ -90,7 +90,7 @@
 
   <!-- Stats -->
   <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-    <app-stat-card title="Total RTL" :value="rtlTotalData" icon="fa-solid fa-list-check" color="sky" subtext="halaman ini: " + rtlList.length></app-stat-card>
+    <app-stat-card title="Total RTL" :value="rtlTotalData" icon="fa-solid fa-list-check" color="sky" :subtext="'halaman ini: ' + rtlList.length"></app-stat-card>
     <app-stat-card title="Baru" :value="rtlList.filter(function(r){return (r.status_rtl||r.status)==='baru'}).length" icon="fa-solid fa-clock" color="sky" subtext="perlu diproses"></app-stat-card>
     <app-stat-card title="Diproses" :value="rtlList.filter(function(r){return (r.status_rtl||r.status)==='diproses'}).length" icon="fa-solid fa-spinner" color="amber" subtext="sedang jalan"></app-stat-card>
     <app-stat-card title="Selesai" :value="rtlList.filter(function(r){return (r.status_rtl||r.status)==='selesai'}).length" icon="fa-solid fa-check" color="emerald" subtext="sudah tuntas"></app-stat-card>
@@ -111,7 +111,7 @@
             <th class="text-left py-2 px-3 min-w-[260px]">Judul RTL</th>
             <th class="text-left py-2 px-3 min-w-[100px]">Sumber</th>
             <th class="text-left py-2 px-3 min-w-[100px]">Status</th>
-            <th class="text-right py-2 px-3 min-w-[120px]">Progress</th>
+            <th class="text-center py-2 px-3 min-w-[120px]">Progress</th>
             <th class="text-left py-2 px-3 min-w-[140px]">Assignee</th>
             <th class="text-left py-2 px-3 min-w-[110px]">Due</th>
             <th class="text-right py-2 px-3 min-w-[120px]">Aksi</th>
@@ -129,7 +129,7 @@
             <td class="py-2 px-3">
               <app-badge size="sm" :status="badgeStatusRtl(r.status_rtl || r.status)" :label="r.status_rtl || r.status"></app-badge>
             </td>
-            <td class="py-2 px-3 text-right">
+            <td class="py-2 px-3 text-center">
               <div class="progress-track mr-1">
                 <div class="progress-fill" :style="{ width: (r.progress_pct||0) + '%' }"></div>
               </div>

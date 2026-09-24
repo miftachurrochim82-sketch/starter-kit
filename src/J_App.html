@@ -15,7 +15,7 @@ var StarterKitMixin = {
     getMyScope: function(){ try{ return (window.AppCore && AppCore.getMyScope) ? AppCore.getMyScope() : (this.filterScope || 'all'); }catch(e){ return this.filterScope || 'all'; } },
     setMyScope: function(v){
       this.filterScope = v;
-      try{ if(window.AppCore && AppCore.setMyScope) AppCore.setMyScope(v); else localStorage.setItem('sicontoh_scope', v); }catch(e){}
+      try{ if(window.AppCore && AppCore.setMyScope) AppCore.setMyScope(v); else localStorage.setItem('sidata_scope', v); }catch(e){}
       this.$forceUpdate();
       if(this.loadUtama) this.loadUtama(1);
       if(this.loadAll) this.loadAll();
@@ -48,17 +48,17 @@ var StarterKitMixin = {
 
 var app = AppCore.create({
 
-  appCode: 'SI-CONTOH',
-  appTitle: 'SI-CONTOH v2.12.0',
+  appCode: 'SIDATA',
+  appTitle: 'SI-DATA v2.11.0',
   initialPage: 'dashboard',
-  storagePrefix: 'sicontoh',
+  storagePrefix: 'sidata',
   platformUrl: 'https://script.google.com/macros/s/AKfycbwh_OUVqmxLcuF81FHmPZtT33Wrm8Ce9Da1SQ3hfkSr7gM5P8ofyAlHSgW40mq3eo-PoQ/exec',
 
   brand: {
-    title: 'SI-CONTOH',
-    subtitle: 'Starter Kit v2.12.0',
+    title: 'SI-DATA',
+    subtitle: 'Satu Data v2.11.0',
     logoIcon: 'fa-solid fa-cube',
-    logoChar: 'SC',
+    logoChar: 'SD',
     logoSvg: ''
   },
 
@@ -98,9 +98,9 @@ var app = AppCore.create({
   onNavigate: function (vm, page) {
     if (page === 'dashboard') vm.loadAll();
     if (page === 'utama') { if (!vm.utamaLoading) vm.loadUtama(1); }
-    if (page === 'laporan') { if (!vm.lapData[vm.laporanTab] && !vm.lapLoading) vm.loadLaporan(vm.laporanTab); }
-    if (page === 'analisa') { if (!vm.anaData[vm.analisaTab] && !vm.anaLoading) vm.loadAnalisa(vm.analisaTab); }
-    if (page === 'evaluasi') { if (!vm.evaData[vm.evaluasiTab] && !vm.evaLoading) vm.loadEvaluasi(vm.evaluasiTab); }
+    if (page === 'laporan') { if (!vm.lapLoading) vm.loadLaporanGrup(vm.laporanGrupTab || 'dimensi'); }
+    if (page === 'analisa') { if (!vm.anaGridLoaded && !vm.anaLoading) vm.loadAnalisaGrid(); }
+    if (page === 'evaluasi') { if (!vm.evaGridLoaded && !vm.evaLoading) vm.loadEvaluasiGrid(); }
     if (page === 'rtl') { if (!vm.rtlLoading) vm.loadRtl(1); }
     if (page === 'master') { if (!vm.kategoriList.length && !vm.masterLoading) vm.loadMasterSatelit(); }
     if (page === 'pengaturan') { /* theme picker — no load */ }

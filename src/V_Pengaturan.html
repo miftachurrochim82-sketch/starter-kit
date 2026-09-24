@@ -23,8 +23,11 @@
     <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">
       Pilih 1 dari 6 preset atau warna custom. Nilai disimpan ke <code class="px-1 bg-slate-100 dark:bg-slate-800 rounded">THEME_JSON</code> (Script Properties) &amp; diterapkan via <code class="px-1 bg-slate-100 dark:bg-slate-800 rounded">getThemeCss()</code>. Hanya <b>admin+</b> yang boleh menyimpan ke server — user biasa tetap bisa preview lokal via <code>AppCore.applyTheme()</code>.
     </p>
-    <!-- v2.9.0: app-theme-picker dari app-workflow.min.js -->
-    <app-theme-picker :value="currentUser && currentUser.theme || 'emerald'" @change="onThemeChange"></app-theme-picker>
+    <!-- v2.9.0: app-theme-picker dari app-workflow.min.js (fallback bila CDN 404) -->
+    <app-theme-picker v-if="$options.components && $options.components['app-theme-picker']" :value="currentUser && currentUser.theme || 'emerald'" @change="onThemeChange"></app-theme-picker>
+    <div v-else class="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded text-xs text-amber-800 dark:text-amber-200">
+      <i class="fa-solid fa-triangle-exclamation mr-1"></i> Komponen tema (app-workflow) belum termuat — CDN 404. Tema tetap sky default. Admin: push CDN v2.9.2 atau hubungi developer.
+    </div>
     <div class="mt-3 flex items-center gap-2">
       <button v-can="'admin'" class="btn btn-primary btn-sm" @click="saveTheme" :disabled="themeSaving">
         <i v-if="themeSaving" class="fa-solid fa-spinner animate-spin"></i><i v-else class="fa-solid fa-floppy-disk"></i>

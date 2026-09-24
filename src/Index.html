@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Title tanpa nomor versi internal (standar UIUX v2) -->
-  <title>SI-CONTOH — Starter Kit Web App</title>
+  <title>SI-DATA — Satu Data Satpol PP & Damkar Trenggalek</title>
 
   <!-- Tema browser — #0369a1 (sky-700), per-app boleh beda -->
   <meta name="theme-color" content="#0369a1">
@@ -71,7 +71,7 @@
 
   <script>
     try {
-      if (localStorage.getItem('sicontoh_dark') === 'true') document.documentElement.classList.add('dark');
+      if (localStorage.getItem('sidata_dark') === 'true') document.documentElement.classList.add('dark');
     } catch (e) {}
   </script>
 
@@ -95,7 +95,7 @@
                :is-processing="isProcessing"
                :error-message="errorMessage"
                :app-title="appTitle"
-               app-subtitle="Starter Kit — 5 master + 5 tabel + piramida 12/8/6/4"
+               app-subtitle="Satu Data — 5 master + 5 tabel + piramida 12/8/6/4"
                instansi="Pemkab Trenggalek"
                @login="goToPlatform">
     </app-login>
@@ -148,12 +148,13 @@
   <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-core.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-components.min.js"></script>
   <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-modules.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-layout.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-ui.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-forms.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-data.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-charts.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-workflow.min.js"></script>
+  <!-- CDN 404 HOLD v2.9.1: 6 file baru (layout/ui/forms/data/charts/workflow) belum ada di tag — di-comment biar tidak 404 & putih. Aktifkan lagi setelah push v2.9.2 -->
+  <!-- <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-layout.min.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-ui.min.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-forms.min.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-data.min.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-charts.min.js"></script> -->
+  <!-- <script src="https://cdn.jsdelivr.net/gh/miftachurrochim82-sketch/frontend-cdn@v2.9.1/frontend/app-workflow.min.js"></script> -->
 
   <?!= include('J_State'); ?>
   <?!= include('J_Helpers'); ?>

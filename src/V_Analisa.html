@@ -1,160 +1,85 @@
 <!-- ============================================================
-     STARTER-KIT - V_Analisa.html (v2.11.0 — 8 tab analisa)
-     A1 distribusi lokasi · A2 distribusi jenis · A3 top pegawai ·
-     A4 beban lokasi · A5 korelasi jenis×lokasi · A6 tren periode ·
-     A7 umur data · A8 SLA approval
+     SI-DATA - V_Analisa.html (v2.11.1 — grid 1 halaman 8 analisa)
+     Tanpa 8 tab berderet — 1 halaman scroll: A1-A8 berurutan, 1 baris kosong antar analisa (space-y-6)
      ============================================================ -->
-<section v-if="currentPage === 'analisa'" class="space-y-6 animate-fade-in">
+<section v-if="currentPage === 'analisa'" class="space-y-6 animate-fade-in px-4 sm:px-6 lg:px-6">
 
   <div>
     <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-white">
       <i class="fa-solid fa-chart-line text-sky-600 dark:text-sky-400"></i> Analisa
     </h2>
-    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">8 analisa standar (A1–A8) — nama, bukan ID</p>
+    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">8 analisa — grid 1 halaman (2 kolom di desktop), tanpa tab</p>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-    <button class="btn" :class="analisaTab==='lokasi' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='lokasi'; loadAnalisa('lokasi')">A1 Distribusi Lok</button>
-    <button class="btn" :class="analisaTab==='jenis' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='jenis'; loadAnalisa('jenis')">A2 Distribusi Jenis</button>
-    <button class="btn" :class="analisaTab==='top_pegawai' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='top_pegawai'; loadAnalisa('top_pegawai')">A3 Top Pegawai</button>
-    <button class="btn" :class="analisaTab==='beban_lokasi' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='beban_lokasi'; loadAnalisa('beban_lokasi')">A4 Beban Lokasi</button>
-    <button class="btn" :class="analisaTab==='korelasi' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='korelasi'; loadAnalisa('korelasi')">A5 Korelasi</button>
-    <button class="btn" :class="analisaTab==='tren' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='tren'; loadAnalisa('tren')">A6 Tren 12B</button>
-    <button class="btn" :class="analisaTab==='umur' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='umur'; loadAnalisa('umur')">A7 Umur Data</button>
-    <button class="btn" :class="analisaTab==='sla' ? 'btn-primary' : 'btn-ghost'" @click="analisaTab='sla'; loadAnalisa('sla')">A8 SLA Approval</button>
-  </div>
-
-  <div class="filter-bar-analytics">
-    <span class="text-xs text-slate-400 mr-auto">Filter tahun berlaku untuk A1–A4, A5 (A6–A8 dihitung dari semua data)</span>
+  <div class="flex items-end gap-2">
     <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="anaTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
-    <button class="btn btn-primary" @click="loadAnalisa(analisaTab)" :disabled="anaLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    <button class="btn btn-primary" @click="loadAnalisaGrid()" :disabled="anaLoading"><i class="fa-solid fa-rotate"></i> Tampilkan 8 Analisa</button>
+    <span v-if="anaLoading" class="text-xs text-slate-400">Memuat 8 analisa...</span>
+    <span v-else-if="anaGridLoaded" class="text-xs text-emerald-600">✓ 8 dimuat</span>
   </div>
+  <div class="text-xs text-slate-400">Filter tahun untuk A1-A5 (A6-A8 semua data)</div>
 
-  <div v-if="anaLoading && !anaDataAktif" class="card"><app-skeleton type="table"></app-skeleton></div>
+  <div v-if="anaLoading && !anaGridLoaded" class="card"><app-skeleton type="table"></app-skeleton></div>
 
-  <!-- A1/A2 distribusi (lokasi | jenis) -->
-  <div v-if="!anaLoading && (analisaTab==='lokasi' || analisaTab==='jenis') && anaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-chart-simple text-sky-500"></i> {{ analisaTab==='lokasi' ? 'A1 — Distribusi per Lokasi' : 'A2 — Distribusi per Jenis' }}</h3>
-    <app-stat-card title="Total Data" :value="anaDataAktif.total" icon="fa-solid fa-chart-simple" color="sky" :subtext="anaDataAktif.tahun"></app-stat-card>
-    <div class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[220px]">{{ analisaTab==='lokasi' ? 'Lokasi' : 'Jenis' }}</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th><th class="text-right py-2 px-2 min-w-[70px]">%</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in anaDataAktif.distribusi" :key="r.id">
-            <td class="py-2 px-2">{{ r.nama }}</td>
-            <td class="py-2 px-2 text-right font-bold">{{ r.jumlah }}</td>
-            <td class="py-2 px-2 text-right text-slate-400">{{ r.pct }}%</td>
-          </tr>
-        </tbody>
-      </table>
+  <div v-if="!anaLoading && anaGridLoaded" class="space-y-6">
+
+    <!-- Baris 1: A1 | A2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="anaData['lokasi']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-location-dot text-sky-500"></i> A1 — Distribusi per Lokasi</h3>
+        <app-stat-card title="Total" :value="anaData['lokasi'].total" icon="fa-solid fa-location-dot" color="sky" :subtext="anaData['lokasi'].tahun"></app-stat-card>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Lokasi</th><th class="text-center py-2 px-2">Jumlah</th><th class="text-center py-2 px-2">%</th></tr></thead><tbody class="divide-y"><tr v-for="r in anaData['lokasi'].distribusi" :key="r.id"><td class="py-2 px-2">{{ r.nama }}</td><td class="py-2 px-2 text-center font-bold">{{ r.jumlah }}</td><td class="py-2 px-2 text-center text-slate-400">{{ r.pct }}%</td></tr></tbody></table></div>
+      </div>
+      <div v-if="anaData['jenis']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-tag text-sky-500"></i> A2 — Distribusi per Jenis</h3>
+        <app-stat-card title="Total" :value="anaData['jenis'].total" icon="fa-solid fa-tag" color="emerald" :subtext="anaData['jenis'].tahun"></app-stat-card>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Jenis</th><th class="text-center py-2 px-2">Jumlah</th><th class="text-center py-2 px-2">%</th></tr></thead><tbody class="divide-y"><tr v-for="r in anaData['jenis'].distribusi" :key="r.id"><td class="py-2 px-2">{{ r.nama }}</td><td class="py-2 px-2 text-center font-bold">{{ r.jumlah }}</td><td class="py-2 px-2 text-center text-slate-400">{{ r.pct }}%</td></tr></tbody></table></div>
+      </div>
     </div>
-  </div>
 
-  <!-- A3 top pegawai -->
-  <div v-if="!anaLoading && analisaTab==='top_pegawai' && anaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-ranking-star text-sky-500"></i> A3 — Top Penanggung Jawab</h3>
-    <div class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[60px]">#</th><th class="text-left py-2 px-2 min-w-[240px]">Pegawai</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="(r, i) in anaDataAktif.top" :key="r.pegawai_id">
-            <td class="py-2 px-2 font-bold">{{ i + 1 }}</td>
-            <td class="py-2 px-2"><div>{{ r.nama }}</div><div class="font-mono text-[10px] text-slate-400">{{ r.pegawai_id }}</div></td>
-            <td class="py-2 px-2 text-right font-bold">{{ r.jumlah }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Baris 2: A3 | A4 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="anaData['top_pegawai']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-ranking-star text-sky-500"></i> A3 — Top Pegawai</h3>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">#</th><th class="text-left py-2 px-2">Pegawai</th><th class="text-center py-2 px-2">Jumlah</th></tr></thead><tbody class="divide-y"><tr v-for="(r, i) in anaData['top_pegawai'].top" :key="r.pegawai_id"><td class="py-2 px-2 font-bold">{{ i+1 }}</td><td class="py-2 px-2"><div>{{ r.nama }}</div><div class="font-mono text-[10px] text-slate-400">{{ r.pegawai_id }}</div></td><td class="py-2 px-2 text-center font-bold">{{ r.jumlah }}</td></tr></tbody></table></div>
+      </div>
+      <div v-if="anaData['beban_lokasi']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-weight-hanging text-sky-500"></i> A4 — Beban per Lokasi</h3>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Lokasi</th><th class="text-center py-2 px-2">Total</th><th class="text-center py-2 px-2">Selesai</th><th class="text-center py-2 px-2">Belum</th><th class="text-center py-2 px-2">%</th></tr></thead><tbody class="divide-y"><tr v-for="r in anaData['beban_lokasi'].beban" :key="r.lokasi_id"><td class="py-2 px-2">{{ r.nama }}</td><td class="py-2 px-2 text-center">{{ r.total }}</td><td class="py-2 px-2 text-center text-emerald-600">{{ r.selesai }}</td><td class="py-2 px-2 text-center text-amber-600">{{ r.belum }}</td><td class="py-2 px-2 text-center">{{ r.total ? Math.round(r.selesai / r.total * 100) : 0 }}%</td></tr></tbody></table></div>
+      </div>
     </div>
-  </div>
 
-  <!-- A4 beban lokasi -->
-  <div v-if="!anaLoading && analisaTab==='beban_lokasi' && anaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-weight-hanging text-sky-500"></i> A4 — Beban per Lokasi</h3>
-    <div class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[220px]">Lokasi</th><th class="text-right py-2 px-2 min-w-[70px]">Total</th><th class="text-right py-2 px-2 min-w-[80px]">Selesai</th><th class="text-right py-2 px-2 min-w-[80px]">Belum</th><th class="text-right py-2 px-2 min-w-[70px]">%</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in anaDataAktif.beban" :key="r.lokasi_id">
-            <td class="py-2 px-2">{{ r.nama }}</td>
-            <td class="py-2 px-2 text-right font-bold">{{ r.total }}</td>
-            <td class="py-2 px-2 text-right text-emerald-600">{{ r.selesai }}</td>
-            <td class="py-2 px-2 text-right text-amber-600">{{ r.belum }}</td>
-            <td class="py-2 px-2 text-right text-slate-400">{{ r.total ? Math.round(r.selesai / r.total * 100) : 0 }}%</td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Baris 3: A5 | A6 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="anaData['korelasi']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-table-cells-large text-sky-500"></i> A5 — Korelasi Jenis × Lokasi</h3>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Jenis ↓ / Lokasi →</th><th v-for="l in anaData['korelasi'].lokasi" :key="l.id" class="text-right py-2 px-2">{{ l.nama }}</th></tr></thead><tbody class="divide-y"><tr v-for="j in anaData['korelasi'].jenis" :key="j.id"><td class="py-2 px-2 font-semibold">{{ j.nama }}</td><td v-for="l in anaData['korelasi'].lokasi" :key="l.id" class="py-2 px-2 text-right" :class="korelasiCell_(j.id, l.id) ? 'font-bold' : 'text-slate-300'">{{ korelasiCell_(j.id, l.id) || '·' }}</td></tr></tbody></table></div>
+      </div>
+      <div v-if="anaData['tren']" class="card p-4">
+        <h3 class="font-bold text-sm mb-3"><i class="fa-solid fa-chart-area text-sky-500"></i> A6 — Tren 12 Bulan</h3>
+        <app-chart-bar :labels="chartAnalisaTrenLabels" :datasets="chartAnalisaTrenDatasets" :height="220" :colors="chartTrenAnalisaColors"></app-chart-bar>
+      </div>
     </div>
-  </div>
 
-  <!-- A5 korelasi matrix -->
-  <div v-if="!anaLoading && analisaTab==='korelasi' && anaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-table-cells-large text-sky-500"></i> A5 — Korelasi Jenis × Lokasi</h3>
-    <div class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b">
-          <tr>
-            <th class="text-left py-2 px-2 min-w-[180px]">Jenis ↓ / Lokasi →</th>
-            <th v-for="l in anaDataAktif.lokasi" :key="l.id" class="text-right py-2 px-2 min-w-[90px]">{{ l.nama }}</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y">
-          <tr v-for="j in anaDataAktif.jenis" :key="j.id">
-            <td class="py-2 px-2 font-semibold">{{ j.nama }}</td>
-            <td v-for="l in anaDataAktif.lokasi" :key="l.id" class="py-2 px-2 text-right" :class="korelasiCell_(j.id, l.id) ? 'font-bold' : 'text-slate-300 dark:text-slate-600'">
-              {{ korelasiCell_(j.id, l.id) || '·' }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <!-- Baris 4: A7 | A8 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="anaData['umur']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-hourglass text-sky-500"></i> A7 — Umur Data</h3>
+        <app-stat-card title="Total" :value="anaData['umur'].total" icon="fa-solid fa-hourglass" color="sky"></app-stat-card>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Rentang</th><th class="text-center py-2 px-2">Jumlah</th></tr></thead><tbody class="divide-y"><tr v-for="b in anaData['umur'].buckets" :key="b.label"><td class="py-2 px-2">{{ b.label }}</td><td class="py-2 px-2 text-center font-bold">{{ b.jml }}</td></tr></tbody></table></div>
+      </div>
+      <div v-if="anaData['sla']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-stopwatch text-sky-500"></i> A8 — SLA Approval</h3>
+        <div class="grid grid-cols-2 gap-2">
+          <app-stat-card title="Menunggu" :value="anaData['sla'].menunggu" icon="fa-solid fa-hourglass-half" color="amber"></app-stat-card>
+          <app-stat-card title="Rata-rata" :value="anaData['sla'].rata_rata_hari + ' hr'" icon="fa-solid fa-stopwatch" color="sky"></app-stat-card>
+        </div>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Approval</th><th class="text-left py-2 px-2">Sejak</th><th class="text-right py-2 px-2">Umur</th></tr></thead><tbody class="divide-y"><tr v-for="r in anaData['sla'].menanti_detail" :key="r.id"><td class="py-2 px-2 font-mono text-[11px]">{{ r.id }}</td><td class="py-2 px-2">{{ fmtTgl(r.dibuat) }}</td><td class="py-2 px-2 text-right">{{ r.umur_hari === '' ? '—' : r.umur_hari + ' hr' }}</td></tr></tbody></table></div>
+      </div>
     </div>
+
   </div>
 
-  <!-- A6 tren 12 bulan -->
-  <div v-if="!anaLoading && analisaTab==='tren' && anaDataAktif" class="card p-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200 mb-3"><i class="fa-solid fa-chart-area text-sky-500"></i> A6 — Tren 12 Bulan Terakhir</h3>
-    <app-chart-bar :labels="chartAnalisaTrenLabels" :datasets="chartAnalisaTrenDatasets" :title="''" :height="240" :colors="chartTrenAnalisaColors"></app-chart-bar>
-  </div>
-
-  <!-- A7 umur data -->
-  <div v-if="!anaLoading && analisaTab==='umur' && anaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-hourglass text-sky-500"></i> A7 — Umur Data</h3>
-    <app-stat-card title="Total Data" :value="anaDataAktif.total" icon="fa-solid fa-hourglass" color="sky"></app-stat-card>
-    <div class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[200px]">Rentang Umur</th><th class="text-right py-2 px-2 min-w-[80px]">Jumlah</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="b in anaDataAktif.buckets" :key="b.label">
-            <td class="py-2 px-2">{{ b.label }}</td>
-            <td class="py-2 px-2 text-right font-bold">{{ b.jml }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- A8 SLA approval -->
-  <div v-if="!anaLoading && analisaTab==='sla' && anaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-stopwatch text-sky-500"></i> A8 — SLA Approval</h3>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <app-stat-card title="Menunggu" :value="anaDataAktif.menunggu" icon="fa-solid fa-hourglass-half" color="amber"></app-stat-card>
-      <app-stat-card title="Disetujui" :value="anaDataAktif.disetujui" icon="fa-solid fa-check" color="emerald"></app-stat-card>
-      <app-stat-card title="Ditolak / Revisi" :value="(anaDataAktif.ditolak||0) + (anaDataAktif.revisi||0)" icon="fa-solid fa-xmark" color="rose"></app-stat-card>
-      <app-stat-card title="Rata-rata" :value="anaDataAktif.rata_rata_hari + ' hr'" icon="fa-solid fa-stopwatch" color="sky" subtext="sejak dibuat"></app-stat-card>
-    </div>
-    <div class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[140px]">Approval</th><th class="text-left py-2 px-2 min-w-[160px]">Sejak</th><th class="text-right py-2 px-2 min-w-[100px]">Umur</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in anaDataAktif.menanti_detail" :key="r.id">
-            <td class="py-2 px-2 font-mono text-[11px]">{{ r.id }}</td>
-            <td class="py-2 px-2">{{ fmtTgl(r.dibuat) }}</td>
-            <td class="py-2 px-2 text-right" :class="Number(r.umur_hari) > 30 ? 'text-rose-600 font-bold' : 'text-slate-400'">{{ r.umur_hari === '' ? '—' : r.umur_hari + ' hr' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <app-empty-state v-if="!anaLoading && !anaDataAktif" icon="fa-solid fa-chart-line" title="Belum dimuat" subtitle="Pilih tab + klik Tampilkan"></app-empty-state>
+  <app-empty-state v-if="!anaLoading && !anaGridLoaded" icon="fa-solid fa-chart-line" title="Belum dimuat" subtitle="Klik Tampilkan 8 Analisa untuk memuat semua."></app-empty-state>
 
 </section>

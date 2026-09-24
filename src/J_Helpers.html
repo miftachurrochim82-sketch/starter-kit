@@ -75,7 +75,8 @@ window.StarterKitHelpers = {
       for (var i = 0; i < arr.length; i++) {
         var r = arr[i] || {};
         var id = String(r.id || r.pegawai_id || '').trim();
-        if (id === k) {
+        var kode = String(r.kode || '').trim();
+        if (id === k || kode === k) {
           for (var f = 0; f < fields.length; f++) {
             if (r[fields[f]]) return r[fields[f]];
           }

@@ -1,177 +1,71 @@
 <!-- ============================================================
-     STARTER-KIT - V_Evaluasi.html (v2.11.0 — 6 tab evaluasi)
-     E1 kelengkapan · E2 SLA verifikasi · E3 kepatuhan periode ·
-     E4 kualitas data · E5 lampiran · E6 RTL terbuka
-     Hasil evaluasi = bahan generate RTL R1-R4.
+     SI-DATA - V_Evaluasi.html (v2.11.1 — grid 1 halaman 6 evaluasi)
+     Tanpa 6 tab berderet — 1 halaman scroll: E1-E6 berurutan, 1 baris kosong antar evaluasi (space-y-6)
      ============================================================ -->
-<section v-if="currentPage === 'evaluasi'" class="space-y-6 animate-fade-in">
+<section v-if="currentPage === 'evaluasi'" class="space-y-6 animate-fade-in px-4 sm:px-6 lg:px-6">
 
   <div>
     <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2 text-slate-800 dark:text-white">
       <i class="fa-solid fa-magnifying-glass-chart text-sky-600 dark:text-sky-400"></i> Evaluasi
     </h2>
-    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">6 evaluasi standar (E1–E6) — temuan bisa jadi RTL (menu RTL → Generate)</p>
+    <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">6 evaluasi — grid 1 halaman, tanpa tab. Temuan bisa jadi RTL.</p>
   </div>
 
-  <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
-    <button class="btn" :class="evaluasiTab==='kelengkapan' ? 'btn-primary' : 'btn-ghost'" @click="evaluasiTab='kelengkapan'; loadEvaluasi('kelengkapan')">E1 Kelengkapan</button>
-    <button class="btn" :class="evaluasiTab==='sla' ? 'btn-primary' : 'btn-ghost'" @click="evaluasiTab='sla'; loadEvaluasi('sla')">E2 SLA Verif</button>
-    <button class="btn" :class="evaluasiTab==='periode' ? 'btn-primary' : 'btn-ghost'" @click="evaluasiTab='periode'; loadEvaluasi('periode')">E3 Kepatuhan</button>
-    <button class="btn" :class="evaluasiTab==='kualitas' ? 'btn-primary' : 'btn-ghost'" @click="evaluasiTab='kualitas'; loadEvaluasi('kualitas')">E4 Kualitas</button>
-    <button class="btn" :class="evaluasiTab==='lampiran' ? 'btn-primary' : 'btn-ghost'" @click="evaluasiTab='lampiran'; loadEvaluasi('lampiran')">E5 Lampiran</button>
-    <button class="btn" :class="evaluasiTab==='rtl' ? 'btn-primary' : 'btn-ghost'" @click="evaluasiTab='rtl'; loadEvaluasi('rtl')">E6 RTL Terbuka</button>
-  </div>
-
-  <div class="filter-bar-analytics">
-    <span class="text-xs text-slate-400 mr-auto">Tahun berlaku untuk E1, E3, E5 (E2/E4/E6 semua data)</span>
+  <div class="flex items-end gap-2">
     <div class="w-28"><label class="filter-label">Tahun</label><select class="input w-full" v-model="evaTahun"><option v-for="y in tahunOptions" :key="y" :value="y">{{ y }}</option></select></div>
-    <button class="btn btn-primary" @click="loadEvaluasi(evaluasiTab)" :disabled="evaLoading"><i class="fa-solid fa-rotate"></i> Tampilkan</button>
+    <button class="btn btn-primary" @click="loadEvaluasiGrid()" :disabled="evaLoading"><i class="fa-solid fa-rotate"></i> Tampilkan 6 Evaluasi</button>
+    <span v-if="evaLoading" class="text-xs text-slate-400">Memuat...</span>
+    <span v-else-if="evaGridLoaded" class="text-xs text-emerald-600">✓ 6 dimuat</span>
+  </div>
+  <div class="text-xs text-slate-400">Tahun untuk E1, E3, E5 (E2/E4/E6 semua data) · Tombol Generate RTL di tiap temuan</div>
+
+  <div v-if="evaLoading && !evaGridLoaded" class="card"><app-skeleton type="table"></app-skeleton></div>
+
+  <div v-if="!evaLoading && evaGridLoaded" class="space-y-6">
+
+    <!-- Baris 1: E1 | E2 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="evaData['kelengkapan']" class="card space-y-3">
+        <div class="flex items-center justify-between"><h3 class="font-bold text-sm"><i class="fa-solid fa-list-check text-amber-600"></i> E1 — Kelengkapan</h3><button v-if="(evaData['kelengkapan'].kurang||[]).length" class="btn btn-xs btn-primary" @click="rtlGenerateSumber='kelengkapan'; generateRtl()"><i class="fa-solid fa-plus"></i> Generate RTL</button></div>
+        <div v-if="(evaData['kelengkapan'].kurang||[]).length" class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Kode</th><th class="text-left py-2 px-2">Kurang</th></tr></thead><tbody class="divide-y"><tr v-for="r in evaData['kelengkapan'].kurang" :key="r.kode"><td class="py-2 px-2 font-mono font-bold">{{ r.kode }}</td><td class="py-2 px-2 text-amber-600">{{ (r.kurang||[]).join(', ') }}</td></tr></tbody></table></div>
+        <div v-else class="text-xs text-emerald-600 text-center py-3">✓ Semua lengkap tahun {{ evaData['kelengkapan'].tahun }}</div>
+      </div>
+      <div v-if="evaData['sla']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-stopwatch text-amber-600"></i> E2 — SLA Verifikasi ({{ evaData['sla'].sla_hari }} hr)</h3>
+        <div v-if="(evaData['sla'].lewat||[]).length" class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Approval</th><th class="text-left py-2 px-2">Umur</th></tr></thead><tbody class="divide-y"><tr v-for="r in evaData['sla'].lewat" :key="r.id"><td class="py-2 px-2 font-mono">{{ r.id }}</td><td class="py-2 px-2 text-amber-600">{{ r.umur_hari }} hr</td></tr></tbody></table></div>
+        <div v-else class="text-xs text-emerald-600 text-center py-3">✓ Tidak ada lewat SLA</div>
+      </div>
+    </div>
+
+    <!-- Baris 2: E3 | E4 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="evaData['periode']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-calendar-check text-amber-600"></i> E3 — Kepatuhan Periode {{ evaData['periode'].tahun }}</h3>
+        <div class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Jenis</th><th class="text-left py-2 px-2">Periode</th><th class="text-center py-2 px-2">Jml</th></tr></thead><tbody class="divide-y"><tr v-for="r in evaData['periode'].rekap" :key="r.jenis_id + r.periode"><td class="py-2 px-2">{{ r.jenis_nama }}</td><td class="py-2 px-2">{{ r.periode }}</td><td class="py-2 px-2 text-center font-bold">{{ r.jml }}</td></tr></tbody></table></div>
+      </div>
+      <div v-if="evaData['kualitas']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-shield-halved text-amber-600"></i> E4 — Kualitas Data</h3>
+        <div v-if="(evaData['kualitas'].yatim||[]).length" class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Kode</th><th class="text-left py-2 px-2">Masalah</th></tr></thead><tbody class="divide-y"><tr v-for="r in evaData['kualitas'].yatim" :key="r.kode"><td class="py-2 px-2 font-mono">{{ r.kode }}</td><td class="py-2 px-2 text-rose-600">{{ r.jenis_id ? 'jenis yatim: '+r.jenis_id : 'duplikat' }}</td></tr></tbody></table></div>
+        <div v-else class="text-xs text-emerald-600 text-center py-3">✓ Data bersih</div>
+      </div>
+    </div>
+
+    <!-- Baris 3: E5 | E6 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div v-if="evaData['lampiran']" class="card space-y-3">
+        <div class="flex items-center justify-between"><h3 class="font-bold text-sm"><i class="fa-solid fa-paperclip text-amber-600"></i> E5 — Lampiran Kosong</h3><button v-if="(evaData['lampiran'].kosong||[]).length" class="btn btn-xs btn-primary" @click="rtlGenerateSumber='lampiran'; generateRtl()">Generate RTL</button></div>
+        <div v-if="(evaData['lampiran'].kosong||[]).length" class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">Kode</th><th class="text-left py-2 px-2">Judul</th></tr></thead><tbody class="divide-y"><tr v-for="r in evaData['lampiran'].kosong" :key="r.kode"><td class="py-2 px-2 font-mono">{{ r.kode }}</td><td class="py-2 px-2">{{ r.judul }}</td></tr></tbody></table></div>
+        <div v-else class="text-xs text-emerald-600 text-center py-3">✓ Semua ada lampiran</div>
+      </div>
+      <div v-if="evaData['rtl']" class="card space-y-3">
+        <h3 class="font-bold text-sm"><i class="fa-solid fa-list-check text-amber-600"></i> E6 — RTL Terbuka</h3>
+        <div v-if="(evaData['rtl'].terbuka||[]).length" class="table-scroll"><table class="w-full text-xs"><thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2">RTL</th><th class="text-left py-2 px-2">Umur</th></tr></thead><tbody class="divide-y"><tr v-for="r in evaData['rtl'].terbuka" :key="r.id"><td class="py-2 px-2">{{ r.uraian || r.id }}</td><td class="py-2 px-2 text-amber-600">{{ r.umur_hari }} hr</td></tr></tbody></table></div>
+        <div v-else class="text-xs text-emerald-600 text-center py-3">✓ Tidak ada RTL terbuka</div>
+      </div>
+    </div>
+
   </div>
 
-  <div v-if="evaLoading && !evaDataAktif" class="card"><app-skeleton type="table"></app-skeleton></div>
-
-  <!-- E1 kelengkapan -->
-  <div v-if="!evaLoading && evaluasiTab==='kelengkapan' && evaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-clipboard-check text-sky-500"></i> E1 — Kelengkapan Field Wajib</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <app-stat-card title="Total" :value="evaDataAktif.total" icon="fa-solid fa-clipboard-check" color="sky" :subtext="evaDataAktif.tahun"></app-stat-card>
-      <app-stat-card title="Tidak Lengkap" :value="evaDataAktif.tidak_lengkap" icon="fa-solid fa-triangle-exclamation" :color="evaDataAktif.tidak_lengkap ? 'rose' : 'emerald'"></app-stat-card>
-      <app-stat-card title="Kelengkapan" :value="evaDataAktif.pct_lengkap + '%'" icon="fa-solid fa-percent" color="emerald"></app-stat-card>
-    </div>
-    <div v-if="evaDataAktif.rincian.length" class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[120px]">Kode</th><th class="text-left py-2 px-2 min-w-[220px]">Judul</th><th class="text-left py-2 px-2 min-w-[180px]">Kurang</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in evaDataAktif.rincian" :key="r.id">
-            <td class="py-2 px-2 font-mono text-[11px]">{{ r.kode }}</td>
-            <td class="py-2 px-2 truncate max-w-[220px]">{{ r.judul }}</td>
-            <td class="py-2 px-2 text-rose-600 dark:text-rose-400">{{ (r.kurang||[]).join(', ') }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div v-else class="text-xs text-emerald-600"><i class="fa-solid fa-circle-check"></i> Semua data tahun {{ evaDataAktif.tahun }} lengkap.</div>
-  </div>
-
-  <!-- E2 SLA verifikasi -->
-  <div v-if="!evaLoading && evaluasiTab==='sla' && evaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-gauge text-sky-500"></i> E2 — SLA Verifikasi (ambang {{ evaDataAktif.sla_hari }} hari)</h3>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <app-stat-card title="Total Approval" :value="evaDataAktif.total_approval" icon="fa-solid fa-stamp" color="sky"></app-stat-card>
-      <app-stat-card title="Menunggu" :value="evaDataAktif.menunggu" icon="fa-solid fa-hourglass-half" color="amber"></app-stat-card>
-      <app-stat-card title="Terverifikasi" :value="evaDataAktif.terverifikasi" icon="fa-solid fa-check" color="emerald"></app-stat-card>
-      <app-stat-card title="Terlambat" :value="evaDataAktif.terlambat" icon="fa-solid fa-triangle-exclamation" :color="evaDataAktif.terlambat ? 'rose' : 'emerald'"></app-stat-card>
-    </div>
-    <div v-if="evaDataAktif.rincian_menanti.length" class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[90px]">Langkah</th><th class="text-left py-2 px-2 min-w-[240px]">Transaksi</th><th class="text-left py-2 px-2 min-w-[100px]">Sejak</th><th class="text-right py-2 px-2 min-w-[90px]">Umur</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in evaDataAktif.rincian_menanti" :key="r.id">
-            <td class="py-2 px-2 font-bold">Langkah {{ r.urutan || 1 }}</td>
-            <td class="py-2 px-2">{{ r.kode }} — {{ r.judul || '—' }}</td>
-            <td class="py-2 px-2 text-slate-400">{{ fmtTgl(r.dibuat) }}</td>
-            <td class="py-2 px-2 text-right" :class="r.terlambat ? 'text-rose-600 font-bold' : 'text-slate-400'">{{ r.umur_hari === '' ? '—' : r.umur_hari + ' hr' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div v-else class="text-xs text-emerald-600"><i class="fa-solid fa-circle-check"></i> Tidak ada approval menunggu.</div>
-  </div>
-
-  <!-- E3 kepatuhan periode -->
-  <div v-if="!evaLoading && evaluasiTab==='periode' && evaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-calendar-check text-sky-500"></i> E3 — Kepatuhan Periode {{ evaDataAktif.tahun }}</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <app-stat-card title="Jenis Periodik" :value="evaDataAktif.jenis_periodik" icon="fa-solid fa-calendar-check" color="sky" subtext="Tahunan/Bulanan/Periodik"></app-stat-card>
-      <app-stat-card title="Patuh" :value="evaDataAktif.patuh" icon="fa-solid fa-check" color="emerald"></app-stat-card>
-      <app-stat-card title="Tidak Patuh" :value="evaDataAktif.tidak_patuh" icon="fa-solid fa-xmark" :color="evaDataAktif.tidak_patuh ? 'rose' : 'emerald'"></app-stat-card>
-    </div>
-    <div class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[220px]">Jenis</th><th class="text-left py-2 px-2 min-w-[110px]">Periode</th><th class="text-left py-2 px-2 min-w-[90px]">Status</th><th class="text-right py-2 px-2 min-w-[80px]">Data</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in evaDataAktif.rincian" :key="r.jenis_id">
-            <td class="py-2 px-2">{{ r.jenis_nama }}</td>
-            <td class="py-2 px-2">{{ r.periode }}</td>
-            <td class="py-2 px-2"><app-badge size="sm" :status="r.ada_data ? 'disetujui' : 'ditolak'" :label="r.ada_data ? 'ada data' : 'tidak ada'"></app-badge></td>
-            <td class="py-2 px-2 text-right">{{ r.jml }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- E4 kualitas data -->
-  <div v-if="!evaLoading && evaluasiTab==='kualitas' && evaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-database text-sky-500"></i> E4 — Kualitas Data</h3>
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <app-stat-card title="FK Jenis Yatim" :value="evaDataAktif.yatim_jenis" icon="fa-solid fa-link-slash" :color="evaDataAktif.yatim_jenis ? 'rose' : 'emerald'"></app-stat-card>
-      <app-stat-card title="FK Lokasi Yatim" :value="evaDataAktif.yatim_lokasi" icon="fa-solid fa-link-slash" :color="evaDataAktif.yatim_lokasi ? 'rose' : 'emerald'"></app-stat-card>
-      <app-stat-card title="FK Periode Yatim" :value="evaDataAktif.yatim_periode" icon="fa-solid fa-link-slash" :color="evaDataAktif.yatim_periode ? 'rose' : 'emerald'"></app-stat-card>
-      <app-stat-card title="Duplikat Kode" :value="evaDataAktif.duplikat_kode" icon="fa-solid fa-clone" :color="evaDataAktif.duplikat_kode ? 'rose' : 'emerald'"></app-stat-card>
-    </div>
-    <div v-if="evaDataAktif.rincian.length" class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[120px]">Kode</th><th class="text-left py-2 px-2 min-w-[160px]">Masalah</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="(r, i) in evaDataAktif.rincian" :key="i">
-            <td class="py-2 px-2 font-mono text-[11px]">{{ r.kode || r.id }}</td>
-            <td class="py-2 px-2 text-rose-600 dark:text-rose-400">
-              {{ r.jenis_id ? 'jenis yatim: ' + r.jenis_id : (r.lokasi_id ? 'lokasi yatim: ' + r.lokasi_id : (r.periode_id ? 'periode yatim: ' + r.periode_id : 'duplikat kode: ' + r.kode)) }}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div v-else class="text-xs text-emerald-600"><i class="fa-solid fa-circle-check"></i> Data bersih — tidak ada FK yatim / duplikat.</div>
-  </div>
-
-  <!-- E5 lampiran -->
-  <div v-if="!evaLoading && evaluasiTab==='lampiran' && evaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-paperclip text-sky-500"></i> E5 — Kelengkapan Lampiran {{ evaDataAktif.tahun }}</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-      <app-stat-card title="Dengan Lampiran" :value="evaDataAktif.dengan_lampiran" icon="fa-solid fa-paperclip" color="emerald"></app-stat-card>
-      <app-stat-card title="Tanpa Lampiran" :value="evaDataAktif.tanpa_lampiran" icon="fa-solid fa-link-slash" :color="evaDataAktif.tanpa_lampiran ? 'amber' : 'emerald'"></app-stat-card>
-      <app-stat-card title="Persentase" :value="evaDataAktif.pct + '%'" icon="fa-solid fa-percent" color="sky"></app-stat-card>
-    </div>
-    <div v-if="evaDataAktif.rincian.length" class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[120px]">Kode</th><th class="text-left py-2 px-2 min-w-[260px]">Judul</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in evaDataAktif.rincian" :key="r.id">
-            <td class="py-2 px-2 font-mono text-[11px]">{{ r.kode }}</td>
-            <td class="py-2 px-2 truncate max-w-[260px]">{{ r.judul }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div v-else class="text-xs text-emerald-600"><i class="fa-solid fa-circle-check"></i> Semua data punya lampiran.</div>
-  </div>
-
-  <!-- E6 RTL terbuka -->
-  <div v-if="!evaLoading && evaluasiTab==='rtl' && evaDataAktif" class="card space-y-4">
-    <h3 class="font-bold text-slate-700 dark:text-slate-200"><i class="fa-solid fa-list-check text-sky-500"></i> E6 — RTL Terbuka</h3>
-    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <app-stat-card title="Terbuka" :value="evaDataAktif.terbuka" icon="fa-solid fa-list-check" color="sky" subtext="baru + diproses"></app-stat-card>
-      <app-stat-card title="Lewat Deadline" :value="evaDataAktif.lewat_deadline" icon="fa-solid fa-triangle-exclamation" :color="evaDataAktif.lewat_deadline ? 'rose' : 'emerald'"></app-stat-card>
-    </div>
-    <div v-if="evaDataAktif.rincian.length" class="table-scroll">
-      <table class="w-full text-xs">
-        <thead class="text-slate-500 border-b"><tr><th class="text-left py-2 px-2 min-w-[240px]">Judul</th><th class="text-left py-2 px-2 min-w-[80px]">Sumber</th><th class="text-left py-2 px-2 min-w-[90px]">Status</th><th class="text-left py-2 px-2 min-w-[100px]">Due</th><th class="text-left py-2 px-2 min-w-[90px]">Tenggat</th></tr></thead>
-        <tbody class="divide-y">
-          <tr v-for="r in evaDataAktif.rincian" :key="r.id">
-            <td class="py-2 px-2 truncate max-w-[240px]">{{ r.judul }}</td>
-            <td class="py-2 px-2"><app-badge size="sm" :status="badgeSumberEvaluasi(r.sumber)" :label="r.sumber"></app-badge></td>
-            <td class="py-2 px-2"><app-badge size="sm" :status="badgeStatusRtl(r.status)" :label="r.status"></app-badge></td>
-            <td class="py-2 px-2">{{ fmtTgl(r.due_date) }}</td>
-            <td class="py-2 px-2" :class="r.lewat ? 'text-rose-600 font-bold' : 'text-slate-400'">{{ r.lewat ? 'LEWAT' : 'aman' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div v-else class="text-xs text-emerald-600"><i class="fa-solid fa-circle-check"></i> Tidak ada RTL terbuka.</div>
-  </div>
-
-  <app-empty-state v-if="!evaLoading && !evaDataAktif" icon="fa-solid fa-magnifying-glass-chart" title="Belum dimuat" subtitle="Pilih tab + klik Tampilkan"></app-empty-state>
+  <app-empty-state v-if="!evaLoading && !evaGridLoaded" icon="fa-solid fa-magnifying-glass-chart" title="Belum dimuat" subtitle="Klik Tampilkan 6 Evaluasi untuk memuat semua."></app-empty-state>
 
 </section>
