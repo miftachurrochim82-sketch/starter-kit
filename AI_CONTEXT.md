@@ -131,6 +131,24 @@ src/
 
 ---
 
+## 8b. 🔒 Kebijakan Freeze CDN STABIL v2.13.0 (2026-09-26)
+
+> **Keputusan:** CDN v2.9.2 (10 file & 31 opsi) + Starter-kit v2.13.0 dikunci **STABIL/FROZEN**. Jangan bolak-balik update CDN ↔ web app bisnis menunggu CDN sempurna — itu menghambat langkah ke depan.
+
+**Aturan:**
+1. **BEKU:** Tidak ada commit ke `frontend-cdn` dan tidak ada bump `@v2.9.2` dalam waktu dekat (minimal 1-2 bulan atau sampai ≥5 patch terkumpul).
+2. **Fitur mandiri app-side:** Jika web app bisnis ketemu error/kurang fitur, buat **di repo app itu sendiri** — bukan di CDN. Tandai jelas:
+   ```js
+   // CDN-FIX v2.13.0+1 — 2026-10-xx — alasan: filter laporan tidak reset — by: nama
+   // APP-PATCH 2026-10-xx — fitur ekspor PDF khusus si-data — tidak generik
+   ```
+3. **Kumpulkan:** Semua `// CDN-FIX` dicatat di `AI_CONTEXT.md` app ybs § Catatan Patch. Saat sudah ≥5 atau ada bug kritis, baru batch-merge jadi `frontend-cdn v2.14.0`.
+4. **Starter-kit tetap di v2.13.0** — app baru clone dari tag `v2.13.0`, bukan `@main`.
+
+**Kenapa:** Satu versi stabil yang bisa dipakai semua app (si-data, si-dokumen, si-kompetensi, si-platform, si-pelaporan semua sudah @v2.9.2) lebih berharga daripada CDN yang terus bergerak.
+
+---
+
 ## 8. Gaya kerja pemilik
 
 - Pemula teknis: bahasa sederhana, snippet utuh, analogi.

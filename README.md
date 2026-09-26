@@ -1,10 +1,10 @@
-# 🧰 STARTER-KIT WEB APP BISNIS (v2.12.0 — 5 master + 5 tabel + piramida 12/8/6/4 + dashboard 4+4+4)
+# 🧰 STARTER-KIT WEB APP BISNIS (v2.13.0 — 5 master + 5 tabel + piramida 12/8/6/4 + dashboard 4+4+4 — CDN STABIL)
 
 Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Trenggalek (SI-PLATFORM + CoreLib + Frontend CDN).
 
-> **Versi template**: **2.12.0** (2026-09-23) — redesign skema (keputusan user) + UIUX v2 (standar hasil audit si-dokumen).
+> **Versi template**: **2.13.0** (2026-09-26) — **CDN STABIL** — Grid 1 halaman (Laporan 2-tab 2-kolom + Analisa 2×4 + Evaluasi 2×3) + CDN v2.9.2 (10 file & 31 opsi STABIL) + CoreLib v2.4.0 pin 17.
 > **CoreLib**: pin **17** (v2.4.0 LIVE PASS 47) — util sadar-WIB + paginasi + pencarian + whitelist + C4-C8.
-> **CDN**: **`@v2.9.1`** — 10 FILE (1 CSS + 9 JS) & 31 OPSI (2026-09-22) — internal `"2.9.1"` — CoreLib v2.4.0 LIVE **pin 17** PASS 47. **Vue**: `3.5.42`.
+> **CDN**: **`@v2.9.2 STABIL — FROZEN`** — 10 FILE (1 CSS + 9 JS) & 31 OPSI — jsDelivr 200 OK (1 CSS+9 JS) — **BEKU sampai ada kebutuhan mendesak** — patch app-side pakai `// CDN-FIX` (lihat AI_CONTEXT § Kebijakan Freeze). **Vue**: `3.5.42`.
 > **Skema (BASELINE — FLEKSIBEL, tidak wajib)**: **5 master = 5 dimensi laporan** + **5 tabel inti = 10 sheet**. App bisnis bebas menambah/mengurangi sheet & handler sesuai keunikan domainnya.
 > **Handler**: **86** (config 6 + self 2 + dash 2 + simpeg 4 + master 15 + utama 4 + item 4 + lampiran 3 + approval 4 + RTL 12 + **laporan 12 + analisa 8 + evaluasi 6** + generic 2 + publik 2 + sistem 1 = 86; +2 native CoreLib = 88 aksi)
 > **Piramida output (REFERENSI — tidak kaku)**: **Laporan 12 · Analisa 8 · Evaluasi 6 · RTL 4 sumber = 30**.
@@ -29,7 +29,7 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 
 ---
 
-## 📦 Isi template (`src/` — 20 file) — v2.12.0
+## 📦 Isi template (`src/` — 20 file) — v2.13.0 STABIL
 
 ```
 src/
@@ -58,7 +58,7 @@ src/
 └── J_App.html                  # Bootstrap AppCore.create + menu 7 halaman + icon unik per halaman
 ```
 
-**Skema 10 sheet (baseline v2.12.0 — FLEKSIBEL, bukan kewajiban):**
+**Skema 10 sheet (baseline v2.13.0 — FLEKSIBEL, bukan kewajiban — STABIL):**
 - **Master (5)** — tiap sheet = 1 dimensi laporan ("per apa?"):
   `M_KATEGORI` (hierarki) · `M_JENIS` (+sifat periode) · `M_PERIODE` (tahun/bulan) · `M_SATUAN` · `M_LOKASI`
 - **Tabel (5)** — transaksi inti:
@@ -108,7 +108,7 @@ src/
 
 Setelah paste + `initDatabase()`:
 
-| Fungsi | Target v2.12.0 |
+| Fungsi | Target v2.13.0 STABIL |
 |---|---|
 | `testUtilsSelfCheck()` | Semua ✅ |
 | `testAppLogicSelfCheck()` | 86 handler ✅ |
@@ -182,6 +182,10 @@ si-NAMA-APP/
 | Cuma tanya konsep | AI_CONTEXT.md saja |
 
 ---
+
+## 📜 Changelog v2.13.0 (2026-09-26) — STABIL / FROZEN
+
+> **🔒 KEBIJAKAN FREEZE (keputusan 2026-09-26):** CDN v2.9.2 + Starter-kit v2.13.0 dikunci **STABIL**. Tidak ada update CDN/template dalam waktu dekat. Jika web app bisnis butuh perbaikan/fitur, buat **fitur mandiri app-side** dengan penanda `// CDN-FIX v2.13.0+1 — alasan` atau `// APP-PATCH` di file app tersebut — **jangan ubah CDN**. Koleksi patch dikumpulkan, baru di-merge ke CDN berikutnya (v2.14.0) jika sudah ≥5 patch atau ada bug kritis. Ini menghentikan bolak-balik CDN ↔ app.
 
 ## 📜 Changelog v2.12.0 (2026-09-23)
 
