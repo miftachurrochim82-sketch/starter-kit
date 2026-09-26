@@ -23,7 +23,7 @@ Template siap pakai untuk membuat **aplikasi web bisnis baru** di ekosistem Tren
 | Dispatcher + fail-closed | **CoreLib.dispatchAction** | `handleAction(payload)` di `02_AppLogic.gs` |
 | Util tanggal sadar-WIB | **CoreLib** (v2.3.0) | `todayIsoLocal()`, `dateKey10()` — JANGAN `todayIso()` (UTC) |
 | Audit HTTP ke SI-PLATFORM | `00_Utils.gs` → `audit_()` | wrapper — panggil `audit_(actor, action, type, id, ok, msg)` |
-| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.9.1 (10 file (1 CSS + 9 JS) & 31 opsi)** | 15+ komponen `app-*` — auto registrasi |
+| UI (sidebar, header, tabel, modal, filter, chart, badge, dll.) | **CDN kit v2.9.2 (10 file (1 CSS + 9 JS) & 31 opsi)** | 15+ komponen `app-*` — auto registrasi |
 | RTL / Tindak Lanjut (puncak piramida) | **Generik R1-R4** | T_TINDAK_LANJUT + 12 handler + FSM + generate dari E1/E2/E3 + manual |
 | User/role/permission/notifikasi/file | **si-platform** | tidak perlu sheet lokal |
 
@@ -42,7 +42,7 @@ src/
 ├── 99_TestSuite.gs             # Test suite (library + adopsi + routing 86 + domain + smoke piramida + dashboard 4+4+4)
 │
 │  Frontend (10):
-├── Index.html                  # Shell tipis CDN @v2.9.1 (10 file — 1 CSS + 9 JS & 31 opsi) + CSS Tailwind TER-COMPILE (bukan Play CDN) + tema dinamis <?!= getThemeCss() ?> (6 preset) + <app-theme-picker> + scope Saya/Semua (9 view incl. Pengaturan)
+├── Index.html                  # Shell tipis CDN @v2.9.2 (10 file — 1 CSS + 9 JS & 31 opsi) + CSS Tailwind TER-COMPILE (bukan Play CDN) + tema dinamis <?!= getThemeCss() ?> (6 preset) + <app-theme-picker> + scope Saya/Semua (9 view incl. Pengaturan)
 ├── V_Dashboard.html            # Dashboard ukuran sedang: 4 kartu + 4 chart + 4 panel (server-side)
 ├── V_Utama.html                # Transaksi CRUD — 5 filter + tahun select + paginasi server-side + nama bukan ID
 ├── V_Laporan.html              # 12 tab laporan (L1-L12) — nama, bukan ID
@@ -122,12 +122,12 @@ Satu pintu: `runAllTestsStarterKit()`.
 
 ---
 
-## 📏 Aturan wajib (kontrak ekosistem) — v2.12.0 = CDN v2.9.1 + CoreLib v2.4.0 A+B
+## 📏 Aturan wajib (kontrak ekosistem) — v2.13.0 = CDN v2.9.2 + CoreLib v2.4.0 A+B
 
 1. CoreLib first — cek katalog sebelum util baru.
 2. Tolerant reader SIMPEG.
 3. Tag kit berpasangan `<app-x></app-x>`, jangan `/>`.
-4. Pin CDN eksplisit `@v2.9.1` (10 file: 1 CSS + 9 JS) + CoreLib pin **17**.
+4. Pin CDN eksplisit `@v2.9.2` (10 file: 1 CSS + 9 JS) + CoreLib pin **17**.
 5. Contract-check sebelum salin.
 6. Tanggal: `CoreLib.todayIsoLocal()` / `dateKey10()` (WIB), jangan `todayIso()`.
 7. Setiap handler baru → daftarkan di `actionLevels` (01) — fail-closed.
@@ -221,7 +221,7 @@ si-NAMA-APP/
 - **J_Actions**: tambah simpanRtl/hapusRtl/openRtlEdit/openRtlStatus/ubahStatusRtl
 - **J_App**: menu 5 item (dashboard, rtl, laporan, utama, master) + brand v2.10.0
 - **Index.html**: tema #0369a1 locked + include V_Rtl + V_Utama + V_Master + V_Laporan + filter-bar-analytics + progress-track CSS (kandidat CDN C1-C3 lokal)
-- **CDN**: @v2.9.1 (10 file — 1 CSS + 9 JS & 31 opsi, 20 .min sinkron) + 6 preset tema dinamis + AppCore.getMyScope() — sesuai persetujuan user 2026-09-23
+- **CDN**: @v2.9.2 (10 file — 1 CSS + 9 JS & 31 opsi, 20 .min sinkron) + 6 preset tema dinamis + AppCore.getMyScope() — sesuai persetujuan user 2026-09-23
 
 ---
 
